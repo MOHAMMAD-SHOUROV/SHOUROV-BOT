@@ -1,5 +1,5 @@
 module.exports = async ({ api, event }) => {
-  const logger = require('./Shourov/catalogs/Shourovc.js')
+  const logger = require('./Shourov/catalogs/ShourovC.js')
   
   const configCustom = {
     autosetbio: {
