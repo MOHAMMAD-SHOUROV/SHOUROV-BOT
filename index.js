@@ -24,6 +24,17 @@ const cookiePath = path.join(__dirname, "config", "appstate.json");
     if (err) return console.error(chalk.red("[❌] Login Failed:"), err);
     console.log(chalk.green("[SHOUROV-BOT] Login Successful!"));
 
+    // ====== এখানে সব গ্রুপ থ্রেড আইডি লোড কর ======
+    api.getThreadList(100, null, ["INBOX"], (err, data) => {
+      if (err) return console.error("Error loading thread list:", err);
+      global.data = global.data || {};
+      global.data.allThreadID = data
+        .filter(thread => thread.isGroup && thread.threadID)
+        .map(thread => thread.threadID);
+      console.log(`[SHOUROV-BOT] Loaded ${global.data.allThreadID.length} group thread IDs`);
+    });
+    // ================================================
+
     // === Global Variables ===
     global.api = api;
     global.commands = new Map();
