@@ -17,6 +17,7 @@
     "image-downloader": "^4.0.3",
     "jimp": "^0.22.10",
     "moment-timezone": "^0.5.43",
+    "nayan-videos-downloader",
     "node-fetch": "^2.7.0"
   }
 }
