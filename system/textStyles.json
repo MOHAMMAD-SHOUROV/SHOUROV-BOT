@@ -1,0 +1,8 @@
+{
+  "serif": { "prefix": "/", "suffix": "" },
+  "sans": { "prefix": "", "suffix": "" },
+  "italic": { "prefix": "_", "suffix": "_" },
+  "italic-sans": { "prefix": "_", "suffix": "_" },
+  "medieval": { "prefix": "✠", "suffix": "✠" },
+  "normal": { "prefix": "", "suffix": "" }
+}
