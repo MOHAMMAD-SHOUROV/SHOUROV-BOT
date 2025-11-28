@@ -1,0 +1,23 @@
+{
+  "name": "shourov-bot",
+  "version": "1.0.0",
+  "description": "ALIHSAN SHOUROV-BOT - Facebook Messenger Chatbot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["facebook", "messenger", "chatbot"],
+  "author": "ALIHSAN SHOUROV",
+  "license": "MIT",
+  "dependencies": {
+    "facebook-chat-api": "^1.7.0",
+    "express": "^4.18.2",
+    "axios": "^1.6.2",
+    "node-fetch": "^2.6.7",
+    "aes-js": "^3.1.2",
+    "form-data": "^4.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

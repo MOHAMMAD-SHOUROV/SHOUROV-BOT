@@ -1,0 +1,7 @@
+node_modules/
+fbstate.json
+.env
+*.log
+.DS_Store
+*.git.zip
+*.local.zip
