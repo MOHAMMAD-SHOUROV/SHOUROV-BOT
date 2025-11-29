@@ -2,6 +2,7 @@ const fs = require('fs');
 const login = require('facebook-chat-api');
 const express = require('express');
 
+global.nayanConfig = require("../../shourov.json");
 const config = JSON.parse(fs.readFileSync('../../config.json', 'utf8'));
 const { loadCommands, loadEvents } = require('../../shourov/loader');
 
