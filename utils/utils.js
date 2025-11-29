@@ -29,7 +29,7 @@ const { writeFileSync, createReadStream, unlinkSync, promises: fsPromises, exist
 const aes = require('aes-js');
 const { v4: uuidv4 } = require('uuid');
 
-const CACHE_DIR = resolve(__dirname, '..', 'shourov', 'commands', 'cache');
+const CACHE_DIR = resolve(__dirname,'../../shourov', 'commands', 'cache');
 // ensure cache dir exists
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch (e) { /* ignore */ }
 
