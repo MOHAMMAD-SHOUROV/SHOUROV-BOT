@@ -1,6 +1,11 @@
-{
-  "version": "1.0.0",
-  "releaseDate": "2025-11-22",
-  "author": "ALIHSAN SHOUROV",
-  "botName": "SHOUROV-BOT"
-}
+[
+	{
+		"version": "5.2.2",
+		"files": {
+			"shourov/commands/auto.js": ""
+		},
+                "deleteFiles": {
+                        "shourov/commands/brainly.js": ""
+    }
+  }
+]
