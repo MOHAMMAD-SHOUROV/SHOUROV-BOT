@@ -1,3 +1,4 @@
+// index.js
 const fs = require('fs');
 const path = require('path');
 // login module (local - project likely has this)
@@ -5,72 +6,38 @@ const login = require('./shourovbot/system/login');
 // express only used by uptime server (kept for completeness)
 const express = require('express');
 
+// Paths
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const FBSTATE_PATH = path.join(__dirname, 'fbstate.json');
+const COMMANDS_DIR = path.join(__dirname, 'commands');       // adjust if commands live elsewhere
+const EVENTS_DIR = path.join(__dirname, 'events');           // adjust if events live elsewhere
 
-// --- helper loaders (if you already have loaders, you can replace these) ---
-function loadCommands(dir = path.join(__dirname, 'shourov', 'commands')) {
-    const map = new Map();
-    try {
-        if (!fs.existsSync(dir)) return map;
-        const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
-        for (const f of files) {
-            try {
-                const cmd = require(path.join(dir, f));
-                const name = cmd.name || path.basename(f, '.js');
-                map.set(name, cmd);
-            } catch (e) {
-                console.error(Failed to load command ${f}:, e.message);
-            }
-        }
-    } catch (e) {
-        console.error('loadCommands error:', e.message);
-    }
-    return map;
-}
-
-function loadEvents(dir = path.join(__dirname, 'shourov', 'events')) {
-    const arr = [];
-    try {
-        if (!fs.existsSync(dir)) return arr;
-        const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
-        for (const f of files) {
-            try {
-                const ev = require(path.join(dir, f));
-                // event should export something like { name, run }
-                arr.push(ev);
-            } catch (e) {
-                console.error(Failed to load event ${f}:, e.message);
-            }
-        }
-    } catch (e) {
-        console.error('loadEvents error:', e.message);
-    }
-    return arr;
-}
-// -------------------------------------------------------------------------
-
-// read config
+// --- Load config safely ---
 let config;
 try {
-    if (!fs.existsSync(CONFIG_PATH)) throw new Error('config.json not found');
-    config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+  config = JSON.parse(raw);
+  console.log('✓ Loaded config.json');
 } catch (err) {
-    console.error('❌ Error reading config.json:', err.message);
-    process.exit(1);
+  console.error('❌ Failed to load config.json:', err.message);
+  process.exit(1);
 }
+
+// Start uptime server (serves public/ and provides /health)
+const startUptimeServer = require('./server/uptime');
+startUptimeServer(config);
 
 console.log('═══════════════════════════════════════════');
 console.log('   SHOUROV-BOT - Facebook Messenger Bot   ');
 console.log('═══════════════════════════════════════════');
 
-// Protection checks
+// Protection checks (keep author's protection)
 if (config.author !== "ALIHSAN SHOUROV") {
     console.error('❌ CRITICAL ERROR: Author protection violated!');
     process.exit(1);
 }
 
-if (String(config.ownerId) !== "100071971474157") {
+if (config.ownerId !== "100071971474157") {
     console.error('❌ CRITICAL ERROR: Owner ID protection violated!');
     process.exit(1);
 }
@@ -79,107 +46,182 @@ console.log('✓ Author protection: PASSED');
 console.log('✓ Owner ID protection: PASSED');
 console.log('');
 
-// Start uptime server (expects ./server/uptime.js to export a function)
-const startUptimeServerPath = path.join(__dirname, 'server', 'uptime.js');
-if (fs.existsSync(startUptimeServerPath)) {
-    const startUptimeServer = require(startUptimeServerPath);
-    try {
-        startUptimeServer(config);
-        console.log('✓ Uptime server started (server/uptime.js)');
-    } catch (e) {
-        console.warn('⚠  Could not start uptime server:', e.message);
+// ----------------- Simple loaders -----------------
+// These are minimal loaders. If you already have loaders, replace these with yours.
+
+function loadCommands(dir = COMMANDS_DIR) {
+  const commands = new Map();
+
+  if (!fs.existsSync(dir)) {
+    console.warn(`⚠️ Commands directory not found: ${dir} — returning empty commands map`);
+    return commands;
+  }
+
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const full = path.join(dir, file);
+    // support nested folders if needed
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) {
+      // recursively load js files in subfolders
+      const subFiles = fs.readdirSync(full);
+      for (const sf of subFiles) {
+        if (!sf.endsWith('.js')) continue;
+        try {
+          const cmd = require(path.join(full, sf));
+          if (cmd && cmd.name) commands.set(cmd.name, cmd);
+        } catch (e) {
+          console.error(`Failed loading command ${sf}:`, e);
+        }
+      }
+      continue;
     }
-} else {
-    console.log('ℹ  server/uptime.js not found — skipping uptime server start');
+
+    if (!file.endsWith('.js')) continue;
+    try {
+      const cmd = require(full);
+      if (cmd && cmd.name) {
+        commands.set(cmd.name, cmd);
+      } else {
+        // try filename as command name fallback
+        const name = path.basename(file, '.js');
+        commands.set(name, cmd);
+      }
+    } catch (e) {
+      console.error(`Failed loading command ${file}:`, e);
+    }
+  }
+
+  return commands;
 }
 
-// Load fbstate
-let appState;
+function loadEvents(dir = EVENTS_DIR) {
+  const events = [];
+
+  if (!fs.existsSync(dir)) {
+    console.warn(`⚠️ Events directory not found: ${dir} — returning empty events list`);
+    return events;
+  }
+
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    if (!file.endsWith('.js')) continue;
+    const full = path.join(dir, file);
+    try {
+      const ev = require(full);
+      // expect ev to export { name, run, once? }
+      if (ev && typeof ev.run === 'function') {
+        events.push(ev);
+      } else {
+        console.warn(`Event ${file} does not export run() — skipping`);
+      }
+    } catch (e) {
+      console.error(`Failed loading event ${file}:`, e);
+    }
+  }
+
+  return events;
+}
+
+// If you have custom loaders in your project, replace above functions with:
+// const { loadCommands, loadEvents } = require('./path/to/your/loaders');
+// const commands = loadCommands();
+// const events = loadEvents();
+
+const commands = loadCommands();
+const events = loadEvents();
+
+console.log(`✓ Loaded ${commands.size} commands`);
+console.log(`✓ Loaded ${events.length} events`);
+
+// ----------------- Load fbstate -----------------
+let appState = undefined;
 try {
-    if (!fs.existsSync(FBSTATE_PATH)) throw new Error('fbstate.json not found');
+  if (fs.existsSync(FBSTATE_PATH)) {
     appState = JSON.parse(fs.readFileSync(FBSTATE_PATH, 'utf8'));
-    console.log('✓ Facebook state loaded');
+    console.log('✓ Facebook state loaded (fbstate.json)');
+  } else {
+    console.warn('⚠️ fbstate.json not found. A fresh login will be required.');
+  }
 } catch (err) {
-    console.error('❌ Error loading fbstate.json:', err.message);
-    process.exit(1);
+  console.error('❌ Error loading fbstate.json:', err.message);
+  // don't exit; login may still proceed (but may require credentials)
 }
 
-// Start Facebook login
-// login should be a function that accepts ({appState}, callback) like facebook-chat-api
-if (typeof login !== 'function') {
-    console.error('❌ login module does not export a function at ./shourovbot/system/login');
-    process.exit(1);
-}
+// ----------------- Start Facebook login -----------------
+login({ appState }, (err, api) => {
+  if (err) {
+    console.error('❌ Facebook login error:', err);
+    return;
+  }
 
-login({ appState }, async (err, api) => {
-    if (err) {
-        console.error('❌ Facebook login error:', err);
-        return;
-    }
+  console.log('✓ Facebook login successful');
 
-    console.log('✓ Facebook login successful');
-
-    // set default options (some options depend on API implementation)
-    try {
-        if (api.setOptions && typeof api.setOptions === 'function') {
-            api.setOptions({
-                listenEvents: true,
-                selfListen: false,
-                updatePresence: true,
-                forceLogin: true,
-                mqttDisabled: false
-            });
-        }
-    } catch (e) {
-        console.warn('⚠  Could not set api options:', e.message);
-    }
-
-    // load commands/events using helper functions above (they scan shourov/commands and shourov/events)
-    const commands = loadCommands();
-    const events = loadEvents();
-
-    console.log(✓ Loaded ${commands.size} commands);
-    console.log(✓ Loaded ${events.length} events);
-    console.log('🤖 Bot is now online and ready!');
-    console.log('═══════════════════════════════════════════');
-
-    // Listener / long polling
-    if (!api.listen || typeof api.listen !== 'function') {
-        console.error('❌ api.listen is not available on the provided login API');
-        return;
-    }
-
-    api.listen(async (listenErr, event) => {
-        if (listenErr) return console.error('Listen error:', listenErr);
-
-        // Run event handlers (simple loop)
-        for (const eventHandler of events) {
-            try {
-                if (eventHandler && typeof eventHandler.run === 'function') {
-                    await eventHandler.run({ event, api, config, commands });
-                }
-            } catch (error) {
-                console.error(Error in event ${eventHandler && eventHandler.name}:, error);
-            }
-        }
-
-        // Message handler (try shourov/events/message.js first)
-        if (event.type === 'message' || event.type === 'message_reply') {
-            const messageHandlerPath = path.join(__dirname, 'shourov', 'events', 'message.js');
-            try {
-                if (!fs.existsSync(messageHandlerPath)) {
-                    console.warn('⚠  Message handler not found at shourov/events/message.js — skipping');
-                    return;
-                }
-                const messageHandler = require(messageHandlerPath);
-                if (messageHandler && typeof messageHandler.run === 'function') {
-                    await messageHandler.run({ event, api, config, commands });
-                } else {
-                    console.warn('⚠  Message handler does not export run()');
-                }
-            } catch (error) {
-                console.error('Error in message handler:', error);
-            }
-        }
+  // setOptions as in your sample
+  try {
+    api.setOptions({
+      listenEvents: true,
+      selfListen: false,
+      updatePresence: true,
+      forceLogin: true,
+      mqttDisabled: false // note: comment said not needed, but kept for backward compatibility
     });
+  } catch (e) {
+    console.warn('⚠️ api.setOptions failed or api not support setOptions:', e.message || e);
+  }
+
+  console.log('🤖 Bot is now online and ready!');
+  console.log('═══════════════════════════════════════════');
+
+  // Run "once" events first (if event object has once property)
+  for (const ev of events.filter(e => e.once)) {
+    try {
+      if (typeof ev.run === 'function') ev.run({ api, config, commands, event: null });
+    } catch (e) {
+      console.error(`Error running once event ${ev.name || '<unnamed>'}:`, e);
+    }
+  }
+
+  // Long-poll / listen loop
+  if (typeof api.listen !== 'function') {
+    console.error('❌ api.listen is not a function. Cannot start event listener.');
+    return;
+  }
+
+  api.listen(async (err, event) => {
+    if (err) {
+      console.error('Listen error:', err);
+      return;
+    }
+
+    // Run all events handlers
+    for (const eventHandler of events) {
+      try {
+        // skip once-only handlers (they already ran)
+        if (eventHandler.once) continue;
+        await eventHandler.run({ event, api, config, commands });
+      } catch (error) {
+        console.error(`Error in event ${eventHandler.name || '<unnamed>'}:`, error);
+      }
+    }
+
+    // Message handler (keep existing path if present)
+    if (event && (event.type === 'message' || event.type === 'message_reply')) {
+      try {
+        // adjust path if your project has different location
+        const messageHandlerPath = path.join(__dirname, 'shourov', 'events', 'message');
+        const messageHandler = require(messageHandlerPath);
+        if (messageHandler && typeof messageHandler.run === 'function') {
+          await messageHandler.run({ event, api, config, commands });
+        } else {
+          console.warn('⚠️ message handler did not export run()');
+        }
+      } catch (error) {
+        console.error('Error in message handler:', error);
+      }
+    }
+  });
+
+  // Optional: save fbstate periodically if api exposes getAppState or similar
+  // e.g. fs.writeFileSync(FBSTATE_PATH, JSON.stringify(api.getAppState(), null, 2));
 });
