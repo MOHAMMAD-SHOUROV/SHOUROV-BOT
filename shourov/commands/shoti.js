@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'shoti', aliases: ['photo'], role: 0, description: 'Take photo' }, run: async ({ api, event }) => { api.sendMessage('📷 Photo\n\n📸 Smile for camera!', event.threadID); } };

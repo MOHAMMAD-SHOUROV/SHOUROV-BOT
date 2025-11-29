@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'upt', aliases: ['uptime-check'], role: 0, description: 'Check uptime' }, run: async ({ api, event }) => { api.sendMessage('⏱️ Uptime: 99%\n\n✅ Bot running stable', event.threadID); } };

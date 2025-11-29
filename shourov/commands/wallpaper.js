@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'wallpaper', aliases: ['wall'], role: 0, description: 'Wallpaper finder' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /wallpaper <query>', event.threadID); api.sendMessage(`🖼️ Wallpaper: ${args.join(' ')}`, event.threadID); } };

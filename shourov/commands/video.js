@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'video', aliases: ['movie'], role: 0, description: 'Video player' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /video <url>', event.threadID); api.sendMessage(`🎬 Playing video...`, event.threadID); } };

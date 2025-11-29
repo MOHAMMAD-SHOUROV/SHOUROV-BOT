@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'toilet', aliases: ['bathroom'], role: 0, description: 'Funny mention' }, run: async ({ api, event }) => { const mentions = Object.keys(event.mentions); const name = mentions.length > 0 ? event.mentions[mentions[0]].replace('@', '') : 'someone'; api.sendMessage(`🚽 ${name}\n\n😂 Funny message`, event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'tictactoe', aliases: ['ttt', 'tic-tac-toe'], role: 0, description: 'Tic tac toe game' }, run: async ({ api, event }) => { api.sendMessage('🎮 Tic Tac Toe\n\nX | O | X\n---------\nO | X | O\n---------\n  | X |  \n\n✅ X wins!', event.threadID); } };

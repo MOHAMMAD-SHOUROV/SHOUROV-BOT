@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'user', aliases: ['profile'], role: 0, description: 'User profile' }, run: async ({ api, event }) => { api.sendMessage('👤 User Profile\n\n📊 Stats loaded', event.threadID); } };

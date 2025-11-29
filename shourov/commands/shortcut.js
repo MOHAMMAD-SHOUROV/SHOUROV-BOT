@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'shortcut', aliases: ['quick'], role: 0, description: 'Keyboard shortcut' }, run: async ({ api, event }) => { api.sendMessage('⌨️ Shortcuts\n\n💡 Quick commands available', event.threadID); } };

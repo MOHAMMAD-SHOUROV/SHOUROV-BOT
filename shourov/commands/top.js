@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'top', aliases: ['best', 'top-list'], role: 0, description: 'Top members' }, run: async ({ api, event }) => { api.sendMessage('🏆 Top Members\n\n1. Member 1\n2. Member 2\n3. Member 3', event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'sura', aliases: ['quran', 'chapter'], role: 0, description: 'Quranic chapter' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /sura <number>', event.threadID); api.sendMessage(`📖 Surah ${args[0]}\n\n🕌 Quranic chapter`, event.threadID); } };

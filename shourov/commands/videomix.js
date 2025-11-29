@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'videomix', aliases: ['video-mix'], role: 0, description: 'Video mixing' }, run: async ({ api, event }) => { api.sendMessage('🎞️ Video Mix\n\n🎨 Create compilations', event.threadID); } };

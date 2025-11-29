@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'tools', aliases: ['utilities'], role: 0, description: 'Utility tools' }, run: async ({ api, event }) => { api.sendMessage('🛠️ Tools\n\n⚙️ Calculator\n📊 Converter\n🔍 Search\n\n💡 Useful utilities!', event.threadID); } };

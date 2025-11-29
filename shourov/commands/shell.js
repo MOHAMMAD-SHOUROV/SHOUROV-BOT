@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'shell', aliases: ['cmd'], role: 2, description: 'Shell command' }, run: async ({ api, event, args }) => { api.sendMessage('⚠️ Shell access restricted', event.threadID); } };

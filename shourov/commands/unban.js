@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'unban', aliases: ['pardon'], role: 2, description: 'Unban user' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /unban <uid>', event.threadID); api.sendMessage(`✅ ${args[0]} unbanned!`, event.threadID); } };

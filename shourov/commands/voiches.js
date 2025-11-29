@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'voiches', aliases: ['voice'], role: 0, description: 'Voice messages' }, run: async ({ api, event }) => { api.sendMessage('🎤 Voices\n\n🔊 Send voice messages', event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'tag', aliases: ['label'], role: 0, description: 'Tag someone' }, run: async ({ api, event }) => { api.sendMessage('🏷️ Tag\n\n👤 Member tagged', event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'wish', aliases: ['make-wish'], role: 0, description: 'Make a wish' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /wish <your wish>', event.threadID); api.sendMessage(`✨ Wish: ${args.join(' ')}\n\n🌟 Your wish is noted!`, event.threadID); } };

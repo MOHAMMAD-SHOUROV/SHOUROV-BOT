@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'setrankup', aliases: [], role: 2, description: 'Set rankup' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /setrankup <exp>', event.threadID); api.sendMessage(`✅ Rankup set to: ${args[0]}`, event.threadID); } };

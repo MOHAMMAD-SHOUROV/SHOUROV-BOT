@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'yaar', aliases: ['friend', 'buddy'], role: 0, description: 'Friendly greeting' }, run: async ({ api, event }) => { api.sendMessage('🤝 Yaar!\n\n👫 My buddy!\n\n😊 What\'s up?', event.threadID); } };

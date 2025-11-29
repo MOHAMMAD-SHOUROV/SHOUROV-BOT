@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'setting', aliases: ['settings', 'config'], role: 1, description: 'Group settings' }, run: async ({ api, event }) => { api.sendMessage('⚙️ Settings\n\n🔧 Configure group options', event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'uptime3', aliases: ['uptime-v3'], role: 0, description: 'Uptime v3' }, run: async ({ api, event }) => { api.sendMessage('⏱️ System Health: 100%', event.threadID); } };

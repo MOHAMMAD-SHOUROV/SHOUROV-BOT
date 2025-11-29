@@ -1,0 +1,77 @@
+Now add the following commands inside shourov/command:
+  173.groupadmin.js
+           174.groupemoji.js
+           175.groupimage.js
+           176.groupname.js
+           177.hd.js
+           178.help.js
+           179.helpall.js
+           180.hi.js
+           181.hot.js(hot video )
+           182.hug.js
+           183.hugv2.js
+           184.hugv3.js
+           185.idst.js
+           186.imagesearch.js
+           187.imagine.js
+           189.imgur.js
+           190.in.js
+           191.inbox.js
+           192.info.js
+           193.info2.js
+           194.infobox.js
+           195.infocardv7.js
+           196.infoip.js
+           197.infosite.js
+           198.ip.js
+           199.islamic.js
+           200.islamick.js
+           201iss.js
+           202.join.js
+           203.kanna.js
+           204.kick.js
+           205.kiss.js
+           206.language.js
+           207lexi.js
+           208.listadmin.js
+           209.listbanbybot.js
+           210.listbox.js
+           211.listfriend.js
+           213.load.js
+           214.log.js
+           215.logout.js
+           216.love.js
+           217.loves.js
+           218.lyrics.js
+           219.married.js
+           220.marriedv2.js
+           221.marry.js
+           222.math.js
+           223.mathematics.js
+           224.mbbank.js
+           225.meme.js
+           226.meno.js
+           227.mention.js
+           228.menu.js
+           229.minari.js
+           230.mix.js
+           231.mlstalk.js
+           232.moon.js
+           234.mp3.js
+           235.music.js
+           236.mycoins.js
+           237.namaz-time.js
+           238.newbox.js
+           239.nhentai.js
+           240.night.js
+           241.numberinfo.js(Bangladesh all number)
+           244.out.js
+           245.outall.js
+           246.outbox.js
+           247.owner.js
+           248.pair.js
+Each command must follow:
+module.exports = {
+  config: { name, aliases, role, description },
+  run: async ({ api, event, args }) => { ... }
+};	   

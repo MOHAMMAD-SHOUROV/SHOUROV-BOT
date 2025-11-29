@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'xavier', aliases: ['character'], role: 0, description: 'Character reference' }, run: async ({ api, event }) => { api.sendMessage('🧑 Xavier\n\n✨ Cool character\n\n😎 Legend!', event.threadID); } };

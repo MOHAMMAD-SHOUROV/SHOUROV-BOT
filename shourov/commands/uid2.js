@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'uid2', aliases: ['user-id-v2'], role: 0, description: 'Get user ID v2' }, run: async ({ api, event }) => { api.sendMessage(`🆔 User ID: ${event.senderID}`, event.threadID); } };

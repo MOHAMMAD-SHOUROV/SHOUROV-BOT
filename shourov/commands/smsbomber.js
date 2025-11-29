@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'smsbomber', aliases: [], role: 2, description: '⚠️ Disabled - Illegal' }, run: async ({ api, event }) => { api.sendMessage('⚠️ This command is disabled.\n\n🔒 SMS bombing is illegal', event.threadID); } };

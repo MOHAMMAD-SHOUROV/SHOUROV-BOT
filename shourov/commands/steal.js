@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'steal', aliases: ['take'], role: 0, description: 'Steal something' }, run: async ({ api, event }) => { const mentions = Object.keys(event.mentions); const name = mentions.length > 0 ? event.mentions[mentions[0]].replace('@', '') : 'someone'; api.sendMessage(`🤐 Stole from ${name}!\n\n😂 Got caught!`, event.threadID); } };

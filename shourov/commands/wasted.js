@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'wasted', aliases: ['gta-death'], role: 0, description: 'GTA wasted' }, run: async ({ api, event }) => { api.sendMessage('💀 WASTED\n\n💥 Game Over!', event.threadID); } };

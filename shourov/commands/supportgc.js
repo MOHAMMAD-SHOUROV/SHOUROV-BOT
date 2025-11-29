@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'supportgc', aliases: ['support'], role: 0, description: 'Support group' }, run: async ({ api, event }) => { api.sendMessage('🆘 Support Group\n\n💪 We\'re here to help\n\n📞 Contact us!', event.threadID); } };

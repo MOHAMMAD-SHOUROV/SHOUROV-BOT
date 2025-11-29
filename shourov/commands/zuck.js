@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'zuck', aliases: ['mark', 'facebook-ceo'], role: 0, description: 'Mark Zuckerberg info' }, run: async ({ api, event }) => { api.sendMessage('👨‍💼 Mark Zuckerberg\n\n💻 Facebook Creator\n\n🌐 Tech Pioneer!', event.threadID); } };

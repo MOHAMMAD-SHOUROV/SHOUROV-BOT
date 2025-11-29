@@ -1,0 +1,168 @@
+I want you to create a full Node.js Facebook Messenger chatbot project from scratch.
+
+Use these exact requirements:
+
+1. Bot name: ALIHSAN SHOUROV-BOT
+2. Prefix: /
+3. Author (hard-protected): "ALIHSAN SHOUROV"
+   - There must be a protection: if config.author is not exactly "ALIHSAN SHOUROV", the bot must immediately stop with an error.
+4. facebook-chat-api must be used with listenMqtt for receiving events.
+5. Project structure must be:
+   -shourov.md
+   -modifier.js
+   -update.js
+   -replit.nix
+   -virsion.json
+   - index.js
+   - config.json
+   - fbstate.json (dummy, I will paste my real fbstate/cookie later)
+   - server/uptime.js
+   - shourov/
+       - loader.js
+       - events/
+           - message.js
+           - antibotname.js
+           - antichangeinfogroup.js
+           - antiout.js
+           - join.js
+           - leave.js
+           - logs.js
+       - commands/
+          1. /fbdl – Facebook video downloader
+          2. /ytmp4 – YouTube MP4 downloader
+           3. /ytmp3 – YouTube MP3 downloader
+           4. /userinfo – user profile info
+           5. /groupinfo – group analytics
+           6. /ban system – add/remove/list banned                                                                                           users
+           7. /aiimg – AI image generator
+           8. /gpt – AI text command
+           9. /lyrics – song lyrics search
+           10. /stalk – Facebook user stalker
+           11. /ss – website screenshot
+           12. /anime – random anime image
+           13. /meme – random meme
+           14. /weather – city weather
+           15. /calc – calculator
+           16. /reminder – reminder system
+           17. /short – URL shortener
+           18. /translate – language translator
+           19. /currency – currency converter
+           20. /hack – fun fake hacking progress
+           21. /love – love percentage
+           22. /rank – group message ranking
+           23. /tts – text to speech voice output
+           24. /wiki – wikipedia search
+           25. /uptime – bot running time
+           26.ping.js
+           27. help.js
+           28.about.js
+           29.ai.js
+All commands must follow the same command system and role system.
+
+6. Command system:
+   - Commands live in shourov/commands
+   - Each command is a separate JS file exporting:
+     - config: { name, aliases, role, description }
+     - run(context)
+   - Roles:
+     - 0 = normal user
+     - 1 = admin
+     - 2 = owner
+
+7. Admin / Owner system:
+   - My Facebook UID is: 100071971474157
+   - This must be the ONLY owner/admin/operator.
+   - In config.json, set:
+       - ownerId: "100071971474157"
+       - admins: ["100071971474157"]
+       - operators: ["100071971474157"]
+   - Add protection:
+       - If config.ownerId !== "100071971474157", the bot must exit with an error.
+   - Commands with role >= 1 must only be usable by this UID.
+
+8. Basic commands:
+   - /ping → reply "Pong" with latency info
+   - /help → list all commands with short descriptions
+   - /about → show bot name, prefix, author, and ownerId
+   - /ai → simple AI chat using a free HTTP API (no API key), e.g. Affiliate+ chatbot API
+
+9. Events system:
+   - message.js: main dispatcher, parse prefix, load commands, check roles, run commands
+   - antibotname.js: prevent changing bot’s name or group title if the changer is not owner
+   - antichangeinfogroup.js: stub to prevent changing emoji/theme (basic implementation is enough)
+   - antiout.js: if a user leaves the group, automatically add them back (except bot itself or owner)
+   - join.js: send a welcome message when someone joins
+   - leave.js: send a goodbye message when someone leaves (if kicked)
+   - logs.js: log important events to console
+
+10. Config file: 
+The config.json will make the entire file and will add the same
+   - Create config.json with at least:
+     {
+       "botName": "SHOUROV-BOT",
+       "prefix": "/",
+       "author": "Shourov Islam",
+       "ownerId": "100071971474157",
+       "admins": ["100071971474157"],
+       "operators": ["100071971474157"],
+       "port": 3000
+     }
+
+11. fbstate.json:
+   - Create a dummy fbstate.json file with [] so the project has the file.
+   - index.js will load fbstate.json as appState for facebook-chat-api login.
+   - Later I will paste my real fbstate (cookie-based) content.
+
+12. index.js:
+   - Load config.json and fbstate.json
+   - Enforce:
+       - if (config.author !== "ALIHSAN SHOUROV") → console.error and process.exit(1)
+       - if (config.ownerId !== "100071971474157") → console.error and process.exit(1)
+   - Start uptime server from server/uptime.js using Express.
+   - Login with facebook-chat-api using appState.
+   - Set api options with listenEvents + listenMqtt.
+   - Use shourov/loader.js to load commands and events.
+   - For each incoming event:
+       - First pass to events (join/leave/antiout/etc).
+       - Then, for message-type events, pass to message.js to handle commands.
+
+13. Loader:
+   - shourov/loader.js must:
+       - Load all command files from shourov/commands into a Map (name + aliases).
+       - Load all event files from shourov/events (except message.js) into an array.
+
+14. server/uptime.js:
+   - Simple Express server, GET / returns a message like:
+       - "<botName> is running" with prefix and author.
+   - Use port: process.env.PORT || config.port
+   - This is needed for Render deployment.
+
+15. NPM + Start:
+   - Create package.json with:
+       - "main": "index.js"
+       - "scripts": { "start": "node index.js" }
+       - dependencies: facebook-chat-api, express, axios
+   - The bot must run with: npm start
+
+16. GitHub Actions:
+   - Add a simple workflow in .github/workflows/node.yml that:
+       - uses Node 18+
+       - runs npm install
+       - runs node -c style syntax check (or just "node -e 'require(\"./index.js\")'" but do not keep the process running forever, just check that code is loadable)
+
+17. RENDER + GITHUB DEPLOYMENT
+- Make the bot ready for deploy on Render
+- Add GitHub workflow (.github/workflows/node.yml)
+- Add start server using Express (keep-alive route) service:
+       - buildCommand: "npm install"
+       - startCommand: "npm start"
+       - env: node
+       - plan: free
+
+18. Code quality:
+   - Use modern JS (const/let, async/await, arrow functions).
+   - Clean and simple structure.
+   - All strings and constants like botName, author, prefix must come from config.json (except the hard-protection logic, which can use literals).
+   - No TypeScript, just JavaScript.
+Please do everything well, and add any files if needed.
+Please now create all files and folders of this project in Replit according to this specification.

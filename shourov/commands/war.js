@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'war', aliases: ['battle', 'fight'], role: 0, description: 'Battle game' }, run: async ({ api, event }) => { api.sendMessage('⚔️ Battle Mode\n\n💥 Fighting!', event.threadID); } };

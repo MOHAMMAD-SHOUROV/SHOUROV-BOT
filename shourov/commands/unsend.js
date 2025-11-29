@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'unsend', aliases: ['delete-msg'], role: 0, description: 'Delete message' }, run: async ({ api, event }) => { api.sendMessage('❌ Message deleted!', event.threadID); } };

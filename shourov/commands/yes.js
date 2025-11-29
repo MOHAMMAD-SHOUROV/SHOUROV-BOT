@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'yes', aliases: ['yep', 'yeah'], role: 0, description: 'Affirmation' }, run: async ({ api, event }) => { api.sendMessage('✅ YES!\n\n👍 Absolutely!\n\n🎯 Confirmed!', event.threadID); } };

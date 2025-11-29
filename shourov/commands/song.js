@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'song', aliases: ['track', 'music'], role: 0, description: 'Find song' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /song <artist - title>', event.threadID); api.sendMessage(`🎵 ${args.join(' ')}`, event.threadID); } };

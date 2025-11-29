@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'warning', aliases: ['warn'], role: 1, description: 'Warn user' }, run: async ({ api, event }) => { const mentions = Object.keys(event.mentions); if (mentions.length === 0) return api.sendMessage('❌ Mention user to warn', event.threadID); api.sendMessage(`⚠️ Warning issued!`, event.threadID); } };

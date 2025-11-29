@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'try', aliases: ['attempt'], role: 0, description: 'Try something' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /try <action>', event.threadID); api.sendMessage(`🎯 Trying ${args.join(' ')}...`, event.threadID); } };

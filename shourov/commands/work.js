@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'work', aliases: ['job'], role: 0, description: 'Work mode' }, run: async ({ api, event }) => { api.sendMessage('💼 Work Mode\n\n📊 Productive time\n\n⏰ Stay focused!', event.threadID); } };

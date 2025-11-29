@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'tid', aliases: ['thread-id'], role: 0, description: 'Get thread ID' }, run: async ({ api, event }) => { api.sendMessage(`🆔 Thread ID: ${event.threadID}`, event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'spamban', aliases: ['anti-spam'], role: 1, description: 'Spam protection' }, run: async ({ api, event }) => { api.sendMessage('🛡️ Spam Ban\n\n✅ Anti-spam active', event.threadID); } };

@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'trans', aliases: ['transform'], role: 0, description: 'Transform text' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /trans <text>', event.threadID); api.sendMessage(`✨ ${args.join(' ').toUpperCase()}`, event.threadID); } };

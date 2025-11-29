@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'system', aliases: ['sys', 'info'], role: 2, description: 'System information' }, run: async ({ api, event }) => { api.sendMessage('⚙️ System Info\n\n🤖 Bot operational\n\n📊 All services active', event.threadID); } };

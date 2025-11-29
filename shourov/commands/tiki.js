@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'tiki', aliases: ['shopping'], role: 0, description: 'Shopping app' }, run: async ({ api, event }) => { api.sendMessage('🛒 Tiki Shopping\n\n📦 Shop online\n\n💳 Easy checkout!', event.threadID); } };

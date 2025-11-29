@@ -1,0 +1,1 @@
+module.exports = { config: { name: 'stt', aliases: ['speech-to-text'], role: 0, description: 'Speech to text' }, run: async ({ api, event }) => { api.sendMessage('🎤 Speech to Text\n\n💬 Reply with audio', event.threadID); } };
