@@ -1,7 +1,0 @@
-node_modules/
-fbstate.json
-.env
-*.log
-.DS_Store
-*.git
-*.local
