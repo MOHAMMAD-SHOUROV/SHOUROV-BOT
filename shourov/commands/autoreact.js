@@ -1,51 +1,67 @@
-const fs = require('fs');
-const path = require('path');
-
-const autoreactPath = path.join(__dirname, '..', '..', 'autoreact.json');
-
-function getAutoreactList() {
-    try {
-        if (fs.existsSync(autoreactPath)) {
-            return JSON.parse(fs.readFileSync(autoreactPath, 'utf8'));
-        }
-    } catch (error) {
-        console.error('Error reading autoreact list:', error);
-    }
-    return {};
-}
-
-function saveAutoreactList(list) {
-    try {
-        fs.writeFileSync(autoreactPath, JSON.stringify(list, null, 2));
-        return true;
-    } catch (error) {
-        console.error('Error saving autoreact list:', error);
-        return false;
-    }
-}
+const fs = require('fs-extra');
+const pathFile = __dirname + '/autoreact/autoreact.txt';
 
 module.exports = {
-    config: {
-        name: 'autoreact',
-        aliases: ['auto-react', 'emoji-auto'],
-        role: 1,
-        description: 'Auto-react to messages'
-    },
-    run: async ({ api, event, args }) => {
-        const autoreactList = getAutoreactList();
-        const threadID = event.threadID;
+config: {
+  name: "autoreact",
+  version: "1.0.0",
+  permission: 0,
+  credits: "nayan",
+  description: "",
+  prefix: 'awto', 
+  category: "auto", 
+  usages: "[off]/[on]",
+  cooldowns: 5,
+  dependencies: {
+    "request": "",
+    "fs-extra": "",
+    "axios": ""
+  }
+},
 
-        const emoji = args.length > 0 ? args[0] : '❤️';
+  languages: {
+  "vi": {},
+      "en": {
+          "off": 'the autoreact function has been disabled for new messages.',
+          "on": 'the autoreact function is now enabled for new messages.',
+        "error": 'incorrect syntax'
+      }
+  },
 
-        if (!autoreactList[threadID]) {
-            autoreactList[threadID] = { enabled: false, emoji: '❤️' };
-        }
+handleEvent: async ({ api, event, Threads }) => {
 
-        autoreactList[threadID].enabled = !autoreactList[threadID].enabled;
-        autoreactList[threadID].emoji = emoji;
-        saveAutoreactList(autoreactList);
+  if (!fs.existsSync(pathFile))
+   fs.writeFileSync(pathFile, 'false');
+   const isEnable = fs.readFileSync(pathFile, 'utf-8');
+   if (isEnable == 'true') {
 
-        const status = autoreactList[threadID].enabled ? '✅ ENABLED' : '🔴 DISABLED';
-        api.sendMessage(`${status} Auto-react with ${emoji}`, threadID);
+  const reactions = ["💀", "🙄", "🤭","🥺","😶","😝","👿","🤓","🥶","🗿","😾","🤪","🤬","🤫","😼","😶‍🌫️","😎","🤦","💅","👀","☠️","🧠","👺","🤡","🤒","🤧","😫","😇","🥳","😭"];
+  var nayan = reactions[Math.floor(Math.random() * reactions.length)];
+
+  api.setMessageReaction(nayan, event.messageID, (err) => {
+    if (err) {
+      console.error("Error sending reaction:", err);
     }
-};
+  }, true);
+}
+},
+
+start: async ({ nayan, events, args, lang }) => {
+   try {
+
+     const logger = require("../../shourovbot/alihsan/shourovc.js");
+     if (args[0] == 'on') {
+       fs.writeFileSync(pathFile, 'true');
+       nayan.sendMessage(lang("on"), events.threadID, events.messageID);
+     } else if (args[0] == 'off') {
+       fs.writeFileSync(pathFile, 'false');
+       nayan.sendMessage(lang("off"), events.threadID, events.messageID);
+     } else {
+       nayan.sendMessage(lang("error"), events.threadID, events.messageID);
+     }
+   }
+   catch(e) {
+     logger("unexpected error while using autoseen function", "system");
+   }
+}
+}
