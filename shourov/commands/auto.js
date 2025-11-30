@@ -1,48 +1,39 @@
-const fs = require('fs');
-const path = require('path');
-
-const autoPath = path.join(__dirname, '..', '..', 'auto.json');
-
-function getAutoList() {
-    try {
-        if (fs.existsSync(autoPath)) {
-            return JSON.parse(fs.readFileSync(autoPath, 'utf8'));
-        }
-    } catch (error) {
-        console.error('Error reading auto list:', error);
-    }
-    return {};
-}
-
-function saveAutoList(list) {
-    try {
-        fs.writeFileSync(autoPath, JSON.stringify(list, null, 2));
-        return true;
-    } catch (error) {
-        console.error('Error saving auto list:', error);
-        return false;
-    }
-}
-
 module.exports = {
-    config: {
-        name: 'auto',
-        aliases: ['automation', 'auto-enable'],
-        role: 1,
-        description: 'Enable/disable automation features'
-    },
-    run: async ({ api, event }) => {
-        const autoList = getAutoList();
-        const threadID = event.threadID;
+  config:{
+    name: "auto",
+    version: "0.0.2",
+    permission: 0,
+    prefix: true,
+    credits: "Nayan",
+    description: "auto video download",
+    category: "user",
+    usages: "",
+    cooldowns: 5,
+},
+start: async function({ nayan, events, args }) {},
+handleEvent: async function ({ api, event, args }) {
+    const axios = require("axios")
+    const request = require("request")
+    const fs = require("fs-extra")
+  const content = event.body ? event.body : '';
+  const body = content.toLowerCase();
+  const {alldown} = require("nayan-media-downloaders")
+  if (body.startsWith("https://")) {
+  api.setMessageReaction("🔍", event.messageID, (err) => {}, true);
+const data = await alldown(content);
+  console.log(data)
+  const {low, high, title} = data.data;
+    api.setMessageReaction("✔️", event.messageID, (err) => {}, true);
+  const video = (await axios.get(high, {
+      responseType: "arraybuffer",
+    })).data;
+    fs.writeFileSync(__dirname + "/cache/auto.mp4", Buffer.from(video, "utf-8"))
 
-        if (!autoList[threadID]) {
-            autoList[threadID] = { enabled: false };
-        }
+        return api.sendMessage({
+            body: `《TITLE》: ${title}`,
+            attachment: fs.createReadStream(__dirname + "/cache/auto.mp4")
 
-        autoList[threadID].enabled = !autoList[threadID].enabled;
-        saveAutoList(autoList);
-
-        const status = autoList[threadID].enabled ? '✅ ENABLED' : '🔴 DISABLED';
-        api.sendMessage(`🤖 Automation ${status}\n\n💡 Features:\n- Auto-react\n- Auto-welcome\n- Auto-moderation`, threadID);
+        }, event.threadID, event.messageID);
     }
-};
+}
+}
