@@ -1,14 +1,26 @@
-module.exports = {
-    config: { name: 'kick', aliases: ['remove-user'], role: 1, description: 'Kick user from group' },
-    run: async ({ api, event, args }) => {
-        if (!event.isGroup) return api.sendMessage('❌ Group only!', event.threadID);
-        const mentions = Object.keys(event.mentions);
-        if (mentions.length === 0) return api.sendMessage('❌ Mention user to kick', event.threadID);
-        try {
-            await api.removeUserFromGroup(mentions[0], event.threadID);
-            api.sendMessage('✅ User kicked', event.threadID);
-        } catch (error) {
-            api.sendMessage('❌ Cannot kick user', event.threadID);
-        }
-    }
+module.exports.config = {
+  name: "kick",
+  version: "1.0.0", 
+  permssion: 2,
+  prefix: true,
+  credits: "Mirai Team",
+  description: "Xoá người bạn cần xoá khỏi nhóm bằng cách tag",
+  category: "other", 
+  usages: "[tag]", 
+  cooldowns: 0,
 };
+
+module.exports.run = function({ api, event }) {
+  var mention = Object.keys(event.mentions);
+  return api.getThreadInfo(event.threadID, (err, info) => {
+    if (err) return api.sendMessage("An error has occurred!",event.threadID);
+    if (!info.adminIDs.some(item => item.id == api.getCurrentUserID())) return api.sendMessage('Need group admin rights\Please add and try again!', event.threadID, event.messageID);
+    if(!mention[0]) return api.sendMessage("You must tag the person to kick",event.threadID);
+    if (info.adminIDs.some(item => item.id == event.senderID)) {
+      for (let o in mention) {
+        setTimeout(() => {
+          api.removeUserFromGroup(mention[o],event.threadID) 
+        },3000)
+      }
+    }
+  })
