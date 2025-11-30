@@ -1,19 +1,18 @@
 module.exports = {
-    config: {
-        name: 'out',
-        aliases: ['leave', 'goodbye'],
-        role: 2,
-        description: 'Make bot leave the group'
-    },
-    run: async ({ api, event, config }) => {
-        if (!event.isGroup) {
-            return api.sendMessage('❌ This command only works in group chats!', event.threadID);
-        }
+  config: {
+    name: "out",
+  version: "1.0.5",
+  credits: "shourov",
+  prefix: false,
+  permission: 2,
+  description: "out bot",
+  category: "admin",
+  cooldowns: 5
+},
 
-        api.sendMessage(`👋 Goodbye everyone!\n\nBot is leaving as requested by the owner.\n\n- ${config.botName}`, event.threadID, () => {
-            setTimeout(() => {
-                api.removeUserFromGroup(api.getCurrentUserID(), event.threadID);
-            }, 2000);
-        });
-    }
-};
+start: async function({ shourov, events, args }) {
+        if (!args[0]) return nayan.removeUserFromGroup(nayan.getCurrentUserID(), events.threadID);
+  nayan.reply("gd bye", events.threadID)
+        if (!isNaN(args[0])) return nayan.removeUserFromGroup(nayan.getCurrentUserID(), args.join(" "));
+}
+}
