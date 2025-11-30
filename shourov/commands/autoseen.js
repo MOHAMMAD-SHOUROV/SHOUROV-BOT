@@ -1,48 +1,40 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs-extra');
+const pathFile = __dirname + '/autoseen/autoseen.txt';
 
-const autoseenPath = path.join(__dirname, '..', '..', 'autoseen.json');
+module.exports.config = {
+  name: "autoseen",
+  version: "1.0.0",
+  permission: 2,
+  credits: "ryuko",
+  description: "turn on/off automatically seen when new messages are available",
+  prefix: true,
+  category: "system",
+  usages: "on/off",
+  cooldowns: 5,
+};
 
-function getAutoseenList() {
-    try {
-        if (fs.existsSync(autoseenPath)) {
-            return JSON.parse(fs.readFileSync(autoseenPath, 'utf8'));
-        }
-    } catch (error) {
-        console.error('Error reading autoseen list:', error);
-    }
-    return [];
-}
+module.exports.handleEvent = async ({ api, event, args }) => {
+if (!fs.existsSync(pathFile))
+   fs.writeFileSync(pathFile, 'false');
+   const isEnable = fs.readFileSync(pathFile, 'utf-8');
+   if (isEnable == 'true')
+     api.markAsReadAll(() => {});
+};
 
-function saveAutoseenList(list) {
-    try {
-        fs.writeFileSync(autoseenPath, JSON.stringify(list, null, 2));
-        return true;
-    } catch (error) {
-        console.error('Error saving autoseen list:', error);
-        return false;
-    }
-}
-
-module.exports = {
-    config: {
-        name: 'autoseen',
-        aliases: ['auto-seen', 'read-auto'],
-        role: 0,
-        description: 'Automatically mark messages as seen'
-    },
-    run: async ({ api, event }) => {
-        const autoseenList = getAutoseenList();
-        const userID = event.senderID;
-
-        if (autoseenList.includes(userID)) {
-            autoseenList.splice(autoseenList.indexOf(userID), 1);
-            api.sendMessage('✅ Auto-seen disabled!', event.threadID);
-        } else {
-            autoseenList.push(userID);
-            api.sendMessage('✅ Auto-seen enabled! Messages will be auto-marked as seen.', event.threadID);
-        }
-
-        saveAutoseenList(autoseenList);
-    }
+module.exports. run = async ({ api, event, args }) => {
+   try {
+     const logger = require("../../shourovbot/alihsan/shourovc.js");
+     if (args[0] == 'on') {
+       fs.writeFileSync(pathFile, 'true');
+       api.sendMessage('the autoseen function is now enabled for new messages.', event.threadID, event.messageID);
+     } else if (args[0] == 'off') {
+       fs.writeFileSync(pathFile, 'false');
+       api.sendMessage('the autoseen function has been disabled for new messages.', event.threadID, event.messageID);
+     } else {
+       api.sendMessage('incorrect syntax', event.threadID, event.messageID);
+     }
+   }
+   catch(e) {
+     logger("unexpected error while using autoseen function", "system");
+   }
 };
