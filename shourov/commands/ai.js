@@ -1,32 +1,39 @@
-const axios = require('axios');
-
 module.exports = {
-    config: {
-        name: 'ai',
-        aliases: ['ask', 'chatbot'],
-        role: 0,
-        description: 'Chat with AI assistant'
-    },
-    run: async ({ api, event, args }) => {
-        if (args.length === 0) {
-            return api.sendMessage('❌ Please provide a question!\nUsage: /ai <your question>', event.threadID);
-        }
-
-        const question = args.join(' ');
-        
-        api.sendMessage('🤖 Thinking...', event.threadID, async (err, info) => {
-            try {
-                const response = await axios.get(`https://api.affiliateplus.xyz/api/chatgpt?question=${encodeURIComponent(question)}`, {
-                    timeout: 30000
-                });
-
-                let answer = response.data.answer || response.data.response || response.data.message || 'Sorry, I could not generate a response.';
-                
-                api.editMessage(`🤖 AI Response:\n\n${answer}`, info.messageID);
-            } catch (error) {
-                console.error('AI API Error:', error.message);
-                api.editMessage('❌ Failed to get AI response. Please try again later.', info.messageID);
-            }
-        });
+  config: {
+    name: "ai",
+    version: "1.0.0",
+    permission: 0,
+    credits: "shourov",
+    description: "",
+    prefix: true,
+    category: "user",
+    usages: "query",
+    cooldowns: 5,
+    dependencies: {
     }
+  },
+
+  start: async function({ shourov, events, args, Users, SHOUROV }) {
+    const axios = require("axios");
+    const request = require("request");
+    const fs = require("fs-extra");
+    const id = nayan.getCurrentUserID()
+    const uid = events.senderID;
+    const nn = await Users.getNameUser(uid);
+    const np = args.join(" ");
+
+
+    try {
+      const apis = await axios.get('https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourovbot/main/api.json');
+      const apiss = apis.data.api;
+      const response = await axios.get(`${apiss}/shourov/gpt3?prompt=${encodeURIComponent(np)}`);
+      const aiResponse = response.data.response || 'I am unable to process your request at the moment.';
+
+
+        await NAYAN.sendContact(aiResponse, id, events.threadID);
+
+    } catch (error) {
+      console.error("Error while processing GPT request:", error);
+    }
+  }
 };
