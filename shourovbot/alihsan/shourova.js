@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express'); // kept for completeness (uptime uses express)
 const login = require('../system/login'); 
-const startUptimeServer = require('./server/uptime'); // uptime server module
+const startUptimeServer = require('../../server/uptime'); // uptime server module
 
 // ---------- Paths ----------
 const CONFIG_PATH = path.join(__dirname, 'config.json');
