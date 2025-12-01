@@ -1,39 +1,46 @@
 // join.js
-const fs = require("fs-extra");
-const path = require("path");
-const axios = require("axios");
-const request = require("request");
-const jimp = require("jimp");
-const { createCanvas, loadImage, registerFont } = require("canvas");
-const moment = require("moment-timezone");
-
 module.exports.config = {
   name: "join",
-  eventType: ["log:subscribe"],
-  version: "1.0.0",
-  credits: "Mirai-Team (fixed by Yan / Shourov)",
+  eventType: ['log:subscribe'],
+  version: "1.0.1",
+  credits: "(Shourov)",
   description: "GROUP UPDATE NOTIFICATION"
 };
 
-// helper: make circular avatar buffer
-module.exports.circle = async (imagePath) => {
-  const image = await jimp.read(imagePath);
-  image.circle();
-  return await image.getBufferAsync("image/png");
-};
+const fs = require('fs-extra');
+const path = require('path');
+const { loadImage, createCanvas, registerFont } = require("canvas");
+const axios = require('axios');
+const jimp = require("jimp");
+const moment = require("moment-timezone");
 
-const FONT_URL = 'https://drive.google.com/u/0/uc?id=10XFWm9F6u2RKnuVIfwoEdlav2HhkAUIB&export=download';
-const WORK_DIR = path.join(__dirname, 'shourov', 'join');
-const FONT_DIR = path.join(__dirname, 'shourov', 'font');
-const FONT_FILE = path.join(FONT_DIR, 'Semi.ttf');
+const FONT_LINK = 'https://drive.google.com/u/0/uc?id=10XFWm9F6u2RKnuVIfwoEdlav2HhkAUIB&export=download';
+const BASE_DIR = path.join(__dirname, 'Nayan', 'join'); // keep same folder as you used
+const FONT_DIR = path.join(__dirname, 'Nayan', 'font');
+const FONT_PATH = path.join(FONT_DIR, 'Semi.ttf');
 
 async function ensureDirs() {
-  await fs.ensureDir(WORK_DIR);
+  await fs.ensureDir(BASE_DIR);
   await fs.ensureDir(FONT_DIR);
 }
 
+module.exports.circle = async (image) => {
+  const img = await jimp.read(image);
+  img.circle();
+  return await img.getBufferAsync("image/png");
+};
+
+function ordinalSuffix(n) {
+  if ([11,12,13].includes(n % 100)) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
 function getSessionByHour(h) {
-  // h is integer hour 0-23
   if (h < 3) return "midnight";
   if (h < 8) return "Early morning";
   if (h < 12) return "noon";
@@ -48,220 +55,188 @@ module.exports.run = async function ({ api, event, config, language, Users }) {
     const added = event.logMessageData.addedParticipants;
     if (!Array.isArray(added) || added.length === 0) return;
 
-    // If the bot itself was added => send a connected message + gif
-    const botId = (typeof api.getCurrentUserID === 'function') ? api.getCurrentUserID() : null;
-    const botAdded = added.some(p => String(p.userFbId) === String(botId));
-
     await ensureDirs();
 
-    // If bot was added, send simple welcome + GIF and change bot nickname (if possible)
-    if (botAdded) {
+    // Load config values safely from global.config or passed config
+    const gconf = (global && global.config) ? global.config : (config || {});
+    const prefix = (gconf.PREFIX) ? gconf.PREFIX : '/';
+    const botNameFromConfig = gconf.BOTNAME || "BOT";
+    const autoSetNick = (typeof gconf.autoSetBotNickname !== 'undefined') ? !!gconf.autoSetBotNickname : true;
+
+    // bot id (if api provides)
+    let botId = null;
+    try { botId = (typeof api.getCurrentUserID === 'function') ? api.getCurrentUserID() : null; } catch(e){ botId = null; }
+
+    // If bot itself was added -> set nickname from config (if allowed) and send a connected message (no exposing id)
+    if (botId && added.some(p => String(p.userFbId) === String(botId))) {
+      if (autoSetNick) {
+        try {
+          if (typeof api.changeNickname === 'function') {
+            const nick = `[ ${prefix} ] • ${botNameFromConfig}`;
+            // many API versions: (nick, threadID, userID)
+            await api.changeNickname(nick, event.threadID, botId);
+          }
+        } catch (e) {
+          console.warn('Failed to change bot nickname:', e && e.message ? e.message : e);
+        }
+      }
+
+      // send a short connected message with optional gif
       try {
         const gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
-        const gifPath = path.join(WORK_DIR, 'join.gif');
-        const resp = await axios.get(gifUrl, { responseType: 'arraybuffer' });
-        await fs.writeFile(gifPath, resp.data);
+        const gifPath = path.join(BASE_DIR, 'join_bot.gif');
+        const r = await axios.get(gifUrl, { responseType: 'arraybuffer' });
+        await fs.writeFile(gifPath, r.data);
 
-        // try change nickname if API supports
-        try {
-          if (typeof api.changeNickname === "function" && botId) {
-            const botName = (global && global.config && global.config.BOTNAME) ? global.config.BOTNAME : "bot";
-            const prefix = (global && global.config && global.config.PREFIX) ? global.config.PREFIX : "";
-            await api.changeNickname(`[ ${prefix} ] • ➠${botName}`, event.threadID, botId);
-          }
-        } catch (e) { /* ignore nickname failure */ }
-
-        const body = `চলে এসেছি আমি পিচ্চি সৌরভ তোমাদের মাঝে🤭!\n\n${(global && global.config && global.config.BOTNAME) ? global.config.BOTNAME + " CONNECTED" : "BOT CONNECTED" }\nUse ${ (global && global.config && global.config.PREFIX) ? global.config.PREFIX + "help" : "help" } to see commands.`;
-
+        const body = `${botNameFromConfig} CONNECTED ✅\nAssalamu Alaykum / Use ${prefix}help to see commands.`;
         await api.sendMessage({ body, attachment: fs.createReadStream(gifPath) }, event.threadID);
+
+        // cleanup gif after short delay
+        setTimeout(() => { try { fs.removeSync(gifPath); } catch(e){} }, 10_000);
       } catch (e) {
-        console.error("Bot-added greeting error:", e);
+        // fall back to plain text message
+        try { await api.sendMessage(`${botNameFromConfig} CONNECTED ✅\nAssalamu Alaykum / Use ${prefix}help to see commands.`, event.threadID); } catch(e) {}
       }
+
       return;
     }
 
-    // --- normal user(s) joined path ---
-    // ensure font exists
-    if (!fs.existsSync(FONT_FILE)) {
-      try {
-        const fontResp = await axios.get(FONT_URL, { responseType: "arraybuffer" });
-        await fs.writeFile(FONT_FILE, Buffer.from(fontResp.data));
-      } catch (e) {
-        console.warn("Could not download font, using system default:", e.message || e);
-      }
-    }
-
-    // gather thread info
-    let threadInfo = {};
+    // --- Normal new user(s) joined: create welcome images per new user (keeps your original style) ---
+    // Ensure font (best-effort)
     try {
-      threadInfo = (typeof api.getThreadInfo === "function") ? await api.getThreadInfo(event.threadID) : {};
+      if (!fs.existsSync(FONT_PATH)) {
+        const fontBuf = (await axios.get(FONT_LINK, { responseType: 'arraybuffer' })).data;
+        await fs.writeFile(FONT_PATH, Buffer.from(fontBuf));
+      }
     } catch (e) {
-      threadInfo = {};
+      // font optional — proceed with system fonts
+      console.warn('Could not download/register font, continuing with default font.');
     }
-    const threadName = threadInfo.threadName || "this group";
-    const participantIDs = threadInfo.participantIDs || [];
 
-    // time/session strings
+    // fetch thread info
+    let threadInfo = {};
+    try { threadInfo = (typeof api.getThreadInfo === 'function') ? await api.getThreadInfo(event.threadID) : {}; } catch (e) { threadInfo = {}; }
+    const threadName = threadInfo.threadName || 'this group';
+    const participantIDs = Array.isArray(threadInfo.participantIDs) ? threadInfo.participantIDs : [];
+
+    // time/session
     const now = moment.tz("Asia/Dhaka");
     const timeStr = now.format("HH:mm:ss - DD/MM/YYYY");
     const dayName = now.format("dddd");
     const hour = parseInt(now.format("HH"), 10);
     const session = getSessionByHour(hour);
 
-    // create mentions array and attachments
     const mentions = [];
     const attachments = [];
-
-    // download a random background images list (fallback urls)
     const backgrounds = [
-      'https://i.imgur.com/5r6Qw3K.jpg',
-      'https://i.imgur.com/3ZQ3ZVq.jpg',
-      'https://i.imgur.com/8Km9tLL.jpg'
+      'https://i.imgur.com/WKUqCkQ.jpeg',
+      'https://i.imgur.com/ccVuwrA.jpeg',
+      'https://i.imgur.com/ZPGBaPD.jpeg',
+      'https://i.imgur.com/las7yGW.jpeg',
+      'https://i.imgur.com/bxDnRQC.jpeg'
     ];
 
-    // iterate over each added participant and create a welcome image
-    for (let idx = 0; idx < added.length; idx++) {
-      const part = added[idx];
-      const uid = String(part.userFbId);
-      const fullName = part.fullName || uid;
-
-      // prepare avatar fetch
-      const avaUrl = `https://graph.facebook.com/${uid}/picture?height=720&width=720`;
-      const avaPath = path.join(WORK_DIR, `avt_${idx}.png`);
-      const outImgPath = path.join(WORK_DIR, `out_${idx}.png`);
-      const bgUrl = backgrounds[Math.floor(Math.random() * backgrounds.length)];
-
-      // download avatar and background
+    for (let o = 0; o < added.length; o++) {
       try {
-        const [avaResp, bgResp] = await Promise.all([
-          axios.get(avaUrl, { responseType: "arraybuffer" }),
-          axios.get(bgUrl, { responseType: "arraybuffer" })
+        const p = added[o];
+        const uid = String(p.userFbId);
+        const name = p.fullName || uid;
+
+        // download avatar & random bg
+        const avaUrl = `https://graph.facebook.com/${uid}/picture?height=720&width=720`;
+        const bgUrl = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+
+        const avaPath = path.join(BASE_DIR, `avt_${o}.png`);
+        const bgPath = path.join(BASE_DIR, `bg_${o}.jpg`);
+        const outPath = path.join(BASE_DIR, `final_${o}.png`);
+
+        // get buffers
+        const [avaBuf, bgBuf] = await Promise.all([
+          axios.get(avaUrl, { responseType: 'arraybuffer' }).then(r => r.data).catch(() => null),
+          axios.get(bgUrl, { responseType: 'arraybuffer' }).then(r => r.data).catch(() => null)
         ]);
-        await fs.writeFile(avaPath, avaResp.data);
-        await fs.writeFile(outImgPath, bgResp.data);
-      } catch (e) {
-        console.warn("Image download failed, skipping image for", uid, e.message || e);
-        continue;
-      }
 
-      // make circular avatar
-      let circularBuffer;
-      try {
-        circularBuffer = await module.exports.circle(avaPath);
-      } catch (e) {
-        console.warn("Circle avatar failed:", e);
-        // fallback to avatar itself
-        circularBuffer = await fs.readFile(avaPath);
-      }
-      const circPath = path.join(WORK_DIR, `circ_${idx}.png`);
-      await fs.writeFile(circPath, circularBuffer);
+        if (!avaBuf) continue; // skip if avatar failed
 
-      // load images into canvas
-      try {
-        const baseImg = await loadImage(outImgPath);
+        await fs.writeFile(avaPath, avaBuf);
+        if (bgBuf) await fs.writeFile(bgPath, bgBuf);
+
+        // make circular avatar
+        let circBuf;
+        try { circBuf = await module.exports.circle(avaPath); } catch (e) { circBuf = await fs.readFile(avaPath); }
+        const circPath = path.join(BASE_DIR, `circ_${o}.png`);
+        await fs.writeFile(circPath, circBuf);
+
+        // build canvas
+        const baseImage = await loadImage(bgBuf ? bgPath : avaPath); // fallback to avatar if no bg
         const avatarImg = await loadImage(circPath);
 
-        if (fs.existsSync(FONT_FILE)) {
-          try { registerFont(FONT_FILE, { family: "Semi" }); } catch (e) { /* ignore */ }
+        if (fs.existsSync(FONT_PATH)) {
+          try { registerFont(FONT_PATH, { family: "Semi" }); } catch(e){}
         }
 
         const canvas = createCanvas(1902, 1082);
         const ctx = canvas.getContext('2d');
 
-        // draw background
-        ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(avatarImg, canvas.width / 2 - 188, canvas.height / 2 - 375, 375, 355);
 
-        // draw avatar centered-ish
-        const avaW = 375, avaH = 355;
-        ctx.drawImage(avatarImg, canvas.width / 2 - avaW/2, canvas.height / 2 - 375, avaW, avaH);
-
-        // text settings
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = "center";
 
-        // title: name
-        ctx.font = `bold 80px ${fs.existsSync(FONT_FILE) ? "Semi" : "Sans"}`;
-        ctx.fillText(fullName, canvas.width / 2, canvas.height / 2 + 100);
+        ctx.font = `bold 100px ${fs.existsSync(FONT_PATH) ? 'Semi' : 'Sans'}`;
+        ctx.fillText(name, canvas.width / 2 + 20, canvas.height / 2 + 100);
 
-        // subtitle: welcome + thread name
-        ctx.font = `48px ${fs.existsSync(FONT_FILE) ? "Semi" : "Sans"}`;
-        ctx.fillText(`Welcome to ${threadName}`, canvas.width / 2, canvas.height / 2 + 180);
+        ctx.font = `60px ${fs.existsSync(FONT_PATH) ? 'Semi' : 'Sans'}`;
+        ctx.fillText(`Welcome to ${threadName}`, canvas.width / 2 - 15, canvas.height / 2 + 235);
 
-        // member number
-        const number = participantIDs.length; // current total (approx)
-        // suffix
-        let suffix = "th";
-        if (![11,12,13].includes(number % 100)) {
-          if (number % 10 === 1) suffix = "st";
-          else if (number % 10 === 2) suffix = "nd";
-          else if (number % 10 === 3) suffix = "rd";
-        }
-        ctx.fillText(`You are the ${number}${suffix} member of this group`, canvas.width / 2, canvas.height / 2 + 260);
+        const number = Math.max(0, participantIDs.length - o);
+        ctx.font = `48px ${fs.existsSync(FONT_PATH) ? 'Semi' : 'Sans'}`;
+        ctx.fillText(`You are the ${number}${ordinalSuffix(number)} member of this group`, canvas.width / 2 - 15, canvas.height / 2 + 350);
 
-        // small footer: time
-        ctx.font = `30px ${fs.existsSync(FONT_FILE) ? "Semi" : "Sans"}`;
+        ctx.font = `28px ${fs.existsSync(FONT_PATH) ? 'Semi' : 'Sans'}`;
         ctx.fillText(`${timeStr} • ${dayName} • ${session}`, canvas.width / 2, canvas.height - 60);
 
-        // write out image
         const buffer = canvas.toBuffer();
-        const finalPath = path.join(WORK_DIR, `final_${idx}.png`);
-        await fs.writeFile(finalPath, buffer);
+        await fs.writeFile(outPath, buffer);
 
-        attachments.push(fs.createReadStream(finalPath));
+        attachments.push(fs.createReadStream(outPath));
+        mentions.push({ id: uid, tag: name });
 
-        // mention object (try to resolve name via Users or api)
-        let mentionName = fullName;
-        try {
-          if (Users && typeof Users.getNameUser === "function") {
-            mentionName = await Users.getNameUser(uid) || fullName;
-          } else if (api && typeof api.getUserInfo === "function") {
-            const info = await api.getUserInfo(uid);
-            // api.getUserInfo may return object keyed by id
-            if (info && info[uid] && info[uid].name) mentionName = info[uid].name;
-          }
-        } catch (e) { /* ignore */ }
-
-        mentions.push({ id: uid, tag: mentionName });
-      } catch (e) {
-        console.warn("Canvas creation failed for", uid, e);
+      } catch (innerErr) {
+        console.warn('Welcome image creation error for index', o, innerErr && innerErr.message ? innerErr.message : innerErr);
+        continue;
       }
     } // end for
 
-    // prepare message text (use threadData.customJoin if available in global.data)
+    // message template
     let threadData = {};
     try {
-      if (global && global.data && global.data.threadData && global.data.threadData.has && global.data.threadData.get) {
+      if (global && global.data && global.data.threadData && typeof global.data.threadData.get === 'function') {
         threadData = global.data.threadData.get(parseInt(event.threadID)) || {};
       }
     } catch (e) { threadData = {}; }
 
-    const nameList = added.map(p => p.fullName || p.userFbId).join(', ');
-    let msg = threadData.customJoin || 
-      `╭•┄┅═══❁🌺❁═══┅┄•╮\n   আসসালামু আলাইকুম-!!🖤\n╰•┄┅═══❁🌺❁═══┅┄•╯\n\n✨ WELCOME ✨\n\n{name} to ${threadName}\n\n{time} - ${dayName}`;
+    const names = added.map(p => p.fullName || p.userFbId).join(', ');
+    let msg = threadData.customJoin || `╭•┄┅═══❁🌺❁═══┅┄•╮\nWelcome {name} to ${threadName}\n╰•┄┅═══❁🌺❁═══┅┄•╯\n\n{time}`;
+    msg = msg.replace(/\{name\}/g, names).replace(/\{time\}/g, timeStr);
 
-    msg = msg
-      .replace(/\{name\}/g, nameList)
-      .replace(/\{threadName\}/g, threadName)
-      .replace(/\{time\}/g, timeStr)
-      .replace(/\{thu\}/g, dayName);
-
-    // send message (with attachments and mentions)
     const form = { body: msg, mentions, attachment: attachments.length ? attachments : undefined };
     await api.sendMessage(form, event.threadID);
 
-    // cleanup temp images after slight delay to ensure upload finished
+    // cleanup temp files after a short delay
     setTimeout(async () => {
       try {
-        const files = await fs.readdir(WORK_DIR);
+        const files = await fs.readdir(BASE_DIR);
         for (const f of files) {
-          if (f.startsWith('avt_') || f.startsWith('out_') || f.startsWith('circ_') || f.startsWith('final_') || f === 'join.gif') {
-            await fs.remove(path.join(WORK_DIR, f));
+          if (/^(avt_|bg_|circ_|final_|join_bot\.gif)/.test(f)) {
+            try { await fs.remove(path.join(BASE_DIR, f)); } catch(e){}
           }
         }
-      } catch (e) { /* ignore cleanup errors */ }
-    }, 6_000);
+      } catch (e) {}
+    }, 7000);
 
   } catch (err) {
-    console.error("Join event error:", err);
+    console.error('Join event error:', err && err.stack ? err.stack : err);
   }
 };
