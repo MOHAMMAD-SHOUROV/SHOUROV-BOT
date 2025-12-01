@@ -1,32 +1,41 @@
-const axios = require('axios');
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
-    config: {
-        name: 'ss',
-        aliases: ['screenshot', 'capture'],
-        role: 0,
-        description: 'Take a screenshot of a website'
-    },
-    run: async ({ api, event, args }) => {
-        if (args.length === 0) {
-            return api.sendMessage('❌ Please provide a URL!\nUsage: /ss <website_url>', event.threadID);
-        }
+  config: {
+    name: "🐰",
+    version: "1.0.1",
+    prefix: false,
+    permission: 0,
+    credits: "shourov",
+    description: "Send funny rabbit voice",
+    category: "no prefix",
+    usages: "🐰",
+    cooldowns: 5,
+  },
 
-        let url = args[0];
-        
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
-        }
+  handleEvent: function ({ api, event }) {
+    const { threadID, messageID, body } = event;
+    if (!body) return;
 
-        api.sendMessage('📸 Taking screenshot...', event.threadID, async (err, info) => {
-            try {
-                const screenshotUrl = `https://api.screenshotmachine.com/?key=demo&url=${encodeURIComponent(url)}&dimension=1024x768`;
-                
-                api.editMessage(`📸 Screenshot captured!\n\n🌐 Website: ${url}\n\n🔗 View: ${screenshotUrl}`, info.messageID);
-            } catch (error) {
-                console.error('Screenshot error:', error.message);
-                api.editMessage('❌ Failed to take screenshot. Please check the URL.', info.messageID);
-            }
-        });
-    }
+    const triggers = ["🐰", "rabbit", "korgosh", "খরগোশ"];
+    const lowerBody = body.toLowerCase();
+    const isTriggered = triggers.some(trigger => lowerBody.includes(trigger));
+
+    if (!isTriggered) return;
+
+    const filePath = path.join(__dirname, "shourov", "korgus.mp3");
+    if (!fs.existsSync(filePath)) return;
+
+    const msg = {
+      body: "এঁইঁ খোঁরঁগোঁশঁ গাঁজঁরঁ খাঁবিঁনিঁ তুঁইঁ 🐰",
+      attachment: fs.createReadStream(filePath),
+    };
+
+    api.sendMessage(msg, threadID, () => {
+      api.setMessageReaction("😁", event.messageID, () => {}, true);
+    });
+  },
+
+  start: () => {},
 };
