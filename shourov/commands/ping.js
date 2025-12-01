@@ -1,29 +1,21 @@
-module.exports.config = {
-	name: "ping",
-	version: "1.0.4",
-	permssion: 0,
-	credits: "shourov",
-	description: "Tag all members",
-  prefix: true,
-	category: "Group",
-	usages: "[Text]",
-	cooldowns: 1
+module.exports = {
+  name: "ping",       // command name
+  aliases: ["p"],     // optional aliases
+  description: "Replies with Pong!", // optional description
+  version: "1.0",
+  role: 0,            // permission level (optional)
+  countDown: 3,       // cooldown in seconds (optional)
+
+  // The main function that runs when command is called
+  run: async ({ event, api, args }) => {
+    try {
+      const threadID = event.threadID || event.senderID;
+      if (!threadID) return;
+
+      await api.sendMessage({ body: "Pong! 🏓" }, threadID);
+      console.log("Ping command executed in thread:", threadID);
+    } catch (e) {
+      console.error("Error running ping command:", e.message);
+    }
+  }
 };
-
-module.exports.run = async function({ api, event, args }) {
-	try {
-		const botID = api.getCurrentUserID();
-		const listUserID = event.participantIDs.filter(ID => ID != botID && ID != event.senderID);
-		var body = (args.length != 0) ? args.join(" ") : "@everyone", mentions = [], index = 0;
-		
-		for(const idUser of listUserID) {
-			body = "‎" + body;
-			mentions.push({ id: idUser, tag: "‎", fromIndex: index - 1 });
-			index -= 1;
-		}
-
-		return api.sendMessage({ body, mentions }, event.threadID, event.messageID);
-
-	}
-	catch (e) { return console.log(e); }
-}
