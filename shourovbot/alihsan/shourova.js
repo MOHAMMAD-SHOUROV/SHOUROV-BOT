@@ -180,100 +180,121 @@ login({ appState }, (err, api) => {
   console.log('═══════════════════════════════════════════');
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
+// --- Load commands & events ONCE ---
+const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
+const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
+
+const commands = new Map();
+try {
+  if (fs.existsSync(COMMANDS_DIR)) {
+    const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Commands found:', cmdFiles);
+    for (const f of cmdFiles) {
+      try {
+        const cmdPath = path.join(COMMANDS_DIR, f);
+        delete require.cache[require.resolve(cmdPath)];
+        const cmd = require(cmdPath);
+        if (cmd && cmd.name) {
+          commands.set(cmd.name.toLowerCase(), cmd);
+          console.log('Loaded command', f, '->', cmd.name);
+        }
+      } catch(e) {
+        console.error('Error loading command', f, e.message);
+      }
+    }
+  }
+} catch(e) { console.error(e); }
+
+const eventHandlers = [];
+try {
+  if (fs.existsSync(EVENTS_DIR)) {
+    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Events found:', evFiles);
+    for (const f of evFiles) {
+      try {
+        const evPath = path.join(EVENTS_DIR, f);
+        delete require.cache[require.resolve(evPath)];
+        const ev = require(evPath);
+        if (ev && typeof ev.run === 'function') {
+          eventHandlers.push(ev);
+          console.log('Loaded event', f);
+        }
+      } catch(e) {
+        console.error('Error loading event', f, e.message);
+      }
+    }
+  }
+} catch(e) { console.error(e); }
 
   // If your system uses event handlers/commands, they can be required/used here.
-  if (api.listen) {
-    api.listen(async (errListen, event) => {
-      if (errListen) {
-        console.error('Listen error:', errListen);
-        return;
-      }
+ if (api.listen) {
+  api.listen(async (errListen, event) => {
+    if (errListen) {
+      console.error('Listen error:', errListen);
+      return;
+    }
 
-      // Here you can require and call your event/command handlers
-      // Example placeholder: attempt to load message handler safely
+    const threadID = event.threadID ||
+                     (event.thread_key && event.thread_key.thread_fbid) ||
+                     event.senderID || null;
+
+    console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
+
+    // ---------- 1) Run global event handlers ----------
+    for (const evHandler of eventHandlers) {
       try {
-        const messageHandlerPath = path.join(__dirname, '..', 'shourov', 'events', 'message.js');
-        if (fs.existsSync(messageHandlerPath)) {
-          const messageHandler = require(messageHandlerPath);
-          if (messageHandler && typeof messageHandler.run === 'function') {
-            await messageHandler.run({ event, api, config, language: global.language });
+        await evHandler.run({ event, api, config, language: global.language });
+      } catch (e) {
+        console.error('Event handler error:', e.message);
+      }
+    }
+
+    // ---------- 2) Run message handler (if exists) ----------
+    try {
+      const messageHandlerPath = path.join(__dirname, '..', 'shourov', 'events', 'message.js');
+      if (fs.existsSync(messageHandlerPath)) {
+        delete require.cache[require.resolve(messageHandlerPath)];
+        const messageHandler = require(messageHandlerPath);
+
+        if (messageHandler && typeof messageHandler.run === 'function') {
+          await messageHandler.run({ event, api, config, language: global.language, commands });
+        }
+      }
+    } catch (e) {
+      console.error('Message handler error:', e.message);
+    }
+
+    // ---------- 3) Command handler ----------
+    try {
+      if (event.type === 'message' || event.type === 'message_reply') {
+        const text = (event.body || '').toLowerCase().trim();
+        if (text) {
+          const parts = text.split(/\s+/);
+          const cmdName = parts[0];
+          const args = parts.slice(1);
+
+          if (commands.has(cmdName)) {
+            const cmd = commands.get(cmdName);
+            await cmd.run({ event, api, config, args, commands, language: global.language });
           }
         }
-      } catch (err) {
-        console.error('Error in message handler:', err);
-      }
-            // --- Auto mark-as-read + Auto-reply for incoming messages ---
-      try {
-        console.log('EVENT RECEIVED:', event && event.type, 'thread:', event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid)));
 
-        if (event && (event.type === 'message' || event.type === 'message_reply')) {
-          // Resolve thread id robustly
-          const threadID = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID || null;
-
-          // 1) Mark as read / seen if API supports it
-          try {
-            if (threadID) {
-              if (typeof api.markAsRead === 'function') {
-                api.markAsRead(threadID, (err) => {
-                  if (err) console.warn('markAsRead error:', err);
-                  else console.log('Marked as read:', threadID);
-                });
-              } else if (typeof api.setMessageRead === 'function') {
-                api.setMessageRead(threadID, (err) => {
-                  if (err) console.warn('setMessageRead error:', err);
-                  else console.log('setMessageRead success:', threadID);
-                });
-              } else {
-                // some clients expose markSeen or similar
-                if (typeof api.markSeen === 'function') {
-                  api.markSeen(threadID, (err) => {
-                    if (err) console.warn('markSeen error:', err);
-                    else console.log('Marked seen via markSeen:', threadID);
-                  });
-                } else {
-                  console.log('No mark-as-read API available on this client');
-                }
-              }
-            } else {
-              console.log('No threadID available to mark as read');
-            }
-          } catch (e) {
-            console.warn('Exception when marking read:', e);
+        // Seen / read
+        try {
+          if (threadID) {
+            if (api.markAsRead) api.markAsRead(threadID,()=>{});
+            else if (api.setMessageRead) api.setMessageRead(threadID,()=>{});
+            else if (api.markSeen) api.markSeen(threadID,()=>{});
           }
-
-          // 2) Send an auto-reply (non-blocking)
-          try {
-            const replyText = 'Thanks — message received!'; // change this message to whatever you want
-            const messageBody = { body: replyText };
-
-            if (!threadID) {
-              console.warn('No threadID to reply to');
-            } else if (typeof api.sendMessage === 'function') {
-              api.sendMessage(messageBody, threadID, (err, info) => {
-                if (err) console.error('sendMessage error:', err);
-                else console.log('Auto-replied to', threadID, info && info.messageID ? info.messageID : info);
-              });
-            } else if (typeof api.send === 'function') {
-              // some forks use api.send
-              api.send(messageBody, threadID, (err, info) => {
-                if (err) console.error('api.send error:', err);
-                else console.log('Auto-replied (api.send) to', threadID);
-              });
-            } else {
-              console.warn('No sendMessage/send API available to reply.');
-            }
-          } catch (e) {
-            console.error('Auto-reply failed:', e);
-          }
-        }
-      } catch (outerErr) {
-        console.error('Auto-mark/reply outer error:', outerErr);
+        } catch(e){}
       }
-      // --- end auto mark/reply ---
+    } catch (errCmd) {
+      console.error('Command error:', errCmd.message);
+    }
 
-    });
-  }
-});
+  });
+}
+
 
 // Graceful shutdown
 process.on('SIGINT', () => {
