@@ -24,30 +24,79 @@ try {
   process.exit(1);
 }
 
-// ---------- Load language (must happen AFTER config is available) ----------
-try {
-  // determine requested language (from config or fallback to 'en')
-  const langFile = (config.language || 'en').toString().toLowerCase();
 
-  // adjust this base if your language files are in a different folder
-  const candidatePaths = [
+(function loadLanguageSafely() {
+  // Determine language code preference (from config.language or fallback to 'en')
+  let langCode = 'en';
+  try {
+    if (typeof config !== 'undefined' && config && config.language) {
+      langCode = String(config.language).toLowerCase();
+    } else if (process.env.LANG_CODE) {
+      langCode = String(process.env.LANG_CODE).toLowerCase();
+    } else if (process.env.LANG) {
+      langCode = String(process.env.LANG).split(/[_\.]/)[0].toLowerCase();
+    }
+  } catch (e) {
+    langCode = 'en';
+  }
+
+  // Candidate locations (check alihsan languages first since your folder is there)
+  const candidates = [
     path.join(__dirname, 'languages', `${langCode}.lang`),                // shourovbot/alihsan/languages/en.lang
     path.join(__dirname, 'languages', 'en.lang'),                       // fallback in same dir
     path.join(__dirname, '..', 'languages', `${langCode}.lang`),        // shourovbot/languages/en.lang
     path.join(__dirname, '..', 'languages', 'en.lang')
   ];
 
-  let langPath = candidatePaths.find(p => fs.existsSync(p));
-  if (!langPath) {
-    throw new Error(`Language file not found for '${langFile}' (checked ${candidatePaths.join(', ')})`);
+  let found = null;
+  for (const p of candidates) {
+    if (fs.existsSync(p)) { found = p; break; }
+  }
+  if (!found) {
+    console.error('❌ Failed to load language file: no candidate language files found (checked: ' + candidates.join(', ') + ')');
+    throw new Error('Language file not found');
   }
 
-  // you used JSON.parse earlier — ensure file format is JSON. If it's key=value, parsing must change.
-  global.language = JSON.parse(fs.readFileSync(langPath, 'utf8'));
-  console.log(`✓ Language loaded: ${path.basename(langPath)}`);
-} catch (err) {
-  console.error('❌ Failed to load language file:', err.message);
-  process.exit(1);
+  const raw = fs.readFileSync(found, 'utf8');
+
+  // Try JSON first
+  try {
+    global.language = JSON.parse(raw);
+    console.log('✓ Language loaded (JSON):', path.basename(found));
+    return;
+  } catch (jsonErr) {
+    // fall through to line-based parser
+  }
+
+  // Fallback: parse line-based file (ignore lines starting with # or //)
+  const result = {};
+  const lines = raw.split(/\r?\n/);
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    if (line.startsWith('#') || line.startsWith('//')) continue;
+    // handle "key = value" or "key: value"
+    const m = line.match(/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);
+    if (m) {
+      const key = m[1].trim();
+      const val = m[2].trim();
+      result[key] = val;
+    } else {
+      // if line contains just "key value", try split first whitespace
+      const p = line.split(/\s+/, 2);
+      if (p.length === 2) {
+        result[p[0]] = p[1];
+      }
+    }
+  }
+
+  if (Object.keys(result).length === 0) {
+    console.error('❌ Failed to parse language file (no key=value pairs found):', found);
+    throw new Error('Language parse failed');
+  }
+
+  global.language = result;
+  console.log('✓ Language loaded (key=value fallback):', path.basename(found));
 }
 
 // ---------- Protection checks ----------
