@@ -184,6 +184,9 @@ login({ appState }, (err, api) => {
 const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
 const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
 
+// <-- MAKE SURE eventHandlers IS DECLARED BEFORE ANY USE
+const eventHandlers = []; // declare once, up front
+
 const commands = new Map();
 try {
   if (fs.existsSync(COMMANDS_DIR)) {
@@ -195,16 +198,35 @@ try {
         delete require.cache[require.resolve(cmdPath)];
         const cmd = require(cmdPath);
         if (cmd && cmd.name) {
-          commands.set(cmd.name.toLowerCase(), cmd);
+          commands.set(String(cmd.name).toLowerCase(), cmd);
           console.log('Loaded command', f, '->', cmd.name);
         }
-      } catch(e) {
+      } catch (e) {
         console.error('Error loading command', f, e.message);
       }
     }
   }
-} catch(e) { console.error(e); }
-  
+} catch (e) { console.error(e); }
+
+try {
+  if (fs.existsSync(EVENTS_DIR)) {
+    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Events found:', evFiles);
+    for (const f of evFiles) {
+      try {
+        const evPath = path.join(EVENTS_DIR, f);
+        delete require.cache[require.resolve(evPath)];
+        const ev = require(evPath);
+        if (ev && typeof ev.run === 'function') {
+          eventHandlers.push(ev); // safe because we declared it earlier
+          console.log('Loaded event', f);
+        }
+      } catch (e) {
+        console.error('Error loading event', f, e.message);
+      }
+    }
+  }
+} catch (e) { console.error(e); }
   console.log('DEBUG: eventHandlers count =', eventHandlers.length);
     console.log('DEBUG: commands map size =', commands.size);
 console.log('DEBUG: commands keys =', Array.from(commands.keys()));
