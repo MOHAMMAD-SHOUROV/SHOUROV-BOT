@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'tweet', aliases: ['twitter'], role: 0, description: 'Tweet message' }, run: async ({ api, event, args }) => { if (args.length === 0) return api.sendMessage('❌ Usage: /tweet <message>', event.threadID); api.sendMessage(`🐦 Tweet: ${args.join(' ')}`, event.threadID); } };
