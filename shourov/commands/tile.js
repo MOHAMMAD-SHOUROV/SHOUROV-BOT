@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'tile', aliases: ['grid'], role: 0, description: 'Tile layout' }, run: async ({ api, event }) => { api.sendMessage('📱 Tile Layout\n\n🎨 Grid display mode', event.threadID); } };
