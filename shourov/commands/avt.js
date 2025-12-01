@@ -1,79 +1,155 @@
+// commands/avt.js
+const fs = require("fs-extra");
+const path = require("path");
+const axios = require("axios");
+
 module.exports.config = {
-	name: "avt",
-  version: "1.0.0",
+  name: "avt",
+  version: "1.0.1",
   permission: 0,
-  credits: "Nayan",
-  description: "Avt pic",
-  prefix: true, 
-  category: "user", 
-  usages: "",
-  cooldowns: 5,
-  dependencies: {
-	}
+  credits: "shourov (fixed)",
+  description: "Get avatar pictures (group, uid, profile link, user, mentions)",
+  prefix: true,
+  category: "user",
+  usages: "avt box|id|link|user ...",
+  cooldowns: 5
 };
 
+module.exports.name = module.exports.config.name;
 
-module.exports.run = async function({ api, event, args, Threads }) {
-const request = require("request");
-const fs = require("fs")
-const axios = require("axios")
-const threadSetting = (await Threads.getData(String(event.threadID))).data || {};
-const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
-const mn = this.config.name
-if (!args[0]) return api.sendMessage(`[🔰] FB-AVATAR [🔰]\n\n[🔰]→ ${prefix}${mn} Box Is Your Group's Get Avt\n\n[🔰]→ ${prefix}${mn} Id [Id To Get] <Get Image By Person Uid>\n\n[🔰]→ ${prefix}${mn} Link [Link To Get] <Get Follow That Person's Link>\n\n[🔰]→ ${prefix}${mn} User <Leave Blank Is Get Avatar Of The User Command>\n\n[🔰]→ ${prefix}${mn} User [@mentions] <Get Avatar Of The Person Tagged>`,event.threadID,event.messageID);
-  if (args[0] == "box") {
-           if(args[1]){ let threadInfo = await api.getThreadInfo(args[1]);
-           let imgg = threadInfo.imageSrc;
-       if(!imgg) api.sendMessage(`[🔰]→ Avata của box ${threadInfo.threadName} đây`,event.threadID,event.messageID);
-        else var callback = () => api.sendMessage({body:`[🔰]→ Avata box ${threadInfo.threadName} đây`,attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"), event.messageID); 
-      return request(encodeURI(`${threadInfo.imageSrc}`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
-             }    
-          
-            let threadInfo = await api.getThreadInfo(event.threadID);
-            let img = threadInfo.imageSrc;
-          if(!img) api.sendMessage(`[🔰]→ Avata của box ${threadInfo.threadName} đây`,event.threadID,event.messageID)
-          else  var callback = () => api.sendMessage({body:`[🔰]→ Avata của box ${threadInfo.threadName} đây`,attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"), event.messageID);   
-      return request(encodeURI(`${threadInfo.imageSrc}`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
-    
+const CACHE_DIR = path.join(__dirname, "cache");
+fs.ensureDirSync(CACHE_DIR);
+
+async function downloadToFile(url, outPath) {
+  const resp = await axios.get(url, { responseType: "arraybuffer", timeout: 20000 });
+  await fs.writeFile(outPath, Buffer.from(resp.data));
 }
-else if (args[0] == "id") {
-	try {
-	var id = args[1];
-  if (!id) return api.sendMessage(`[🔰]→ Vui lòng nhập uid cần get avatar.`,event.threadID,event.messageID);
-   var callback = () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"),event.messageID);   
-   return request(encodeURI(`https://graph.facebook.com/${id}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
- }
- catch (e) {
- 	api.sendMessage(`[🔰]→ Can't get user picture.`,event.threadID,event.messageID);
- }
-}
-else if (args[0] == "link") {
-var link = args[1];
-if (!link) return api.sendMessage(`[🔰]→ Please enter the link to get avatar.`,event.threadID,event.messageID);
-var tool = require("fb-tools");
-try {
-var id = await tool.findUid(args[1] || event.messageReply.body);
-var callback = () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"),event.messageID);   
-return request(encodeURI(`https://graph.facebook.com/${id}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
-}
-catch(e){
-    api.sendMessage("[🔰]→ User does not exist.",event.threadID,event.messageID)
-}
-}
-else if(args[0] == "user") {
-	if (!args[1]) {
-		var id = event.senderID;
-		var callback = () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"),event.messageID);   
-    return request(encodeURI(`https://graph.facebook.com/${id}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
-	}
-	else if (args.join().indexOf('@') !== -1) {
-		var mentions = Object.keys(event.mentions)
-		var callback = () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/cache/1.png")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/1.png"),event.messageID);   
-    return request(encodeURI(`https://graph.facebook.com/${mentions}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)).pipe(fs.createWriteStream(__dirname+'/cache/1.png')).on('close',() => callback());
-	}
-	else {
-		api.sendMessage(`[🔰]→ Wrong order. Take note ${prefix}${mn} to view the module's commands.`,event.threadID,event.messageID);
-	}
-}
-else {
-	api.sendMessage(`[🔰]→ Wrong order. Take note ${prefix}${mn} to view the module's commands.`,event.threadID,event.messageID);
+
+module.exports.run = async function({ api, event, args, Threads, Users }) {
+  try {
+    const threadID = event.threadID;
+    const messageID = event.messageID;
+    const threadSetting = (await Threads.getData(String(threadID))).data || {};
+    const prefix = threadSetting.hasOwnProperty("PREFIX") ? threadSetting.PREFIX : global.config.PREFIX;
+    const cmdName = this.config.name;
+
+    if (!args[0]) {
+      const help = `[🔰] FB-AVATAR [🔰]
+
+Usage:
+→ ${prefix}${cmdName} box [threadID?]    : Get group avatar (current or provided thread id)
+→ ${prefix}${cmdName} id <UID>          : Get avatar by Facebook UID
+→ ${prefix}${cmdName} link <profileURL> : Get avatar by profile link
+→ ${prefix}${cmdName} user [@mention]   : Get avatar of user (self if blank)
+`;
+      return api.sendMessage(help, threadID, messageID);
+    }
+
+    const sub = args[0].toLowerCase();
+
+    // helper to send file and cleanup
+    const sendAndCleanup = async (filePath, body = "") => {
+      try {
+        await api.sendMessage({ body, attachment: fs.createReadStream(filePath) }, threadID, () => {
+          try { fs.unlinkSync(filePath); } catch (e) {}
+        }, messageID);
+      } catch (e) {
+        try { fs.unlinkSync(filePath); } catch (er) {}
+        throw e;
+      }
+    };
+
+    // Get thread (group) avatar
+    if (sub === "box") {
+      let targetThreadID = args[1] || threadID;
+      const threadInfo = await api.getThreadInfo(targetThreadID);
+      const img = threadInfo && threadInfo.imageSrc;
+      if (!img) return api.sendMessage(`[🔰] → No avatar set for box "${threadInfo ? threadInfo.threadName : targetThreadID}".`, threadID, messageID);
+
+      const out = path.join(CACHE_DIR, `avt_box_${Date.now()}.jpg`);
+      await downloadToFile(img, out);
+      return sendAndCleanup(out, `[🔰] → Avatar of box: ${threadInfo.threadName || targetThreadID}`);
+    }
+
+    // Get by UID
+    if (sub === "id") {
+      const uid = args[1];
+      if (!uid) return api.sendMessage("[🔰] → Please provide a UID. Usage: avt id <UID>", threadID, messageID);
+      const url = `https://graph.facebook.com/${uid}/picture?height=720&width=720`;
+      const out = path.join(CACHE_DIR, `avt_id_${uid}_${Date.now()}.jpg`);
+      try {
+        await downloadToFile(url, out);
+        return sendAndCleanup(out);
+      } catch (e) {
+        return api.sendMessage("[🔰] → Can't get user picture. UID may be invalid or blocked.", threadID, messageID);
+      }
+    }
+
+    // Get by profile link (try to resolve UID using fb-tools if available; fallback: try link directly)
+    if (sub === "link") {
+      const link = args[1] || (event.messageReply && event.messageReply.body);
+      if (!link) return api.sendMessage("[🔰] → Please provide a profile link. Usage: avt link <URL>", threadID, messageID);
+
+      let uid = null;
+      try {
+        const fbTools = require("fb-tools");
+        uid = await fbTools.findUid(link);
+      } catch (e) {
+        // ignore if fb-tools not available or fails; try extract from link if possible
+        const m = link.match(/(?:profile\.php\?id=|\/([0-9]{5,}))(?:[\/?]|$)/i);
+        if (m) uid = m[1] || null;
+      }
+
+      if (!uid) {
+        // try sending the link directly as image (some profile URLs may redirect to image)
+        try {
+          const outDirect = path.join(CACHE_DIR, `avt_link_direct_${Date.now()}.jpg`);
+          await downloadToFile(link, outDirect);
+          return sendAndCleanup(outDirect);
+        } catch (err) {
+          return api.sendMessage("[🔰] → Could not resolve UID from link and direct fetch failed.", threadID, messageID);
+        }
+      }
+
+      const url = `https://graph.facebook.com/${uid}/picture?height=720&width=720`;
+      const out = path.join(CACHE_DIR, `avt_link_${uid}_${Date.now()}.jpg`);
+      try {
+        await downloadToFile(url, out);
+        return sendAndCleanup(out);
+      } catch (e) {
+        return api.sendMessage("[🔰] → Failed to fetch avatar from resolved UID.", threadID, messageID);
+      }
+    }
+
+    // Get user avatar (self or mention)
+    if (sub === "user") {
+      // mention handling
+      const mentions = event.mentions && Object.keys(event.mentions);
+      let uid = null;
+
+      if (mentions && mentions.length > 0) {
+        uid = mentions[0]; // first mention
+      } else if (args[1] && args[1].match(/^[0-9]+$/)) {
+        uid = args[1];
+      } else {
+        uid = event.senderID;
+      }
+
+      const url = `https://graph.facebook.com/${uid}/picture?height=720&width=720`;
+      const out = path.join(CACHE_DIR, `avt_user_${uid}_${Date.now()}.jpg`);
+      try {
+        await downloadToFile(url, out);
+        return sendAndCleanup(out);
+      } catch (e) {
+        return api.sendMessage("[🔰] → Can't get user picture.", threadID, messageID);
+      }
+    }
+
+    // fallback
+    return api.sendMessage(`[🔰] → Wrong usage. Use ${prefix}${cmdName} to view the available commands.`, threadID, messageID);
+
+  } catch (err) {
+    console.error("avt command error:", err && (err.stack || err));
+    try { return api.sendMessage("[🔰] → An unexpected error occurred while processing your request.", event.threadID, event.messageID); } catch(e) {}
+  }
+};
