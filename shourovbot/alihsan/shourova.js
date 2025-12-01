@@ -25,7 +25,7 @@ try {
 // ---------- Load language (must happen AFTER config is available) ----------
 try {
   const langFile = config.language || 'en';
-  const langPath = path.join(__dirname, '..', 'languages', `${langFile}.lang`);
+  const langPath = path.join(__dirname, '..', 'languages', lang + '.lang');
   if (!fs.existsSync(langPath)) {
     throw new Error(`Language file not found: ${langPath}`);
   }
