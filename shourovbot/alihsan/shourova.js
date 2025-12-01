@@ -181,8 +181,8 @@ login({ appState }, (err, api) => {
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
 // --- Load commands & events ONCE ---
-const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
-const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
+const COMMANDS_DIR = path.join(__dirname, '..', '..', 'shourov', 'commands');
+const EVENTS_DIR = path.join(__dirname, '..', '..', 'shourov', 'events');
 
 // declare once
 const eventHandlers = [];
