@@ -184,10 +184,10 @@ login({ appState }, (err, api) => {
 const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
 const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
 
-// <-- MAKE SURE eventHandlers IS DECLARED BEFORE ANY USE
-const eventHandlers = []; // declare once, up front
-
+// declare once, up front (NO duplicate declarations anywhere else)
+const eventHandlers = [];
 const commands = new Map();
+
 try {
   if (fs.existsSync(COMMANDS_DIR)) {
     const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
@@ -200,13 +200,19 @@ try {
         if (cmd && cmd.name) {
           commands.set(String(cmd.name).toLowerCase(), cmd);
           console.log('Loaded command', f, '->', cmd.name);
+        } else {
+          console.log('Skipped command file (no name):', f);
         }
       } catch (e) {
-        console.error('Error loading command', f, e.message);
+        console.error('Error loading command', f, e && e.message);
       }
     }
+  } else {
+    console.log('Commands dir not found:', COMMANDS_DIR);
   }
-} catch (e) { console.error(e); }
+} catch (e) {
+  console.error('Error reading commands dir:', e && e.message);
+}
 
 try {
   if (fs.existsSync(EVENTS_DIR)) {
@@ -218,17 +224,25 @@ try {
         delete require.cache[require.resolve(evPath)];
         const ev = require(evPath);
         if (ev && typeof ev.run === 'function') {
-          eventHandlers.push(ev); // safe because we declared it earlier
+          eventHandlers.push(ev);
           console.log('Loaded event', f);
+        } else {
+          console.log('Skipped event file (no run):', f);
         }
       } catch (e) {
-        console.error('Error loading event', f, e.message);
+        console.error('Error loading event', f, e && e.message);
       }
     }
+  } else {
+    console.log('Events dir not found:', EVENTS_DIR);
   }
-} catch (e) { console.error(e); }
-  console.log('DEBUG: eventHandlers count =', eventHandlers.length);
-    console.log('DEBUG: commands map size =', commands.size);
+} catch (e) {
+  console.error('Error reading events dir:', e && e.message);
+}
+
+// debug info
+console.log('DEBUG: eventHandlers count =', eventHandlers.length);
+console.log('DEBUG: commands map size =', commands.size);
 console.log('DEBUG: commands keys =', Array.from(commands.keys()));
 const eventHandlers = [];
 try {
