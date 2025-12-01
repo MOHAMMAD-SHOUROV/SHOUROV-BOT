@@ -204,7 +204,9 @@ try {
     }
   }
 } catch(e) { console.error(e); }
-
+console.log('DEBUG: commands map size =', commands.size);
+console.log('DEBUG: commands keys =', Array.from(commands.keys()));
+console.log('DEBUG: eventHandlers count =', eventHandlers.length);
 const eventHandlers = [];
 try {
   if (fs.existsSync(EVENTS_DIR)) {
