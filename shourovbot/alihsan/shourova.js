@@ -6,8 +6,8 @@ const login = require('../system/login');
 const startUptimeServer = require('../../server/uptime'); // uptime server module
 
 // ---------- Paths ----------
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-const FBSTATE_PATH = path.join(__dirname, 'fbstate.json');
+const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');
+const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json');
 const COMMANDS_DIR = path.join(__dirname, 'shourov', 'commands');
 const EVENTS_DIR = path.join(__dirname, 'shourov', 'events');
 
