@@ -241,7 +241,7 @@ try {
     console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
     
 // AUTO-REPLY (quick test) — change to false to disable
-const autoReply = true; // true = on, false = off
+const autoReply = false; // true = on, false = off
 if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
   try {
     const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
@@ -286,9 +286,16 @@ if (autoReply && event && (event.type === 'message' || event.type === 'message_r
       if (event.type === 'message' || event.type === 'message_reply') {
         const text = (event.body || '').toLowerCase().trim();
         if (text) {
-          const parts = text.split(/\s+/);
-          const cmdName = parts[0];
-          const args = parts.slice(1);
+         const parts = text.split(/\s+/);
+const rawFirst = (parts[0] || '').toString().trim().toLowerCase();
+let cmdName = rawFirst;
+
+// remove / or ! prefix
+if (cmdName.startsWith('/') || cmdName.startsWith('!')) {
+  cmdName = cmdName.slice(1);
+}
+
+const args = parts.slice(1);
 
           if (commands.has(cmdName)) {
             const cmd = commands.get(cmdName);
