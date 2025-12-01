@@ -1,11 +1,13 @@
-// index.js
+// index.js (fixed)
 const fs = require('fs');
 const path = require('path');
 const express = require('express'); // kept for completeness (uptime uses express)
-const login = require('../system/login'); 
+
+// requires from repository root
+const login = require('../system/login');
 const startUptimeServer = require('../../server/uptime'); // uptime server module
 
-// ---------- Paths ----------
+// ---------- Paths (root-based) ----------
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');
 const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json');
 const COMMANDS_DIR = path.join(__dirname, 'shourov', 'commands');
@@ -24,20 +26,30 @@ try {
 
 // ---------- Load language (must happen AFTER config is available) ----------
 try {
-  const langFile = config.language || 'en';
-  const langPath = path.join(__dirname, '..', 'languages', lang + '.lang');
-  if (!fs.existsSync(langPath)) {
-    throw new Error(`Language file not found: ${langPath}`);
+  // determine requested language (from config or fallback to 'en')
+  const langFile = (config.language || 'en').toString().toLowerCase();
+
+  // adjust this base if your language files are in a different folder
+  const candidatePaths = [
+    path.join(__dirname, '..', 'languages', `${langFile}.lang`),
+    path.join(__dirname, 'shourovbot', 'alihsan', 'languages', `${langFile}.lang`),
+    path.join(__dirname, 'shourovbot', 'languages', 'en.lang') // fallback
+  ];
+
+  let langPath = candidatePaths.find(p => fs.existsSync(p));
+  if (!langPath) {
+    throw new Error(`Language file not found for '${langFile}' (checked ${candidatePaths.join(', ')})`);
   }
+
+  // you used JSON.parse earlier — ensure file format is JSON. If it's key=value, parsing must change.
   global.language = JSON.parse(fs.readFileSync(langPath, 'utf8'));
-  console.log(`✓ Language loaded: ${langFile}`);
+  console.log(`✓ Language loaded: ${path.basename(langPath)}`);
 } catch (err) {
   console.error('❌ Failed to load language file:', err.message);
-  
   process.exit(1);
 }
 
-// ---------- Protection checks (as you had) ----------
+// ---------- Protection checks ----------
 if (config.author !== "ALIHSAN SHOUROV") {
   console.error('❌ CRITICAL ERROR: Author protection violated!');
   process.exit(1);
@@ -71,7 +83,6 @@ try {
   }
 } catch (err) {
   console.error('❌ Error reading fbstate.json:', err.message);
-  // don't exit; login may still work with credentials
 }
 
 // ---------- Helper: loadCommands & loadEvents ----------
@@ -138,7 +149,6 @@ login({ appState }, (err, api) => {
 
   console.log('✓ Facebook login successful');
 
-  // options (adjust per your fb-chat-api version)
   try {
     api.setOptions({
       listenEvents: true,
@@ -151,29 +161,24 @@ login({ appState }, (err, api) => {
     console.warn('⚠️ api.setOptions failed (maybe different API version):', e.message);
   }
 
-  // Save fbstate on login update (optional)
   try {
     if (api.getAppState && typeof api.getAppState === 'function') {
       const newState = api.getAppState();
       fs.writeFileSync(FBSTATE_PATH, JSON.stringify(newState, null, 2), 'utf8');
       console.log('✓ fbstate.json updated');
     }
-  } catch (e) {
-    // ignore if not supported
-  }
+  } catch (e) {}
 
   console.log('═══════════════════════════════════════════');
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
 
-  // Listener
   api.listen(async (errListen, event) => {
     if (errListen) {
       console.error('Listen error:', errListen);
       return;
     }
 
-    // Run event handlers
     for (const eventHandler of events) {
       try {
         await eventHandler.run({ event, api, config, commands });
@@ -182,11 +187,9 @@ login({ appState }, (err, api) => {
       }
     }
 
-    // Message handling (message handler module path — adjust if needed)
     if (event.type === 'message' || event.type === 'message_reply') {
       try {
         const messageHandlerPath = path.join(__dirname, 'shourov', 'events', 'message.js');
-        // fallback: if project uses different path, adjust above
         const messageHandler = require(messageHandlerPath);
         await messageHandler.run({ event, api, config, commands, language: global.language });
       } catch (error) {
@@ -196,7 +199,7 @@ login({ appState }, (err, api) => {
   });
 });
 
-// ---------- Graceful shutdown ----------
+// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Exiting...');
   process.exit(0);
