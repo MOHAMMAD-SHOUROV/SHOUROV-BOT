@@ -293,8 +293,10 @@ try {
     }
 
   });
-}
+} // end if (api.listen)
 
+// 🔥 
+}); // close login callback
 
 // Graceful shutdown
 process.on('SIGINT', () => {
@@ -305,3 +307,4 @@ process.on('SIGTERM', () => {
   console.log('Received SIGTERM. Exiting...');
   process.exit(0);
 });
+
