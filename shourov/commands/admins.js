@@ -1,32 +1,58 @@
 module.exports.config = {
-    name: 'admins',
-    version: '1.0.0',
-    permission: 0,
-    credits: 'shourov',
-    prefix: false,
-    description: 'group administrator list.',
-    category: 'without prefix',
-    usages: 'admins',
-    cooldowns: 5,
-    dependencies: []
+  name: 'admins',
+  version: '1.0.1',
+  permission: 0,
+  credits: 'shourov (fixed)',
+  prefix: false,
+  description: 'group administrator list.',
+  category: 'without prefix',
+  usages: 'admins',
+  cooldowns: 5,
+  dependencies: []
 };
 
+module.exports.name = module.exports.config.name;
+
 module.exports.run = async function({ api, event, args, Users }) {
-    var threadInfo = await api.getThreadInfo(event.threadID);
-    let qtv = threadInfo.adminIDs.length;
-    var listad = '';
-    var qtv2 = threadInfo.adminIDs;
-    var fs = global.nodemodule["fs-extra"];
-    dem = 1;
-    for (let i = 0; i < qtv2.length; i++) {
-        const info = (await api.getUserInfo(qtv2[i].id));
-        const name = info[qtv2[i].id].name;
-        listad += '' + `${dem++}` + '. ' + name + '\n';
+  try {
+    const threadID = event.threadID;
+    let threadInfo = {};
+    try {
+      threadInfo = (typeof api.getThreadInfo === 'function') ? await api.getThreadInfo(threadID) : {};
+    } catch (e) {
+      threadInfo = {};
     }
 
-    api.sendMessage(
-        `list of ${qtv} administrators includes :\n${listad}`,
-        event.threadID,
-        event.messageID
-    );
+    const adminArr = Array.isArray(threadInfo.adminIDs) ? threadInfo.adminIDs : [];
+    if (adminArr.length === 0) {
+      return api.sendMessage("This group has no admins (or I couldn't fetch admin list).", threadID, event.messageID);
+    }
+
+    let listad = '';
+    let count = 1;
+
+    for (const admin of adminArr) {
+      try {
+        const id = admin.id || admin; // some APIs return { id: '...' } or direct id
+        let name = id;
+        if (Users && typeof Users.getNameUser === 'function') {
+          try { name = await Users.getNameUser(id); } catch(e) { /* fallback */ }
+        } 
+        if (!name && typeof api.getUserInfo === 'function') {
+          try {
+            const info = await api.getUserInfo(id);
+            if (info && info[id] && info[id].name) name = info[id].name;
+          } catch(e){}
+        }
+        listad += `${count++}. ${name}\n`;
+      } catch (e) {
+        listad += `${count++}. ${admin.id || admin}\n`;
+      }
+    }
+
+    return api.sendMessage(`List of ${adminArr.length} administrator(s):\n\n${listad}`, threadID, event.messageID);
+  } catch (err) {
+    console.error("admins command error:", err && (err.stack || err));
+    try { return api.sendMessage("An error occurred while fetching admin list.", event.threadID); } catch (e) {}
+  }
 };
