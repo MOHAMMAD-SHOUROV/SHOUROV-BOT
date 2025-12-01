@@ -31,7 +31,7 @@ try {
 
   // adjust this base if your language files are in a different folder
   const candidatePaths = [
-    path.join(__dirname, '..', 'languages', `${langFile}.lang`),
+    path.join(__dirname, 'languages', `${langFile}.lang`),
     path.join(__dirname, 'shourovbot', 'alihsan', 'languages', `${langFile}.lang`),
     path.join(__dirname, 'shourovbot', 'languages', 'en.lang') // fallback
   ];
