@@ -1,41 +1,26 @@
-name: Auto Fix Commands & Events
+name: Nayan-Bot
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-
-permissions:
-  contents: write   # IMPORTANT
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  fix:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Install dependencies
-      run: npm install || echo "No package.json"
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run auto fixer
-      run: node fix-all.js
-
-    - name: Commit changes
-      run: |
-        git config --global user.name "AutoFix Bot"
-        git config --global user.email "autofix@github.com"
-        git add -A
-        git commit -m "Auto fixed commands & events" || echo "No changes to commit"
-
-    - name: Push changes
-      run: |
-        git push || echo "Push failed"
+      - name: Nayan-Bot
+        run: npm start
