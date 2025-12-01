@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express'); // kept for completeness (uptime uses express)
-const login = require('./system/login'); 
+const login = require('../system/login'); 
 const startUptimeServer = require('./server/uptime'); // uptime server module
 
 // ---------- Paths ----------
@@ -33,7 +33,7 @@ try {
   console.log(`✓ Language loaded: ${langFile}`);
 } catch (err) {
   console.error('❌ Failed to load language file:', err.message);
-  // আপনি চাইলে এখানে default রাখতে পারেন; কিন্তু এখন exit করা safer
+  
   process.exit(1);
 }
 
