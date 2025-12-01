@@ -180,14 +180,15 @@ login({ appState }, (err, api) => {
   console.log('═══════════════════════════════════════════');
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
-// --- Load commands & events ONCE ---
+//// --- Load commands & events ONCE ---
 const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
 const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
 
-// declare once, up front (NO duplicate declarations anywhere else)
+// declare once
 const eventHandlers = [];
 const commands = new Map();
 
+// load commands
 try {
   if (fs.existsSync(COMMANDS_DIR)) {
     const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
@@ -214,6 +215,7 @@ try {
   console.error('Error reading commands dir:', e && e.message);
 }
 
+// load events
 try {
   if (fs.existsSync(EVENTS_DIR)) {
     const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
@@ -244,7 +246,6 @@ try {
 console.log('DEBUG: eventHandlers count =', eventHandlers.length);
 console.log('DEBUG: commands map size =', commands.size);
 console.log('DEBUG: commands keys =', Array.from(commands.keys()));
-const eventHandlers = [];
 try {
   if (fs.existsSync(EVENTS_DIR)) {
     const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
