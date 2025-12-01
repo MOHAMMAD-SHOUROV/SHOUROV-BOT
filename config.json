@@ -1,27 +1,38 @@
 {
   "author": "ALIHSAN SHOUROV",
+
   "autoRestart": true,
-  "accpetPending": false,
-  "developermode": false,
+  "acceptPending": false,
+  "developerMode": false,
   "language": "en",
   "notification": false,
   "approval": false,
   "saveState": true,
   "banMsg": false,
   "adminOnlyMsg": false,
-  "botName": "SHOUROV-BOT",
-  "prefix": "/",
+
+  "BOTNAME": "SHOUROV-BOT",
+  "PREFIX": "/",
   "react": "☠️",
 
-  "ownerId": "100071971474157",
-  "admins": ["100071971474157"],
-  "operators": ["100071971474157"],
+  "OPERATOR": [
+    "100071971474157"
+  ],
+
+  "ADMINBOT": [
+    "100071971474157"
+  ],
+
+  "OWNER": [
+    "100000959749712"
+  ],
 
   "APPROVED": [],
-  "disabledcmds": [],
-  "disabledevents": [],
+  "disabledCmds": [],
+  "disabledEvents": [],
 
-  "note": "make sure that the bot name you entered is all lowercase",
-  "notice": "dont cng author name and owner uid. otherwise bot not working",
-  "notice2": "if you run use email and password, use saveState false; otherwise, use saveState true"
+  "autoSetBotNickname": true,
+
+  "notice": "Do not change author name and owner UID. Otherwise bot may not work properly.",
+  "note": "BOTNAME you write here will automatically become the bot's nickname in group."
 }
