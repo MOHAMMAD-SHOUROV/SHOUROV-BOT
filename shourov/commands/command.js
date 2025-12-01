@@ -1,9 +1,9 @@
 module.exports.config = {
     name: "command",
-    version: "1.0.0",
+    version: "1.0.1",
     permission: 2,
-    credits: "nayan",
-    description: "manage/control all bot modules",
+    credits: "shourov (fixed)",
+    description: "Manage/control all bot modules",
     prefix: true,
     category: "operator",
     usages: "[load/unload/loadAll/unloadAll/info] [command name]",
@@ -15,172 +15,150 @@ module.exports.config = {
     }
 };
 
-const loadCommand = function ({ moduleList,  threadID, messageID, getText }) {
-  const event = global.event
-    let operator = global.config.OPERATOR;
-            if (!operator.includes(event.senderID)) return api.sendMessage(`only bot operators can use this command.`, event.threadID, event.messageID);
-    const { execSync } = global.nodemodule['child_process'];
-    const { writeFileSync, unlinkSync, readFileSync } = global.nodemodule['fs-extra'];
-    const { join } = global.nodemodule['path'];
-    const { configPath, mainPath, api } = global.client;
-    const logger = require(mainPath + '/shourovc.js');
+const loadModule = async ({ api, moduleList, threadID, messageID }) => {
+    const { execSync } = global.nodemodule["child_process"];
+    const { writeFileSync, unlinkSync, readFileSync } = global.nodemodule["fs-extra"];
+    const { join } = global.nodemodule["path"];
+    const { configPath, mainPath } = global.client;
 
-    var errorList = [];
-    delete require['resolve'][require['resolve'](configPath)];
-    var configValue = require(configPath);
-    writeFileSync(configPath + '.temp', JSON.stringify(configValue, null, 2), 'utf8');
-    for (const nameModule of moduleList) {
-        try {
-            const dirModule = __dirname + '/' + nameModule + '.js';
-            delete require['cache'][require['resolve'](dirModule)];
-            const command = require(dirModule);
-            global.client.commands.delete(nameModule);
-            if (!command.config || !command.run || !command.config.commandCategory) 
-                throw new Error('Module is malformed!');
-            global.client['eventRegistered'] = global.client['eventRegistered']['filter'](info => info != command.config.name);
-            if (command.config.dependencies && typeof command.config.dependencies == 'object') {
-                const listPackage = JSON.parse(readFileSync('./package.json')).dependencies,
-                    listbuiltinModules = require('module')['builtinModules'];
-                for (const packageName in command.config.dependencies) {
-                    var tryLoadCount = 0,
-                        loadSuccess = ![],
-                        error;
-                    const moduleDir = join(global.client.mainPath, 'nodemodules', 'node_modules', packageName);
-                    try {
-                        if (listPackage.hasOwnProperty(packageName) || listbuiltinModules.includes(packageName)) global.nodemodule[packageName] = require(packageName);
-                        else global.nodemodule[packageName] = require(moduleDir);
-                    } catch {
-                        logger.loader('not found package ' + packageName + ' support for module ' + command.config.name+ 'installing.', 'warn');
-                        const insPack = {};
-                        insPack.stdio = 'inherit';
-                        insPack.env = process.env ;
-                        insPack.shell = !![];
-                        insPack.cwd = join(global.client.mainPath,'nodemodules')
-                        execSync('npm --package-lock false --save install ' + packageName + (command.config.dependencies[packageName] == '*' || command.config.dependencies[packageName] == '' ? '' : '@' + command.config.dependencies[packageName]), insPack);
-                        for (tryLoadCount = 1; tryLoadCount <= 3; tryLoadCount++) {
-                            require['cache'] = {};
-                            try {
-                                if (listPackage.hasOwnProperty(packageName) || listbuiltinModules.includes(packageName)) global.nodemodule[packageName] = require(packageName);
-                                else global.nodemodule[packageName] = require(moduleDir);
-                                loadSuccess = !![];
-                                break;
-                            } catch (erorr) {
-                                error = erorr;
-                            }
-                            if (loadSuccess || !error) break;
-                        }
-                        if (!loadSuccess || error) throw 'unable to load package ' + packageName + (' for module ') + command.config.name +', error : ' + error + ' ' + error['stack'];
-                    }
-                }
-                logger.loader('successfully downloaded the entire package for the module.' + command.config.name);
-            }
-            if (command.config.envConfig && typeof command.config.envConfig == 'Object') try {
-                for (const [key, value] of Object['entries'](command.config.envConfig)) {
-                    if (typeof global.configModule[command.config.name] == undefined) 
-                        global.configModule[command.config.name] = {};
-                    if (typeof configValue[command.config.name] == undefined) 
-                        configValue[command.config.name] = {};
-                    if (typeof configValue[command.config.name][key] !== undefined) 
-                        global.configModule[command.config.name][key] = configValue[command.config.name][key];
-                    else global.configModule[command.config.name][key] = value || '';
-                    if (typeof configValue[command.config.name][key] == undefined) 
-                        configValue[command.config.name][key] = value || '';
-                }
-                logger.loader('loaded config' + ' ' + command.config.name);
-            } catch (error) {
-                throw new Error('failed to load config module, error : ' + JSON.stringify(error));
-            }
-            if (command['onLoad']) try {
-                const onLoads = {};
-                onLoads['configValue'] = configValue;
-                command['onLoad'](onLoads);
-            } catch (error) {
-                throw new Error('unable to onLoad module, error : ' + JSON.stringify(error), 'error');
-            }
-            if (command.handleEvent) global.client.eventRegistered.push(command.config.name);
-            (global.config.commandDisabled.includes(nameModule + '.js') || configValue.commandDisabled.includes(nameModule + '.js')) 
-            && (configValue.commandDisabled.splice(configValue.commandDisabled.indexOf(nameModule + '.js'), 1),
-            global.config.commandDisabled.splice(global.config.commandDisabled.indexOf(nameModule + '.js'), 1))
-            global.client.commands.set(command.config.name, command)
-            logger.loader('loaded command ' + command.config.name + '.');
-        } catch (error) {
-            errorList.push('' + nameModule + ' reason : ' + error + ' at ' + error['stack']);
-        };
-    }
-    if (errorList.length != 0) api.sendMessage('modules that had problems loading : ' + errorList.join(' '), threadID, messageID);
-    api.sendMessage('loaded ' + (moduleList.length - errorList.length) + ' module.', threadID, messageID) 
-    writeFileSync(configPath, JSON.stringify(configValue, null, 4), 'utf8')
-    unlinkSync(configPath + '.temp');
-    return;
-}
-
-const unloadModule = function ({ moduleList, threadID, messageID }) {
-    const { writeFileSync, unlinkSync } = global.nodemodule["fs-extra"];
-    const { configPath, mainPath, api } = global.client;
-    const logger = require(mainPath + "/shourovc.js").loader;
+    let logger = require(mainPath + '/shourovc.js');
+    let errorList = [];
 
     delete require.cache[require.resolve(configPath)];
-    var configValue = require(configPath);
-    writeFileSync(configPath + ".temp", JSON.stringify(configValue, null, 4), 'utf8');
+    let configValue = require(configPath);
 
-    for (const nameModule of moduleList) {
-        global.client.commands.delete(nameModule);
-        global.client.eventRegistered = global.client.eventRegistered.filter(item => item !== nameModule);
-        configValue["commandDisabled"].push(`${nameModule}.js`);
-        global.config["commandDisabled"].push(`${nameModule}.js`);
-        logger(`unloaded command ${nameModule}.`);
+    writeFileSync(configPath + ".temp", JSON.stringify(configValue, null, 2));
+
+    for (const mod of moduleList) {
+        try {
+            const modPath = __dirname + "/" + mod + ".js";
+            delete require.cache[require.resolve(modPath)];
+
+            const command = require(modPath);
+
+            if (!command.config || !command.run)
+                throw new Error("Invalid module format");
+
+            global.client.commands.delete(mod);
+
+            // load dependencies
+            if (command.config.dependencies) {
+                const pkgJson = JSON.parse(readFileSync("./package.json"));
+                const builtin = require("module").builtinModules;
+
+                for (let pkg in command.config.dependencies) {
+                    try {
+                        if (pkg in pkgJson.dependencies || builtin.includes(pkg))
+                            global.nodemodule[pkg] = require(pkg);
+                        else
+                            throw new Error("not found");
+                    } catch {
+                        logger.loader(`Installing missing package '${pkg}' for module '${mod}'`, "warn");
+
+                        execSync(`npm --save install ${pkg}`, {
+                            stdio: "inherit",
+                            shell: true,
+                            cwd: join(global.client.mainPath, "nodemodules")
+                        });
+
+                        global.nodemodule[pkg] = require(pkg);
+                    }
+                }
+                logger.loader(`Loaded dependencies for ${mod}`);
+            }
+
+            // register module
+            global.client.commands.set(command.config.name, command);
+            if (command.handleEvent)
+                global.client.eventRegistered.push(command.config.name);
+
+            logger.loader(`Loaded: ${mod}`);
+
+        } catch (err) {
+            errorList.push(`${mod} → ${err.message}`);
+        }
     }
 
-    writeFileSync(configPath, JSON.stringify(configValue, null, 4), 'utf8');
+    writeFileSync(configPath, JSON.stringify(configValue, null, 4));
     unlinkSync(configPath + ".temp");
 
-    return api.sendMessage(`unloaded ${moduleList.length} module`, threadID, messageID);
-}
+    if (errorList.length)
+        api.sendMessage("⚠️ Error modules:\n" + errorList.join("\n"), threadID, messageID);
 
-module.exports.run = function ({ event, args, api }) {
+    return api.sendMessage(`✅ Loaded ${moduleList.length - errorList.length} modules.`, threadID, messageID);
+};
+
+const unloadModule = async ({ api, moduleList, threadID, messageID }) => {
+    const { writeFileSync, unlinkSync } = global.nodemodule["fs-extra"];
+    const { configPath, mainPath } = global.client;
+
+    let logger = require(mainPath + "/shourovc.js").loader;
+
+    delete require.cache[require.resolve(configPath)];
+    let configValue = require(configPath);
+
+    writeFileSync(configPath + ".temp", JSON.stringify(configValue, null, 4));
+
+    for (let mod of moduleList) {
+        global.client.commands.delete(mod);
+        global.client.eventRegistered = global.client.eventRegistered.filter(x => x !== mod);
+
+        configValue.commandDisabled.push(mod + ".js");
+        global.config.commandDisabled.push(mod + ".js");
+
+        logger(`Unloaded: ${mod}`);
+    }
+
+    writeFileSync(configPath, JSON.stringify(configValue, null, 4));
+    unlinkSync(configPath + ".temp");
+
+    return api.sendMessage(`❎ Unloaded ${moduleList.length} modules.`, threadID, messageID);
+};
+
+module.exports.run = async function ({ api, event, args }) {
     const { readdirSync } = global.nodemodule["fs-extra"];
     const { threadID, messageID } = event;
 
-    var moduleList = args.splice(1, args.length);
+    const action = args[0];
+    let moduleList = args.slice(1);
 
-    switch (args[0]) {
-        case "load": {
-            if (moduleList.length == 0) return api.sendMessage("module name cannot be empty.", threadID, messageID);
-            else return loadCommand({ moduleList, threadID, messageID });
-        }
-        case "unload": {
-            if (moduleList.length == 0) return api.sendMessage("module name cannot be empty.", threadID, messageID);
-            else return unloadModule({ moduleList, threadID, messageID });
-        }
-        case "loadAll": {
-            moduleList = readdirSync(__dirname).filter((file) => file.endsWith(".js") && !file.includes('example'));
-            moduleList = moduleList.map(item => item.replace(/\.js/g, ""));
-            return loadCommand({ moduleList, threadID, messageID });
-        }
-        case "unloadAll": {
-            moduleList = readdirSync(__dirname).filter((file) => file.endsWith(".js") && !file.includes('example') && !file.includes("command"));
-            moduleList = moduleList.map(item => item.replace(/\.js/g, ""));
-            return unloadModule({ moduleList, threadID, messageID });
-        }
+    if (!["load", "unload", "loadAll", "unloadAll", "info"].includes(action))
+        return api.sendMessage("❗ Invalid syntax!", threadID, messageID);
+
+    switch (action) {
+        case "load":
+            if (!moduleList.length) return api.sendMessage("❗ Module name required!", threadID, messageID);
+            return loadModule({ api, moduleList, threadID, messageID });
+
+        case "unload":
+            if (!moduleList.length) return api.sendMessage("❗ Module name required!", threadID, messageID);
+            return unloadModule({ api, moduleList, threadID, messageID });
+
+        case "loadAll":
+            moduleList = readdirSync(__dirname).filter(f => f.endsWith(".js")).map(f => f.replace(".js", ""));
+            return loadModule({ api, moduleList, threadID, messageID });
+
+        case "unloadAll":
+            moduleList = readdirSync(__dirname)
+                .filter(f => f.endsWith(".js") && f !== "command.js")
+                .map(f => f.replace(".js", ""));
+            return unloadModule({ api, moduleList, threadID, messageID });
+
         case "info": {
-            const command = global.client.commands.get(moduleList.join("") || "");
+            const mod = moduleList.join("");
+            const cmd = global.client.commands.get(mod);
 
-            if (!command) return api.sendMessage("the module you entered does not exist.", threadID, messageID);
+            if (!cmd) return api.sendMessage("❗ Module not found!", threadID, messageID);
 
-            const { name, version, hasPermssion, credits, cooldowns, dependencies } = command.config;
+            const info =
+                `📌 NAME: ${cmd.config.name}\n` +
+                `👤 AUTHOR: ${cmd.config.credits}\n` +
+                `⚡ VERSION: ${cmd.config.version}\n` +
+                `🔐 PERMISSION: ${cmd.config.permission}\n` +
+                `⏱️ COOLDOWN: ${cmd.config.cooldowns}\n` +
+                `📦 DEPENDENCIES: ${Object.keys(cmd.config.dependencies || {}).join(", ") || "none"}`;
 
-            return api.sendMessage(
-                "" + name.toUpperCase() + "\n" +
-                 "coded by : " + credits + "\n" +
-                 "version : " + version + "\n" +
-                 "request permission : " + ((hasPermssion == 0) ? "user" : (hasPermssion == 1) ? "admin" : "bot operator" ) + "\n" +
-                 "timeout : " + cooldowns + " seconds\n" +
-                 `required packages : ${(Object.keys(dependencies || {})).join(", ") || "none"}`,
-                threadID, messageID
-            );
-        }
-        default: {
-            return global.utils.throwError(this.config.name, threadID, messageID);
+            return api.sendMessage(info, threadID, messageID);
         }
     }
-}
+};
