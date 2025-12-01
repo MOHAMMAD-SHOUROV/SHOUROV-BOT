@@ -1,76 +1,69 @@
-const fs = require('fs');
-const path = require('path');
-
-const banListPath = path.join(__dirname, '..', '..', 'banlist.json');
-
-function getBanList() {
-    try {
-        if (!fs.existsSync(banListPath)) {
-            fs.writeFileSync(banListPath, JSON.stringify([]));
-        }
-        return JSON.parse(fs.readFileSync(banListPath, 'utf8'));
-    } catch (error) {
-        console.error('Error reading ban list:', error);
-        return [];
-    }
-}
+const path = require("path");
 
 module.exports = {
-    run: async ({ event, api, config, commands }) => {
+  run: async ({ event, api, config, language, commands }) => {
+    try {
+      if (!event) return;
+
+      const threadID = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
+      if (!threadID) return;
+
+      // ---------------- Auto-reply (optional) ----------------
+      const autoReply = false; // set true to enable
+      if (autoReply && (event.type === "message" || event.type === "message_reply")) {
         try {
-            if (!event.body) return;
-
-            const body = event.body.trim();
-            if (!body.startsWith(config.prefix)) return;
-
-            const args = body.slice(config.prefix.length).trim().split(/\s+/);
-            const commandName = args.shift().toLowerCase();
-
-            const command = commands.get(commandName);
-            if (!command) return;
-
-            // Load banlist
-            const banList = getBanList();
-            if (banList.includes(event.senderID)) {
-                return api.sendMessage('❌ You are banned from using this bot.', event.threadID, event.messageID);
-            }
-
-            // Roles
-            const senderID = String(event.senderID);
-            const ownerID = String(config.ownerId).trim();
-
-            const isOwner = senderID === ownerID;
-            const isAdmin = config.admins.map(String).includes(senderID);
-            const isOperator = config.operators.map(String).includes(senderID);
-
-            let userRole = 0;
-            if (isOwner) userRole = 2;
-            else if (isAdmin || isOperator) userRole = 1;
-
-            // Permission check
-            if (command.config.role > userRole) {
-                return api.sendMessage(
-                    '❌ You do not have permission to use this command.',
-                    event.threadID,
-                    event.messageID
-                );
-            }
-
-            // Execute command
-            await command.run({
-                api,
-                event,
-                args,
-                config,
-                commands,
-                userRole
-            });
-
-        } catch (error) {
-            console.error('❌ message.js internal error:', error);
-            try {
-                api.sendMessage(`❌ Error: ${error.message}`, event.threadID, event.messageID);
-            } catch (_) {}
+          const replyText = "AutoReply: message received ✅";
+          if (typeof api.sendMessage === "function") {
+            await api.sendMessage({ body: replyText }, threadID);
+          } else if (typeof api.send === "function") {
+            await api.send({ body: replyText }, threadID);
+          }
+        } catch (e) {
+          console.error("Auto-reply error:", e.message);
         }
+      }
+
+      // ---------------- Commands ----------------
+      if (!commands || !(commands instanceof Map)) {
+        console.warn("Commands map is missing or invalid!");
+        return;
+      }
+
+      if (event.type === "message" || event.type === "message_reply") {
+        const text = (event.body || "").toString().trim();
+        if (!text) return;
+
+        const parts = text.split(/\s+/);
+        let cmdName = parts[0].toLowerCase();
+
+        // remove common prefixes
+        if (cmdName.startsWith("!") || cmdName.startsWith("/")) {
+          cmdName = cmdName.slice(1);
+        }
+
+        const args = parts.slice(1);
+
+        if (commands.has(cmdName)) {
+          const cmd = commands.get(cmdName);
+          if (cmd && typeof cmd.run === "function") {
+            await cmd.run({ event, api, args, commands, language });
+          }
+        }
+      }
+
+      // ---------------- Mark as seen ----------------
+      try {
+        if (threadID) {
+          if (api.markAsRead) api.markAsRead(threadID, () => {});
+          else if (api.setMessageRead) api.setMessageRead(threadID, () => {});
+          else if (api.markSeen) api.markSeen(threadID, () => {});
+        }
+      } catch (e) {
+        console.warn("Mark as seen error:", e.message);
+      }
+
+    } catch (err) {
+      console.error("Message handler error:", err.message);
     }
+  }
 };
