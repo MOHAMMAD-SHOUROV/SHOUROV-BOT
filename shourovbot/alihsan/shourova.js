@@ -202,6 +202,75 @@ login({ appState }, (err, api) => {
       } catch (err) {
         console.error('Error in message handler:', err);
       }
+            // --- Auto mark-as-read + Auto-reply for incoming messages ---
+      try {
+        console.log('EVENT RECEIVED:', event && event.type, 'thread:', event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid)));
+
+        if (event && (event.type === 'message' || event.type === 'message_reply')) {
+          // Resolve thread id robustly
+          const threadID = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID || null;
+
+          // 1) Mark as read / seen if API supports it
+          try {
+            if (threadID) {
+              if (typeof api.markAsRead === 'function') {
+                api.markAsRead(threadID, (err) => {
+                  if (err) console.warn('markAsRead error:', err);
+                  else console.log('Marked as read:', threadID);
+                });
+              } else if (typeof api.setMessageRead === 'function') {
+                api.setMessageRead(threadID, (err) => {
+                  if (err) console.warn('setMessageRead error:', err);
+                  else console.log('setMessageRead success:', threadID);
+                });
+              } else {
+                // some clients expose markSeen or similar
+                if (typeof api.markSeen === 'function') {
+                  api.markSeen(threadID, (err) => {
+                    if (err) console.warn('markSeen error:', err);
+                    else console.log('Marked seen via markSeen:', threadID);
+                  });
+                } else {
+                  console.log('No mark-as-read API available on this client');
+                }
+              }
+            } else {
+              console.log('No threadID available to mark as read');
+            }
+          } catch (e) {
+            console.warn('Exception when marking read:', e);
+          }
+
+          // 2) Send an auto-reply (non-blocking)
+          try {
+            const replyText = 'Thanks — message received!'; // change this message to whatever you want
+            const messageBody = { body: replyText };
+
+            if (!threadID) {
+              console.warn('No threadID to reply to');
+            } else if (typeof api.sendMessage === 'function') {
+              api.sendMessage(messageBody, threadID, (err, info) => {
+                if (err) console.error('sendMessage error:', err);
+                else console.log('Auto-replied to', threadID, info && info.messageID ? info.messageID : info);
+              });
+            } else if (typeof api.send === 'function') {
+              // some forks use api.send
+              api.send(messageBody, threadID, (err, info) => {
+                if (err) console.error('api.send error:', err);
+                else console.log('Auto-replied (api.send) to', threadID);
+              });
+            } else {
+              console.warn('No sendMessage/send API available to reply.');
+            }
+          } catch (e) {
+            console.error('Auto-reply failed:', e);
+          }
+        }
+      } catch (outerErr) {
+        console.error('Auto-mark/reply outer error:', outerErr);
+      }
+      // --- end auto mark/reply ---
+
     });
   }
 });
