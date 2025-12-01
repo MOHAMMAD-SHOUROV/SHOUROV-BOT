@@ -239,6 +239,23 @@ try {
                      event.senderID || null;
 
     console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
+    
+// AUTO-REPLY (quick test) — change to false to disable
+const autoReply = true; // true = on, false = off
+if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
+  try {
+    const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
+    if (tid && typeof api.sendMessage === 'function') {
+      api.sendMessage({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied to', tid);
+    } else if (tid && typeof api.send === 'function') {
+      api.send({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied (api.send) to', tid);
+    }
+  } catch(e) {
+    console.error('Auto-reply error:', e && e.message);
+  }
+}
 
     // ---------- 1) Run global event handlers ----------
     for (const evHandler of eventHandlers) {
