@@ -1,100 +1,164 @@
-const axios = require('axios');
-const jimp = require("jimp");
 const fs = require("fs");
+const path = require("path");
+
 module.exports.config = {
   name: "help",
-  version: "1.0.2",
+  version: "1.0.5",
   permission: 0,
   credits: "shourov",
-  description: "beginner's guide",
+  description: "Show all commands or detailed info for a specific command",
   prefix: true,
   category: "guide",
-  usages: "[Shows Commands]",
+  usages: "[page | commandName]",
   cooldowns: 5,
   envConfig: {
     autoUnsend: true,
-    delayUnsend: 60
+    delayUnsend: 60 // seconds
   }
 };
 
 module.exports.languages = {
-  "vi": {
-    "moduleInfo": "「 %1 」\n%2\n\n❯ Cách sử dụng: %3\n❯ Thuộc nhóm: %4\n❯ Thời gian chờ: %5 giây(s)\n❯ Quyền hạn: %6\n\n» Module code by %7 «",
-    "helpList": '[ Hiện tại đang có %1 lệnh có thể sử dụng trên bot này, Sử dụng: "%2help nameCommand" để xem chi tiết cách sử dụng! ]"',
-    "user": "Người dùng",
-        "adminGroup": "Quản trị viên nhóm",
-        "adminBot": "Quản trị viên bot"
-  },
   "en": {
-    "moduleInfo": "「 %1 」\n%2\n\n❯ Usage: %3\n❯ Category: %4\n❯ Waiting time: %5 seconds(s)\n❯ Permission: %6\n\n» Module code by %7 «",
-    "helpList": '[ There are %1 commands on this bot, Use: "%2help nameCommand" to know how to use! ]',
-    "user": "Anyone",
-        "adminGroup": "Admin of group",
-        "adminBot": "Admin of bot"
+    "helpListTitle": "📚 Command List — Page %1/%2",
+    "helpListFooter": "Use: %1help <command> to see details of a command\nTotal commands: %2",
+    "noCommand": "❌ Command '%1' not found.",
+    "moduleInfo": "「 %1 」\n%2\n\n❯ Usage: %3\n❯ Category: %4\n❯ Cooldown: %5 second(s)\n❯ Permission: %6\n❯ Credits: %7",
+    "perm_user": "Anyone",
+    "perm_admin": "Group Admin",
+    "perm_op": "Bot Operator",
+    "pageArgErr": "❗ Invalid page number, showing page 1."
+  },
+  "bn": {
+    "helpListTitle": "📚 কমান্ড তালিকা — পৃষ্ঠা %1/%2",
+    "helpListFooter": "ব্যবহার: %1help <command> — একটি কমান্ডের বিবরণ দেখার জন্য\nমোট কমান্ড: %2",
+    "noCommand": "❌ '%1' নামক কমান্ড পাওয়া যায়নি।",
+    "moduleInfo": "「 %1 」\n%2\n\n❯ ব্যবহার: %3\n❯ বিভাগ: %4\n❯ অপেক্ষার সময়: %5 সেকেন্ড\n❯ অনুমতি: %6\n❯ ক্রেডিট: %7",
+    "perm_user": "সবার জন্য",
+    "perm_admin": "গ্রুপ অ্যাডমিন",
+    "perm_op": "বট অপারেটর",
+    "pageArgErr": "❗ ভুল পৃষ্ঠা সংখ্যা, পৃষ্ঠা 1 দেখানো হচ্ছে।"
   }
 };
 
+/**
+ * Helper to get language text (fallback to en)
+ */
+module.exports.getText = function (key, lang = "en") {
+  try {
+    if (this.languages && this.languages[lang] && this.languages[lang][key]) return this.languages[lang][key];
+  } catch (e) { }
+  return this.languages.en[key] || "";
+};
+
 module.exports.handleEvent = function ({ api, event, getText }) {
-  const { commands } = global.client;
-  const { threadID, messageID, body } = event;
-const fs = require("fs");
-const axios = require("axios");
-  if (!body || typeof body == "undefined" || body.indexOf("help") != 0) return;
-  const splitBody = body.slice(body.indexOf("help")).trim().split(/\s+/);
-  if (splitBody.length == 1 || !commands.has(splitBody[1].toLowerCase())) return;
-  const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-  const command = commands.get(splitBody[1].toLowerCase());
-  const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
-  return api.sendMessage(getText("moduleInfo", command.config.name, command.config.description, `${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}`, command.config.commandCategory, command.config.cooldowns, ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")), command.config.credits), threadID, messageID);
-}
+  // Keep compatibility: if someone uses 'help <command>' as message (not command invocation)
+  // we will not handle it here to avoid duplicate behavior — the run method covers explicit calls.
+  return;
+};
 
-module.exports. run = async function({ api, event, args, getText }) {
-  const { commands } = global.client;
-  const { threadID, messageID } = event;
-  const command = commands.get((args[0] || "").toLowerCase());
-  const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-  const { autoUnsend, delayUnsend } = global.configModule[this.config.name];
-  const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
+module.exports.run = async function ({ api, event, args, Users, Threads, getText }) {
+  try {
+    const threadID = event.threadID;
+    const messageID = event.messageID;
+    const lang = (global.data && global.data.threadData && global.data.threadData.get(threadID) && global.data.threadData.get(threadID).lang) ? global.data.threadData.get(threadID).lang : "en";
+    const text = (key, ...rest) => {
+      const tpl = this.getText(key, lang);
+      return rest.length ? tpl.replace(/%(\d+)/g, (_, n) => rest[parseInt(n) - 1]) : tpl;
+    };
 
-  if (!command) {
-    const arrayInfo = [];
-    const page = parseInt(args[0]) || 1;
-    const numberOfOnePage = 10;
-    let i = 0;
-    let msg = "\n";
+    const prefix = (global.data && global.data.threadData && global.data.threadData.get(threadID) && global.data.threadData.get(threadID).PREFIX) ? global.data.threadData.get(threadID).PREFIX : (global.config && global.config.PREFIX ? global.config.PREFIX : "");
 
-    for (var [name, value] of (commands)) {
-      name += `  ${value.config.usages}`;
-      arrayInfo.push(name);
+    // If user asked for a specific command: help <command>
+    if (args && args.length > 0 && isNaN(args[0])) {
+      const name = args[0].toLowerCase();
+      const command = global.client.commands.get(name);
+      if (!command) {
+        return api.sendMessage(text("noCommand", name), threadID, messageID);
+      }
+
+      // Prepare permission text
+      const perm = (cmd) => {
+        const p = cmd.config.hasPermssion || cmd.config.permission || 0;
+        if (p === 0) return text("perm_user");
+        if (p === 1) return text("perm_admin");
+        return text("perm_op");
+      };
+
+      const usage = `${prefix}${command.config.name}${command.config.usages ? " " + command.config.usages : ""}`;
+      const infoMsg = text("moduleInfo",
+        command.config.name,
+        command.config.description || "No description provided.",
+        usage,
+        command.config.category || command.config.commandCategory || "Unknown",
+        command.config.cooldowns != null ? String(command.config.cooldowns) : "0",
+        perm(command),
+        command.config.credits || command.config.credits || "unknown"
+      );
+
+      return api.sendMessage(infoMsg, threadID, messageID);
     }
 
-    arrayInfo.sort((a, b) => a.data - b.data);
+    // Otherwise show paginated list
+    const allCommands = Array.from(global.client.commands.values())
+      .filter(cmd => cmd && cmd.config && cmd.config.name)
+      // optionally filter out hidden commands if you have that flag
+      //.filter(cmd => !cmd.config.hidden)
+      .sort((a, b) => {
+        // sort by category then name
+        const ca = (a.config.category || a.config.commandCategory || "").toLowerCase();
+        const cb = (b.config.category || b.config.commandCategory || "").toLowerCase();
+        if (ca < cb) return -1;
+        if (ca > cb) return 1;
+        return a.config.name.localeCompare(b.config.name);
+      });
 
-    const startSlice = numberOfOnePage*page - numberOfOnePage;
-    i = startSlice;
-    const returnArray = arrayInfo.slice(startSlice, startSlice + numberOfOnePage);
+    const numberOfOnePage = 10;
+    let page = parseInt(args[0]) || 1;
+    const totalPages = Math.max(1, Math.ceil(allCommands.length / numberOfOnePage));
+    if (isNaN(page) || page < 1 || page > totalPages) {
+      page = 1;
+      // inform user if they provided bad page (optional)
+      if (args[0]) await api.sendMessage(text("pageArgErr"), threadID);
+    }
 
-    for (let item of returnArray) msg += `╭────────────❍
-╰➤  ${++i} ❯ ${prefix}${item}\n\n`;
+    const start = (page - 1) * numberOfOnePage;
+    const pageSlice = allCommands.slice(start, start + numberOfOnePage);
 
-    const randomText = [ "Even a small amount of alcohol poured on a scorpion will drive it crazy and sting itself to death."," The crocodile can't stick its tongue out.","The oldest known animal in the world is a 405-year-old male, discovered in 2007.","Sharks, like other fish, have their reproductive organs located in the ribcage.","The eyes of the octopus have no blind spots. On average, the brain of an octopus has 300 million neurons. When under extreme stress, some octopuses even eat their trunks.","An elephant's brain weighs about 6,000g, while a cat's brain weighs only approximately 30g.","Cats and dogs have the ability to hear ultrasound.","Sheep can survive up to 2 weeks in a state of being buried in snow.","The smartest pig in the world is owned by a math teacher in Madison, Wisconsin (USA). It has the ability to memorize worksheets multiplying to 12.","Statistics show that each rattlesnake's mating lasts up to ... more than 22 hours", "Studies have found that flies are deaf.","In a lack of water, kangaroos can endure longer than camels.","","Dogs have 4 toes on their hind legs and 5 toes on each of their front paws.","The average flight speed of honey bees is 24km/h. They never sleep.","Cockroaches can live up to 9 days after having their heads cut off.","If you leave a goldfish in the dark for a long time, it will eventually turn white.","The flying record for a chicken is 13 seconds.","The mosquito that causes the most deaths to humans worldwide is the mosquito.","TThe quack of a duck doesn't resonate, and no one knows why.","Sea pond has no brain. They are also among the few animals that can turn their stomachs inside out.","Termites are active 24 hours a day and they do not sleep. Studies have also found that termites gnaw wood twice as fast when listening to heavy rock music.","Baby giraffes usually fall from a height of 1.8 meters when they are born.", "A tiger not only has a striped coat, but their skin is also streaked with stripes.."," Vultures fly without flapping their wings.","Turkeys can reproduce without mating.","Penguins are the only birds that can swim, but not fly. Nor have any penguins been found in the Arctic."," The venom of the king cobra is so toxic that just one gram can kill 150 people.","The venom of a small scorpion is much more dangerous than the venom of a large scorpion.","The length of an oyster's penis can be so 'monstrous' that it is 20 times its body size!","Rat's heart beats 650 times per minute.","The flea can jump 350 times its body length. If it also possessed that ability, a human would be able to jump the length of a football field once.","The faster the kangaroo jumps, the less energy it consumes.","Elephants are among the few mammals that can't jump! It was also discovered that elephants still stand after death.","Spiders have transparent blood."," Snails breathe with their feet.","Some lions mate more than 50 times a day.","Chuột reproduce so quickly that in just 18 months, from just 2 mice, the mother can give birth to 1 million heirs.","Hedgehog floats on water.","Alex is the world's first African gray parrot to question its own existence: What color am I?.","The reason why flamingos are pink-red in color is because they can absorb pigments from the shells of shrimp and shrimp that they eat every day."," Owls and pigeons can memorize human faces", "Cows are more dangerous than sharks","The single pair of wings on the back and the rear stabilizer help the flies to fly continuously, but their lifespan is not more than 14 days.","With a pair of endlessly long legs that can be up to 1.5 m high and weigh 20-25 kg, the ostrich can run faster than a horse. In addition, male ostriches can roar like a lion.","Kangaroos use their tails for balance, so if you lift a Kangaroo's tail off the ground, it won't be able to jump and stand.","Tigers not only have stripes on their backs but also printed on their skin. Each individual tiger is born with its own unique stripe.","If you are being attacked by a crocodile, do not try to get rid of their sharp teeth by pushing them away. Just poke the crocodile in the eye, that's their weakness.","Fleas can jump up to 200 times their height. This is equivalent to a man jumping on the Empire State Building in New York.","A cat has up to 32 muscles in the ear. That makes them have superior hearing ability","Koalas have a taste that does not change throughout life, they eat almost nothing but .. leaves of the eucalyptus tree.","The beaver's teeth do not stop growing throughout its life. If you do not want the teeth to be too long and difficult to control, the beaver must eat hard foods to wear them down.","Animals living in coastal cliffs or estuaries have extremely weird abilities. Oysters can change sex to match the mating method.","Butterflies have eyes with thousands of lenses similar to those on cameras, but they can only see red, green, and yellow..","Don't try this at home, the truth is that if a snail loses an eye, it can recover.","Giraffes do not have vocal cords like other animals of the same family, their tongues are blue-black.","Dog nose prints are like human fingerprints and can be used to identify different dogs.",];
- /*  var data = ["https://i.imgur.com/XetbfAe.jpg", "https://i.imgur.com/4dwdpG9.jpg", "https://i.imgur.com/9My3K5w.jpg", "https://i.imgur.com/vK67ofl.jpg", "https://i.imgur.com/fGwlsFL.jpg"];
-let link = data[Math.floor(Math.random() * data.length)];
-let path = __dirname + `/cache/help.png`;
-  let image = (
-    await axios.get(link, {
-      responseType: "arraybuffer",
-    })
-  ).data;
-  fs.writeFileSync(path, Buffer.from(image, "utf-8"));*/
+    // Build nice message
+    let msg = "";
+    msg += `╭─── ${text("helpListTitle", page, totalPages)} ───╮\n\n`;
+    let index = start;
+    for (const cmd of pageSlice) {
+      index++;
+      const usages = cmd.config.usages ? ` ${cmd.config.usages}` : "";
+      const cat = cmd.config.category || cmd.config.commandCategory || "Unknown";
+      msg += `╭─ ${index}. ${prefix}${cmd.config.name}${usages}\n`;
+      msg += `│  ↳ ${cmd.config.description ? cmd.config.description : "No description"}\n`;
+      msg += `│  ↳ Category: ${cat} • Cooldown: ${cmd.config.cooldowns || 0}s\n`;
+      msg += `╰────────────────────\n`;
+    }
 
+    msg += `\n` + text("helpListFooter", prefix, allCommands.length) + `\n`;
 
-    const text = `╰➤ 𝗧𝗢𝗧𝗔𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗 ${arrayInfo.length}\n𝗨𝗦𝗘【 ${prefix}Help 】𝐏𝐀𝐆𝐄 𝐍𝐎.\n╰➤ «𝐍𝐔𝐌𝐁𝐄𝐑 𝐎𝐅 𝐏𝐀𝐆𝐄» ${page}
-╰➤ https://www.facebook.com/shourov.sm24`;
-    return api.sendMessage(`╭──«~»──CMD──«~»──╮\n\nPAGE ${page}/${Math.ceil(arrayInfo.length/numberOfOnePage)}` + "\n" + msg + "\n" + text, threadID, async (error, info) => {
+    // Send message and unsend if configured in envConfig
+    const { autoUnsend, delayUnsend } = (global.configModule && global.configModule[this.config.name]) ? global.configModule[this.config.name] : this.config.envConfig || { autoUnsend: false, delayUnsend: 60 };
+
+    api.sendMessage(msg, threadID, async (err, info) => {
+      if (err) return console.error("help: sendMessage error:", err);
       if (autoUnsend) {
-        await new Promise(resolve => setTimeout(resolve, delayUnsend * 100000));
-        return api.unsendMessage(info.messageID);
-      } else return;
-    });
+        try {
+          // delayUnsend is in seconds — ensure positive and not extremely large
+          const delay = Math.max(5, parseInt(delayUnsend) || 60);
+          await new Promise(resolve => setTimeout(resolve, delay * 1000));
+          return api.unsendMessage(info.messageID);
+        } catch (e) {
+          // ignore unsend errors
+        }
+      }
+    }, messageID);
+
+  } catch (error) {
+    console.error("help command error:", error && (error.stack || error));
+    try { return api.sendMessage("❗ An unexpected error occurred while fetching help.", event.threadID, event.messageID); } catch (e) {}
   }
+};
