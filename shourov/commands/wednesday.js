@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'wednesday', aliases: ['hump-day'], role: 0, description: 'Wednesday greeting' }, run: async ({ api, event }) => { api.sendMessage('📅 Wednesday!\n\n🐪 Hump day!\n\n⏳ Halfway there!', event.threadID); } };
