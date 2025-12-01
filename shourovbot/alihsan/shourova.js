@@ -189,26 +189,33 @@ login({ appState }, (err, api) => {
         return;
       }
 
-      // Here you can require and call your event/command handlers
-      // Example placeholder: attempt to load message handler safely
+     // debug: list commands & events
+try {
+  const commandsDir = path.join(__dirname, '..', 'shourov', 'commands');
+  if (fs.existsSync(commandsDir)) {
+    const cmdFiles = fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'));
+    console.log('Commands found:', cmdFiles);
+    for (const f of cmdFiles) {
       try {
-        const messageHandlerPath = path.join(__dirname, '..', 'shourov', 'events', 'message.js');
-        if (fs.existsSync(messageHandlerPath)) {
-          const messageHandler = require(messageHandlerPath);
-          if (messageHandler && typeof messageHandler.run === 'function') {
-            await messageHandler.run({ event, api, config, language: global.language });
-          }
-        }
-      } catch (err) {
-        console.error('Error in message handler:', err);
-      }
-            // --- Auto mark-as-read + Auto-reply for incoming messages ---
+        const cmd = require(path.join(commandsDir, f));
+        console.log('Loaded command', f, '->', !!cmd && !!cmd.name ? cmd.name : 'no-name');
+      } catch(e){ console.error('Error loading command', f, e.message); }
+    }
+  }
+} catch(e){console.error(e);}
+try {
+  const eventsDir = path.join(__dirname, '..', 'shourov', 'events');
+  if (fs.existsSync(eventsDir)) {
+    const evFiles = fs.readdirSync(eventsDir).filter(f => f.endsWith('.js'));
+    console.log('Events found:', evFiles);
+    for (const f of evFiles) {
       try {
-        console.log('EVENT RECEIVED:', event && event.type, 'thread:', event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid)));
-
-        if (event && (event.type === 'message' || event.type === 'message_reply')) {
-          // Resolve thread id robustly
-          const threadID = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID || null;
+        const ev = require(path.join(eventsDir, f));
+        console.log('Loaded event', f, '->', typeof ev.run === 'function' ? 'has-run' : 'no-run');
+      } catch(e){ console.error('Error loading event', f, e.message); }
+    }
+  }
+} catch(e){console.error(e);}
 
           // 1) Mark as read / seen if API supports it
           try {
