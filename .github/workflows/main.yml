@@ -1,38 +1,37 @@
-name: SHOUROV-BOT
+name: Auto Fix Commands & Events
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  fix:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-       - name: Run auto fixer
-        run: node fix-all.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18"
 
-        - name:  Commit changes
-        run: git config user.name "AutoFix Bot"
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run auto fixer
+      run: node fix-all.js
+
+    - name: Commit changes
+      run: |
+        git config user.name "AutoFix Bot"
         git config user.email "autofix@example.com"
         git add .
         git commit -m "Auto fixed commands & events" || echo "Nothing to commit"
 
-        - name: Push changes
+    - name: Push changes
       uses: ad-m/github-push-action@v0.6.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: SHOUROV-BOT
-        run: npm start
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
