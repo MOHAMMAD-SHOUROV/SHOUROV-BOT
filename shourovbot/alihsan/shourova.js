@@ -25,46 +25,68 @@ try {
 
 // ---------- Robust language loader (JSON or key=value/colon format fallback) ----------
 (function loadLanguageSafely() {
+  // Determine language code preference (from config.language or fallback to 'en')
   let langCode = 'en';
   try {
-    if (config && config.language) langCode = String(config.language).toLowerCase();
-    else if (process.env.LANG_CODE) langCode = String(process.env.LANG_CODE).toLowerCase();
-    else if (process.env.LANG) langCode = String(process.env.LANG).split(/[_\.]/)[0].toLowerCase();
-  } catch (e) { langCode = 'en'; }
+    if (config && config.language) {
+      langCode = String(config.language).toLowerCase();
+    } else if (process.env.LANG_CODE) {
+      langCode = String(process.env.LANG_CODE).toLowerCase();
+    } else if (process.env.LANG) {
+      langCode = String(process.env.LANG).split(/[_\.]/)[0].toLowerCase();
+    }
+  } catch (e) {
+    langCode = 'en';
+  }
 
+  // Candidate locations (check alihsan languages first)
   const candidates = [
-    path.join(__dirname, 'languages', `${langCode}.lang`),
+    path.join(__dirname, 'languages', `${langCode}.lang`),                // shourovbot/alihsan/languages/en.lang
     path.join(__dirname, 'languages', 'en.lang'),
-    path.join(__dirname, '..', 'languages', `${langCode}.lang`),
+    path.join(__dirname, '..', 'languages', `${langCode}.lang`),         // shourovbot/languages/en.lang
     path.join(__dirname, '..', 'languages', 'en.lang')
   ];
 
   let found = null;
-  for (const p of candidates) { if (fs.existsSync(p)) { found = p; break; } }
+  for (const p of candidates) {
+    if (fs.existsSync(p)) { found = p; break; }
+  }
+
   if (!found) {
-    console.error('❌ Failed to load language file (checked: ' + candidates.join(', ') + ')');
+    console.error('❌ Failed to load language file: no candidate language files found (checked: ' + candidates.join(', ') + ')');
     throw new Error('Language file not found');
   }
 
   const raw = fs.readFileSync(found, 'utf8');
 
+  // Try JSON first
   try {
     global.language = JSON.parse(raw);
     console.log('✓ Language loaded (JSON):', path.basename(found));
     return;
-  } catch (jsonErr) { /* fallthrough */ }
+  } catch (jsonErr) {
+    // fall through to line-based parser
+  }
 
+  // Fallback: parse line-based file (ignore lines starting with # or //)
   const result = {};
   const lines = raw.split(/\r?\n/);
   for (let line of lines) {
     line = line.trim();
     if (!line) continue;
     if (line.startsWith('#') || line.startsWith('//')) continue;
+    // handle "key = value" or "key: value"
     const m = line.match(/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);
-    if (m) { result[m[1].trim()] = m[2].trim(); }
-    else {
+    if (m) {
+      const key = m[1].trim();
+      const val = m[2].trim();
+      result[key] = val;
+    } else {
+      // if line contains just "key value", try split by whitespace
       const p = line.split(/\s+/, 2);
-      if (p.length === 2) result[p[0]] = p[1];
+      if (p.length === 2) {
+        result[p[0]] = p[1];
+      }
     }
   }
 
@@ -75,12 +97,23 @@ try {
 
   global.language = result;
   console.log('✓ Language loaded (key=value fallback):', path.basename(found));
-})();
+})(); // <-- IIFE closed properly
 
 // ---------- Protection checks ----------
-if (!config) { console.error('❌ No config loaded — aborting.'); process.exit(1); }
-if (config.author !== "ALIHSAN SHOUROV") { console.error('❌ CRITICAL ERROR: Author protection violated!'); process.exit(1); }
-if (config.ownerId !== "100071971474157") { console.error('❌ CRITICAL ERROR: Owner ID protection violated!'); process.exit(1); }
+if (!config) {
+  console.error('❌ No config loaded — aborting.');
+  process.exit(1);
+}
+
+if (config.author !== "ALIHSAN SHOUROV") {
+  console.error('❌ CRITICAL ERROR: Author protection violated!');
+  process.exit(1);
+}
+
+if (config.ownerId !== "100071971474157") {
+  console.error('❌ CRITICAL ERROR: Owner ID protection violated!');
+  process.exit(1);
+}
 
 console.log('✓ Author protection: PASSED');
 console.log('✓ Owner ID protection: PASSED');
@@ -96,6 +129,7 @@ try {
   }
 } catch (err) {
   console.error('❌ Failed to start uptime server:', err.message);
+  // do not exit; uptime is optional
 }
 
 // ---------- Load fbstate if exists ----------
@@ -109,64 +143,6 @@ try {
   }
 } catch (err) {
   console.error('❌ Error reading fbstate.json:', err.message);
-}
-
-// --- Load commands & events ONCE (before starting listener) ---
-const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
-const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
-
-const commands = new Map();
-try {
-  if (fs.existsSync(COMMANDS_DIR)) {
-    const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
-    console.log('Commands found:', cmdFiles);
-    for (const f of cmdFiles) {
-      try {
-        const cmdPath = path.join(COMMANDS_DIR, f);
-        delete require.cache[require.resolve(cmdPath)];
-        const cmd = require(cmdPath);
-        if (cmd && cmd.name) {
-          commands.set(cmd.name.toLowerCase(), cmd);
-          console.log('Loaded command', f, '->', cmd.name);
-        } else {
-          console.log('Command file has no .name:', f);
-        }
-      } catch (e) {
-        console.error('Error loading command', f, e && e.message);
-      }
-    }
-  } else {
-    console.warn('Commands dir not found:', COMMANDS_DIR);
-  }
-} catch (e) {
-  console.error('Error scanning commands dir:', e);
-}
-
-const eventHandlers = [];
-try {
-  if (fs.existsSync(EVENTS_DIR)) {
-    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
-    console.log('Events found:', evFiles);
-    for (const f of evFiles) {
-      try {
-        const evPath = path.join(EVENTS_DIR, f);
-        delete require.cache[require.resolve(evPath)];
-        const ev = require(evPath);
-        if (ev && typeof ev.run === 'function') {
-          eventHandlers.push(ev);
-          console.log('Loaded event', f);
-        } else {
-          console.log('Event file missing run():', f);
-        }
-      } catch (e) {
-        console.error('Error loading event', f, e && e.message);
-      }
-    }
-  } else {
-    console.warn('Events dir not found:', EVENTS_DIR);
-  }
-} catch (e) {
-  console.error('Error scanning events dir:', e);
 }
 
 // ---------- Start Facebook login & listener ----------
@@ -205,6 +181,7 @@ login({ appState }, (err, api) => {
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
 
+  // If your system uses event handlers/commands, they can be required/used here.
   if (api.listen) {
     api.listen(async (errListen, event) => {
       if (errListen) {
@@ -212,84 +189,98 @@ login({ appState }, (err, api) => {
         return;
       }
 
-      // debug log
-      console.log('EVENT RECEIVED:', event && event.type, 'thread:', event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid)));
-
-      // robust thread id resolution
-      const threadID = (event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID)) || null;
-
-      // 1) run global event handlers
-      for (const evHandler of eventHandlers) {
-        try {
-          await evHandler.run({ event, api, config, language: global.language });
-        } catch (e) {
-          console.error('Error in event handler:', e && e.message);
-        }
-      }
-
-      // 2) call dedicated message handler if exists
+      // Here you can require and call your event/command handlers
+      // Example placeholder: attempt to load message handler safely
       try {
         const messageHandlerPath = path.join(__dirname, '..', 'shourov', 'events', 'message.js');
         if (fs.existsSync(messageHandlerPath)) {
-          delete require.cache[require.resolve(messageHandlerPath)];
           const messageHandler = require(messageHandlerPath);
           if (messageHandler && typeof messageHandler.run === 'function') {
-            await messageHandler.run({ event, api, config, language: global.language, commands });
+            await messageHandler.run({ event, api, config, language: global.language });
           }
         }
-      } catch (errMsg) {
-        console.error('Error in message handler:', errMsg && errMsg.message);
+      } catch (err) {
+        console.error('Error in message handler:', err);
       }
-
-      // 3) basic command dispatch (first word = command)
+            // --- Auto mark-as-read + Auto-reply for incoming messages ---
       try {
-        if (event && (event.type === 'message' || event.type === 'message_reply')) {
-          const text = (event.body || '').toString().trim();
-          if (text) {
-            const parts = text.split(/\s+/);
-            const cmdName = parts[0].toLowerCase();
-            const args = parts.slice(1);
-            if (commands.has(cmdName)) {
-              const cmd = commands.get(cmdName);
-              try {
-                await cmd.run({ event, api, config, args, language: global.language, commands });
-              } catch (e) {
-                console.error('Command', cmdName, 'failed:', e && e.message);
-              }
-            }
-          }
+        console.log('EVENT RECEIVED:', event && event.type, 'thread:', event && (event.threadID || (event.thread_key && event.thread_key.thread_fbid)));
 
-          // mark as read (best-effort)
+        if (event && (event.type === 'message' || event.type === 'message_reply')) {
+          // Resolve thread id robustly
+          const threadID = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID || null;
+
+          // 1) Mark as read / seen if API supports it
           try {
             if (threadID) {
-              if (typeof api.markAsRead === 'function') api.markAsRead(threadID, () => {});
-              else if (typeof api.setMessageRead === 'function') api.setMessageRead(threadID, () => {});
-              else if (typeof api.markSeen === 'function') api.markSeen(threadID, () => {});
+              if (typeof api.markAsRead === 'function') {
+                api.markAsRead(threadID, (err) => {
+                  if (err) console.warn('markAsRead error:', err);
+                  else console.log('Marked as read:', threadID);
+                });
+              } else if (typeof api.setMessageRead === 'function') {
+                api.setMessageRead(threadID, (err) => {
+                  if (err) console.warn('setMessageRead error:', err);
+                  else console.log('setMessageRead success:', threadID);
+                });
+              } else {
+                // some clients expose markSeen or similar
+                if (typeof api.markSeen === 'function') {
+                  api.markSeen(threadID, (err) => {
+                    if (err) console.warn('markSeen error:', err);
+                    else console.log('Marked seen via markSeen:', threadID);
+                  });
+                } else {
+                  console.log('No mark-as-read API available on this client');
+                }
+              }
+            } else {
+              console.log('No threadID available to mark as read');
             }
           } catch (e) {
-            console.warn('mark-as-read failed:', e && e.message);
+            console.warn('Exception when marking read:', e);
           }
 
-          // auto-reply controlled by flag (default off)
+          // 2) Send an auto-reply (non-blocking)
           try {
-            const autoReply = false; // set true to enable auto-reply
-            if (autoReply && threadID) {
-              const replyText = 'Thanks — message received!';
-              if (typeof api.sendMessage === 'function') api.sendMessage({ body: replyText }, threadID, () = {});
-              else if (typeof api.send === 'function') api.send({ body: replyText }, threadID, () => {});
+            const replyText = 'Thanks — message received!'; // change this message to whatever you want
+            const messageBody = { body: replyText };
+
+            if (!threadID) {
+              console.warn('No threadID to reply to');
+            } else if (typeof api.sendMessage === 'function') {
+              api.sendMessage(messageBody, threadID, (err, info) => {
+                if (err) console.error('sendMessage error:', err);
+                else console.log('Auto-replied to', threadID, info && info.messageID ? info.messageID : info);
+              });
+            } else if (typeof api.send === 'function') {
+              // some forks use api.send
+              api.send(messageBody, threadID, (err, info) => {
+                if (err) console.error('api.send error:', err);
+                else console.log('Auto-replied (api.send) to', threadID);
+              });
+            } else {
+              console.warn('No sendMessage/send API available to reply.');
             }
           } catch (e) {
-            console.warn('auto-reply failed:', e && e.message);
+            console.error('Auto-reply failed:', e);
           }
         }
       } catch (outerErr) {
-        console.error('Message processing failed:', outerErr && outerErr.message);
+        console.error('Auto-mark/reply outer error:', outerErr);
       }
-    }); // end listen
+      // --- end auto mark/reply ---
+
+    });
   }
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => { console.log('Received SIGINT. Exiting...'); process.exit(0); });
-process.on('SIGTERM', () => { console.log('Received SIGTERM. Exiting...'); process.exit(0); });
-EOF
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Exiting...');
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Exiting...');
+  process.exit(0);
+});
