@@ -1,67 +1,118 @@
+// commands/autoreact.js
 const fs = require('fs-extra');
-const pathFile = __dirname + '/autoreact/autoreact.txt';
+const path = require('path');
+
+const dataDir = path.join(__dirname, 'autoreact');
+const pathFile = path.join(dataDir, 'autoreact.txt');
 
 module.exports = {
-config: {
-  name: "autoreact",
-  version: "1.0.0",
-  permission: 0,
-  credits: "nayan",
-  description: "",
-  prefix: 'awto', 
-  category: "auto", 
-  usages: "[off]/[on]",
-  cooldowns: 5,
-  dependencies: {
-    "request": "",
-    "fs-extra": "",
-    "axios": ""
-  }
-},
-
-  languages: {
-  "vi": {},
-      "en": {
-          "off": 'the autoreact function has been disabled for new messages.',
-          "on": 'the autoreact function is now enabled for new messages.',
-        "error": 'incorrect syntax'
-      }
+  config: {
+    name: "autoreact",
+    version: "1.1.0",
+    permission: 0,
+    credits: "shourov (fixed)",
+    description: "Automatically react to new messages (on/off)",
+    prefix: true,
+    category: "auto",
+    usages: "[off]/[on]",
+    cooldowns: 5,
+    dependencies: {
+      "request": "",
+      "fs-extra": "",
+      "axios": ""
+    }
   },
 
-handleEvent: async ({ api, event, Threads }) => {
-
-  if (!fs.existsSync(pathFile))
-   fs.writeFileSync(pathFile, 'false');
-   const isEnable = fs.readFileSync(pathFile, 'utf-8');
-   if (isEnable == 'true') {
-
-  const reactions = ["💀", "🙄", "🤭","🥺","😶","😝","👿","🤓","🥶","🗿","😾","🤪","🤬","🤫","😼","😶‍🌫️","😎","🤦","💅","👀","☠️","🧠","👺","🤡","🤒","🤧","😫","😇","🥳","😭"];
-  var nayan = reactions[Math.floor(Math.random() * reactions.length)];
-
-  api.setMessageReaction(nayan, event.messageID, (err) => {
-    if (err) {
-      console.error("Error sending reaction:", err);
+  languages: {
+    vi: {},
+    en: {
+      off: '✅ Autoreact has been disabled for new messages.',
+      on: '✅ Autoreact is now enabled for new messages.',
+      error: '❗ Incorrect syntax. Use: autoreact on | autoreact off'
     }
-  }, true);
-}
-},
+  },
 
-start: async ({ nayan, events, args, lang }) => {
-   try {
+  /**
+   * helper to get language strings (falls back to en)
+   * If your loader provides getText/getLang, prefer that instead.
+   */
+  _getText(key, providedGetText) {
+    try {
+      if (typeof providedGetText === 'function') return providedGetText(key);
+    } catch (e) { }
+    const langs = this.languages;
+    // try english fallback
+    return (langs && langs.en && langs.en[key]) ? langs.en[key] : '';
+  },
 
-     const logger = require("../../shourovbot/alihsan/shourovc.js");
-     if (args[0] == 'on') {
-       fs.writeFileSync(pathFile, 'true');
-       nayan.sendMessage(lang("on"), events.threadID, events.messageID);
-     } else if (args[0] == 'off') {
-       fs.writeFileSync(pathFile, 'false');
-       nayan.sendMessage(lang("off"), events.threadID, events.messageID);
-     } else {
-       nayan.sendMessage(lang("error"), events.threadID, events.messageID);
-     }
-   }
-   catch(e) {
-     logger("unexpected error while using autoseen function", "system");
-   }
-}
-}
+  // event handler: reacts to incoming message if enabled
+  handleEvent: async function ({ api, event, Threads }) {
+    try {
+      // ensure folder & file exist
+      if (!fs.existsSync(dataDir)) fs.mkdirpSync(dataDir);
+      if (!fs.existsSync(pathFile)) fs.writeFileSync(pathFile, 'false', 'utf8');
+
+      const isEnableRaw = fs.readFileSync(pathFile, 'utf8').toString().trim().toLowerCase();
+      if (isEnableRaw !== 'true') return;
+
+      // don't react to messages sent by the bot itself
+      const botId = (typeof api.getCurrentUserID === 'function') ? api.getCurrentUserID() : null;
+      if (String(event.senderID) === String(botId)) return;
+
+      // choose random reaction
+      const reactions = [
+        "💀","🙄","🤭","🥺","😶","😝","👿","🤓","🥶","🗿","😾","🤪",
+        "🤬","🤫","😼","😶‍🌫️","😎","🤦","💅","👀","☠️","🧠","👺",
+        "🤡","🤒","🤧","😫","😇","🥳","😭","❤️","✨","🌙"
+      ];
+      const react = reactions[Math.floor(Math.random() * reactions.length)];
+
+      // set message reaction (some API versions accept 4th param force boolean)
+      if (typeof api.setMessageReaction === "function") {
+        try {
+          api.setMessageReaction(react, event.messageID, (err) => {
+            if (err) console.warn("autoreact: reaction error:", err && err.message ? err.message : err);
+          }, true);
+        } catch (e) {
+          // fallback: older/newer API signature
+          try { api.setMessageReaction(react, event.messageID); } catch (er) { /* ignore */ }
+        }
+      }
+    } catch (err) {
+      console.error("autoreact.handleEvent error:", err && (err.stack || err));
+    }
+  },
+
+  // command: toggle on/off (called when someone runs the command)
+  run: async function ({ api, event, args, getText }) {
+    try {
+      // ensure folder exists
+      if (!fs.existsSync(dataDir)) fs.mkdirpSync(dataDir);
+      if (!fs.existsSync(pathFile)) fs.writeFileSync(pathFile, 'false', 'utf8');
+
+      const sub = (args && args[0]) ? args[0].toString().toLowerCase() : "";
+      const reply = (txt) => {
+        try { return api.sendMessage(txt, event.threadID, event.messageID); } catch (e) { console.error(e); }
+      };
+
+      if (sub === 'on') {
+        fs.writeFileSync(pathFile, 'true', 'utf8');
+        return reply(this._getText('on', getText));
+      } else if (sub === 'off') {
+        fs.writeFileSync(pathFile, 'false', 'utf8');
+        return reply(this._getText('off', getText));
+      } else {
+        return reply(this._getText('error', getText));
+      }
+    } catch (err) {
+      console.error("autoreact.run error:", err && (err.stack || err));
+      try { api.sendMessage("❗ Unexpected error while toggling autoreact.", event.threadID); } catch(e) {}
+    }
+  },
+
+  // for compatibility with older loaders that call `start`
+  start: async function ({ api, events, args }) {
+    // map to run
+    return this.run({ api, event: events, args });
+  }
+};
