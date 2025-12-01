@@ -1,15 +1,18 @@
 // commands/adduser.js
 module.exports.config = {
   name: "adduser",
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
-  credits: "D-Jukie (fixed)",
+  credits: "shourov",
   description: "Add a user to the group by link or UID",
   prefix: true,
   category: "Box chat",
   usages: "<link|UID>",
   cooldowns: 5
 };
+
+// Expose top-level name so your loader (which checks cmd.name) finds it
+module.exports.name = module.exports.config.name;
 
 const axios = require('axios');
 
@@ -41,10 +44,10 @@ async function addUserToGroupAsync(api, uid, threadID) {
 
 module.exports.run = async function ({ api, event, args, Threads, Users }) {
   const { threadID, messageID } = event;
-  const text = args.join(" ").trim();
+  const text = (args || []).join(" ").trim();
 
   if (!text) {
-    return api.sendMessage("❗ Please provide a profile link or a user ID to add.", threadID, messageID);
+    return api.sendMessage("❗ Please provide a profile link or a user ID to add.\nUsage: /adduser <link|UID>", threadID, messageID);
   }
 
   try {
@@ -104,4 +107,13 @@ module.exports.run = async function ({ api, event, args, Threads, Users }) {
     });
 
     if (approvalMode && !isAdmin) {
-      return api.sendMessage("✅ Invitation sent — user added to the approval list (group requires admin approval).", th
+      return api.sendMessage("✅ Invitation sent — user added to the approval list (group requires admin approval).", threadID, messageID);
+    } else {
+      return api.sendMessage("✅ User added to the group successfully.", threadID, messageID);
+    }
+
+  } catch (err) {
+    console.error("adduser command error:", err && (err.stack || err));
+    return api.sendMessage("❗ An unexpected error occurred while trying to add the user.", threadID, messageID);
+  }
+};
