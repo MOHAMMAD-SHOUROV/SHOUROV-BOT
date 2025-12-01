@@ -180,7 +180,7 @@ login({ appState }, (err, api) => {
   console.log('═══════════════════════════════════════════');
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
-//// --- Load commands & events ONCE ---
+// --- Load commands & events ONCE ---
 const COMMANDS_DIR = path.join(__dirname, '..', 'shourov', 'commands');
 const EVENTS_DIR = path.join(__dirname, '..', 'shourov', 'events');
 
@@ -246,25 +246,6 @@ try {
 console.log('DEBUG: eventHandlers count =', eventHandlers.length);
 console.log('DEBUG: commands map size =', commands.size);
 console.log('DEBUG: commands keys =', Array.from(commands.keys()));
-try {
-  if (fs.existsSync(EVENTS_DIR)) {
-    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
-    console.log('Events found:', evFiles);
-    for (const f of evFiles) {
-      try {
-        const evPath = path.join(EVENTS_DIR, f);
-        delete require.cache[require.resolve(evPath)];
-        const ev = require(evPath);
-        if (ev && typeof ev.run === 'function') {
-          eventHandlers.push(ev);
-          console.log('Loaded event', f);
-        }
-      } catch(e) {
-        console.error('Error loading event', f, e.message);
-      }
-    }
-  }
-} catch(e) { console.error(e); }
 
   // If your system uses event handlers/commands, they can be required/used here.
  if (api.listen) {
