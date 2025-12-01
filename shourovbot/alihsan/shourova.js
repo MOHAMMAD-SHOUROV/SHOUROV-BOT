@@ -1,20 +1,19 @@
-// index.js (fixed)
+// shourovbot/alihsan/shourova.js
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
-const express = require('express'); // kept for completeness (uptime uses express)
 
-// requires from repository root
-const login = require('../system/login');
-const startUptimeServer = require('../../server/uptime'); // uptime server module
+// requires (from this file's location: shourovbot/alihsan)
+const login = require('../system/login');                 // shourovbot/system/login
+const startUptimeServer = require('../../server/uptime'); // server/uptime (repo root)
 
-// ---------- Paths (root-based) ----------
-const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');
-const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json');
-const COMMANDS_DIR = path.join(__dirname, 'shourov', 'commands');
-const EVENTS_DIR = path.join(__dirname, 'shourov', 'events');
+// ---------- Paths ----------
+const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');   // repo root config.json
+const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json'); // repo root fbstate.json
 
 // ---------- Load config safely ----------
-let config;
+let config = null;
 try {
   const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
   config = JSON.parse(raw);
@@ -24,12 +23,12 @@ try {
   process.exit(1);
 }
 
-
+// ---------- Robust language loader (JSON or key=value/colon format fallback) ----------
 (function loadLanguageSafely() {
   // Determine language code preference (from config.language or fallback to 'en')
   let langCode = 'en';
   try {
-    if (typeof config !== 'undefined' && config && config.language) {
+    if (config && config.language) {
       langCode = String(config.language).toLowerCase();
     } else if (process.env.LANG_CODE) {
       langCode = String(process.env.LANG_CODE).toLowerCase();
@@ -40,11 +39,11 @@ try {
     langCode = 'en';
   }
 
-  // Candidate locations (check alihsan languages first since your folder is there)
+  // Candidate locations (check alihsan languages first)
   const candidates = [
     path.join(__dirname, 'languages', `${langCode}.lang`),                // shourovbot/alihsan/languages/en.lang
-    path.join(__dirname, 'languages', 'en.lang'),                       // fallback in same dir
-    path.join(__dirname, '..', 'languages', `${langCode}.lang`),        // shourovbot/languages/en.lang
+    path.join(__dirname, 'languages', 'en.lang'),
+    path.join(__dirname, '..', 'languages', `${langCode}.lang`),         // shourovbot/languages/en.lang
     path.join(__dirname, '..', 'languages', 'en.lang')
   ];
 
@@ -52,6 +51,7 @@ try {
   for (const p of candidates) {
     if (fs.existsSync(p)) { found = p; break; }
   }
+
   if (!found) {
     console.error('❌ Failed to load language file: no candidate language files found (checked: ' + candidates.join(', ') + ')');
     throw new Error('Language file not found');
@@ -82,7 +82,7 @@ try {
       const val = m[2].trim();
       result[key] = val;
     } else {
-      // if line contains just "key value", try split first whitespace
+      // if line contains just "key value", try split by whitespace
       const p = line.split(/\s+/, 2);
       if (p.length === 2) {
         result[p[0]] = p[1];
@@ -97,9 +97,14 @@ try {
 
   global.language = result;
   console.log('✓ Language loaded (key=value fallback):', path.basename(found));
-}
+})(); // <-- IIFE closed properly
 
 // ---------- Protection checks ----------
+if (!config) {
+  console.error('❌ No config loaded — aborting.');
+  process.exit(1);
+}
+
 if (config.author !== "ALIHSAN SHOUROV") {
   console.error('❌ CRITICAL ERROR: Author protection violated!');
   process.exit(1);
@@ -114,12 +119,17 @@ console.log('✓ Author protection: PASSED');
 console.log('✓ Owner ID protection: PASSED');
 console.log('');
 
-// ---------- Start uptime server ----------
+// ---------- Start uptime server (optional, safe) ----------
 try {
-  startUptimeServer(config);
+  if (typeof startUptimeServer === 'function') {
+    startUptimeServer(config);
+    console.log('✓ Uptime server started (if configured)');
+  } else {
+    console.warn('⚠️ Uptime module not exported as function; skipping uptime start.');
+  }
 } catch (err) {
   console.error('❌ Failed to start uptime server:', err.message);
-  // continue running bot even if uptime fails (optional)
+  // do not exit; uptime is optional
 }
 
 // ---------- Load fbstate if exists ----------
@@ -134,61 +144,6 @@ try {
 } catch (err) {
   console.error('❌ Error reading fbstate.json:', err.message);
 }
-
-// ---------- Helper: loadCommands & loadEvents ----------
-function loadCommands(dir = COMMANDS_DIR) {
-  const commands = new Map();
-  try {
-    if (!fs.existsSync(dir)) {
-      console.warn('⚠️ Commands directory not found:', dir);
-      return commands;
-    }
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
-    for (const file of files) {
-      try {
-        const cmdPath = path.join(dir, file);
-        const cmd = require(cmdPath);
-        if (cmd && cmd.name) commands.set(cmd.name, cmd);
-      } catch (e) {
-        console.error('Error loading command', file, e);
-      }
-    }
-  } catch (e) {
-    console.error('Error reading commands directory:', e);
-  }
-  return commands;
-}
-
-function loadEvents(dir = EVENTS_DIR) {
-  const events = [];
-  try {
-    if (!fs.existsSync(dir)) {
-      console.warn('⚠️ Events directory not found:', dir);
-      return events;
-    }
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
-    for (const file of files) {
-      try {
-        const evPath = path.join(dir, file);
-        const ev = require(evPath);
-        if (ev && typeof ev.run === 'function') events.push(ev);
-      } catch (e) {
-        console.error('Error loading event', file, e);
-      }
-    }
-  } catch (e) {
-    console.error('Error reading events directory:', e);
-  }
-  return events;
-}
-
-// ---------- Initialize command/event containers ----------
-const commands = loadCommands();
-const events = loadEvents();
-
-console.log(`✓ Loaded ${commands.size} commands`);
-console.log(`✓ Loaded ${events.length} events`);
-console.log('🤖 Bot starting...');
 
 // ---------- Start Facebook login & listener ----------
 login({ appState }, (err, api) => {
@@ -211,42 +166,44 @@ login({ appState }, (err, api) => {
     console.warn('⚠️ api.setOptions failed (maybe different API version):', e.message);
   }
 
+  // Save fbstate on login update (optional)
   try {
     if (api.getAppState && typeof api.getAppState === 'function') {
       const newState = api.getAppState();
       fs.writeFileSync(FBSTATE_PATH, JSON.stringify(newState, null, 2), 'utf8');
       console.log('✓ fbstate.json updated');
     }
-  } catch (e) {}
+  } catch (e) {
+    // ignore if not supported
+  }
 
   console.log('═══════════════════════════════════════════');
   console.log('🤖 Bot is now online and ready!');
   console.log('═══════════════════════════════════════════');
 
-  api.listen(async (errListen, event) => {
-    if (errListen) {
-      console.error('Listen error:', errListen);
-      return;
-    }
-
-    for (const eventHandler of events) {
-      try {
-        await eventHandler.run({ event, api, config, commands });
-      } catch (error) {
-        console.error(`Error in event ${eventHandler.name || 'unknown'}:`, error);
+  // If your system uses event handlers/commands, they can be required/used here.
+  if (api.listen) {
+    api.listen(async (errListen, event) => {
+      if (errListen) {
+        console.error('Listen error:', errListen);
+        return;
       }
-    }
 
-    if (event.type === 'message' || event.type === 'message_reply') {
+      // Here you can require and call your event/command handlers
+      // Example placeholder: attempt to load message handler safely
       try {
-        const messageHandlerPath = path.join(__dirname, 'shourov', 'events', 'message.js');
-        const messageHandler = require(messageHandlerPath);
-        await messageHandler.run({ event, api, config, commands, language: global.language });
-      } catch (error) {
-        console.error('Error in message handler:', error);
+        const messageHandlerPath = path.join(__dirname, '..', 'shourov', 'events', 'message.js');
+        if (fs.existsSync(messageHandlerPath)) {
+          const messageHandler = require(messageHandlerPath);
+          if (messageHandler && typeof messageHandler.run === 'function') {
+            await messageHandler.run({ event, api, config, language: global.language });
+          }
+        }
+      } catch (err) {
+        console.error('Error in message handler:', err);
       }
-    }
-  });
+    });
+  }
 });
 
 // Graceful shutdown
