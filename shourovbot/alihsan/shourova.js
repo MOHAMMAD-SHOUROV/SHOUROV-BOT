@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express'); // kept for completeness (uptime uses express)
-const login = require('../system/login'); 
+const login = require('./system/login'); 
 const startUptimeServer = require('./server/uptime'); // uptime server module
 
 // ---------- Paths ----------
