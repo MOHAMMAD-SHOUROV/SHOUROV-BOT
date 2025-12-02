@@ -39,7 +39,7 @@ A powerful Facebook Messenger bot built by [FACEBOOK](https://www.facebook.com/s
 
 ### <br>   ❖ DEPLOY_WORKFLOWS ❖
 ```
-name: SHOUROV-BOT
+name: shourov-bot
 
 on:
   push:
@@ -63,14 +63,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: SHOUROV-BOT
+      - name: shourov-bot
         run: npm start
 ```
 
-[![FORK ALIHSAN SHOUROV-BOT ]()]()
+[![FORK ALIHSAN SHOUROV-BOT ](https://github.com/MOHAMMAD-SHOUROV)]()
 
  
- 🌸 **[Original-fork]()**
+ 🌸 **[Original-fork](https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT.git)**
 
 ------------------
 
