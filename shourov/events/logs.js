@@ -47,4 +47,17 @@ module.exports.run = async function({ api, event, Threads }) {
         if (error) return logger("", "");
     });
   return api.sendMessage(formReport, global.config.ADMINBOT[0]);
+}        default: 
+            break;
+    }
+
+    if (task.length == 0) return;
+
+    formReport = formReport
+    .replace(/\{task}/g, task);
+
+    return api.sendMessage(formReport, global.config.ADMINBOT[0], (error, info) => {
+        if (error) return logger("", "");
+    });
+  return api.sendMessage(formReport, global.config.ADMINBOT[0]);
 }
