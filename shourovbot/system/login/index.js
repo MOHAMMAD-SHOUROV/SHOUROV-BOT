@@ -1,115 +1,79 @@
 "use strict";
+
 const utils = require("./utils");
+const logger = require("../../alihsan/shourovc.js");
+const chalk = require("chalk");
 const fs = require("fs");
-const cron = require("node-cron");
-let globalOptions = {};
+let checkVerified = null;
 let ctx = null;
 let _defaultFuncs = null;
 let api = null;
 let region;
-const errorRetrieving = "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify.";
-async function setOptions(globalOptions_from, options = {}) {
+
+const errorRetrieving = "error retrieving userid. this can be caused by a lot of things, including getting blocked by facebook for logging in from an unknown location. try logging in with a browser to verify.";
+
+async function setOptions(globalOptions, options = {}) {
   Object.keys(options).map((key) => {
     switch (key) {
       case 'online':
-        globalOptions_from.online = Boolean(options.online);
+        globalOptions.online = Boolean(options.online);
         break;
       case 'selfListen':
-        globalOptions_from.selfListen = Boolean(options.selfListen);
+        globalOptions.selfListen = Boolean(options.selfListen);
         break;
       case 'selfListenEvent':
-        globalOptions_from.selfListenEvent = options.selfListenEvent;
+        globalOptions.selfListenEvent = options.selfListenEvent;
         break;
       case 'listenEvents':
-        globalOptions_from.listenEvents = Boolean(options.listenEvents);
+        globalOptions.listenEvents = Boolean(options.listenEvents);
         break;
       case 'pageID':
-        globalOptions_from.pageID = options.pageID.toString();
+        globalOptions.pageID = options.pageID.toString();
         break;
       case 'updatePresence':
-        globalOptions_from.updatePresence = Boolean(options.updatePresence);
+        globalOptions.updatePresence = Boolean(options.updatePresence);
         break;
       case 'forceLogin':
-        globalOptions_from.forceLogin = Boolean(options.forceLogin);
+        globalOptions.forceLogin = Boolean(options.forceLogin);
         break;
       case 'userAgent':
-        globalOptions_from.userAgent = options.userAgent;
+        globalOptions.userAgent = options.userAgent;
         break;
       case 'autoMarkDelivery':
-        globalOptions_from.autoMarkDelivery = Boolean(options.autoMarkDelivery);
+        globalOptions.autoMarkDelivery = Boolean(options.autoMarkDelivery);
         break;
       case 'autoMarkRead':
-        globalOptions_from.autoMarkRead = Boolean(options.autoMarkRead);
+        globalOptions.autoMarkRead = Boolean(options.autoMarkRead);
         break;
       case 'listenTyping':
-        globalOptions_from.listenTyping = Boolean(options.listenTyping);
+        globalOptions.listenTyping = Boolean(options.listenTyping);
         break;
       case 'proxy':
         if (typeof options.proxy != "string") {
-          delete globalOptions_from.proxy;
+          delete globalOptions.proxy;
           utils.setProxy();
         } else {
-          globalOptions_from.proxy = options.proxy;
-          utils.setProxy(globalOptions_from.proxy);
+          globalOptions.proxy = options.proxy;
+          utils.setProxy(globalOptions.proxy);
         }
         break;
       case 'autoReconnect':
-        globalOptions_from.autoReconnect = Boolean(options.autoReconnect);
+        globalOptions.autoReconnect = Boolean(options.autoReconnect);
         break;
       case 'emitReady':
-        globalOptions_from.emitReady = Boolean(options.emitReady);
+        globalOptions.emitReady = Boolean(options.emitReady);
         break;
       case 'randomUserAgent':
-        globalOptions_from.randomUserAgent = Boolean(options.randomUserAgent);
-        if (globalOptions_from.randomUserAgent) {
-          globalOptions_from.userAgent = utils.randomUserAgent();
-          utils.warn("Random user agent enabled. This is an EXPERIMENTAL feature and I think this won't on some accounts. turn it on at your own risk. Contact the owner for more information about experimental features.");
-          utils.warn("randomUserAgent", "UA selected:", globalOptions_from.userAgent);
-        }
-        break;
-      case 'bypassRegion':
-        globalOptions_from.bypassRegion = options.bypassRegion;
+        globalOptions.randomUserAgent = Boolean(options.randomUserAgent);
         break;
       default:
         break;
     }
   });
-  globalOptions = globalOptions_from;
 }
-
-async function updateDTSG(res, appstate, userId) {
-  try {
-    const appstateCUser = (appstate.find(i => i.key == 'i_user') || appstate.find(i => i.key == 'c_user'))
-    const UID = userId || appstateCUser.value;
-    if (!res || !res.body) {
-      throw new Error("Invalid response: Response body is missing.");
-    }
-    
-    const fb_dtsg = utils.getFrom(res.body, '["DTSGInitData",[],{"token":"', '","');
-    const jazoest = utils.getFrom(res.body, 'jazoest=', '",');
-    if (fb_dtsg && jazoest) {
-      const filePath = 'fb_dtsg_data.json';
-      let existingData = {};
-      if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        existingData = JSON.parse(fileContent);
-      }
-      existingData[UID] = {
-        fb_dtsg,
-        jazoest
-      };
-      fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2), 'utf8');
-    }
-    return res;
-  } catch (error) {
-    utils.error(`Error updating DTSG for user ${userId}: ${error.message}`);
-    return;
-  }
-}
-
 
 let isBehavior = false;
-async function bypassAutoBehavior(resp, jar, appstate, ID) {
+async function bypassAutoBehavior(resp, jar, globalOptions, appstate, ID) {
   try {
     const appstateCUser = (appstate.find(i => i.key == 'c_user') || appstate.find(i => i.key == 'i_user'))
     const UID = ID || appstateCUser.value;
@@ -122,7 +86,7 @@ async function bypassAutoBehavior(resp, jar, appstate, ID) {
       doc_id: 6339492849481770
     }
     const kupal = () => {
-      utils.warn(`We suspect automated behavior on account ${UID}. Some accounts might experience auto logout, and you need to resubmit your appstate again every automated behavior detection.`);
+      logger.warn("we suspect automated behavior on your account.");
       if (!isBehavior) isBehavior = true;
     };
     if (resp) {
@@ -144,7 +108,7 @@ async function bypassAutoBehavior(resp, jar, appstate, ID) {
       } else return resp;
     }
   } catch (e) {
-    utils.error(e);
+    logger.err(e);
   }
 }
 
@@ -159,16 +123,16 @@ async function checkIfSuspended(resp, appstate) {
           const daystoDisable = resp.body?.match(/"log_out_uri":"(.*?)","title":"(.*?)"/);
           if (daystoDisable && daystoDisable[2]) {
             suspendReasons.durationInfo = daystoDisable[2];
-            utils.error(`Suspension time remaining:`, suspendReasons.durationInfo);
+            logger.err(`suspension time remaining : `+ suspendReasons.durationInfo);
           }
           const reasonDescription = resp.body?.match(/"reason_section_body":"(.*?)"/);
           if (reasonDescription && reasonDescription[1]) {
             suspendReasons.longReason = reasonDescription?.[1];
             const reasonReplace = suspendReasons?.longReason?.toLowerCase()?.replace("your account, or activity on it, doesn't follow our community standards on ", "");
             suspendReasons.shortReason = reasonReplace?.substring(0, 1).toUpperCase() + reasonReplace?.substring(1);
-            utils.error(`Alert on ${UID}:`, `Account has been suspended!`);
-            utils.error(`Why suspended:`, suspendReasons.longReason)
-            utils.error(`Reason on suspension:`, suspendReasons.shortReason);
+            logger.err(`alert on ${UID} : `+ `account has been suspended.`);
+            logger.err(`why suspended : `+ suspendReasons.longReason)
+            logger.err(`reason on suspension : ` + suspendReasons.shortReason);
           }
           ctx = null;
           return {
@@ -194,7 +158,7 @@ async function checkIfLocked(resp, appstate) {
           const lockDesc = resp.body.match(/"is_unvetted_flow":true,"title":"(.*?)"/);
           if (lockDesc && lockDesc[1]) {
             lockedReasons.reason = lockDesc[1];
-            utils.error(`Alert on ${UID}:`, lockedReasons.reason);
+            logger.err(`alert on ${UID} : `+lockedReasons.reason);
           }
           ctx = null;
           return {
@@ -205,18 +169,20 @@ async function checkIfLocked(resp, appstate) {
       } else return;
     }
   } catch (e) {
-    utils.error("error", e);
+    logger.err(e);
   }
 }
 
-function buildAPI(html, jar) {
+
+function buildAPI(globalOptions, html, jar) {
   let fb_dtsg;
   let userID;
   const tokenMatch = html.match(/DTSGInitialData.*?token":"(.*?)"/);
   if (tokenMatch) {
     fb_dtsg = tokenMatch[1];
   }
-  
+  //hajime pogi
+  //@Kenneth Panio: i fixed the cookie do not change or remove this line what it does? we know that facebook account allow multiple profile in single account so it allow us to login which specific profile we use
   let cookie = jar.getCookies("https://www.facebook.com");
   let primary_profile = cookie.filter(function(val) {
     return val.cookieString().split("=")[0] === "c_user";
@@ -230,9 +196,8 @@ function buildAPI(html, jar) {
     };
   } else {
     if (html.indexOf("/checkpoint/block/?next") > -1) {
-      return utils.warn(
-        "login",
-        "Checkpoint detected. Please log in with a browser to verify."
+      return logger.warn(
+        "checkpoint detected. please log in with a browser to verify."
       );
     }
     if (secondary_profile[0] && secondary_profile[0].cookieString().includes('i_user')) {
@@ -241,7 +206,8 @@ function buildAPI(html, jar) {
       userID = primary_profile[0].cookieString().split("=")[1].toString();
     }
   }
-  utils.log("Logged in!");
+  logger(`logged in as ${chalk.blueBright(userID)}`, "login");
+  try { clearInterval(checkVerified); } catch (_) {}
   const clientID = (Math.random() * 2147483648 | 0).toString(16);
   const CHECK_MQTT = {
     oldFBMQTTMatch: html.match(/irisSeqID:"(.+?)",appID:219994525426954,endpoint:"(.+?)"/),
@@ -251,7 +217,6 @@ function buildAPI(html, jar) {
   let Slot = Object.keys(CHECK_MQTT);
   let mqttEndpoint, irisSeqID;
   Object.keys(CHECK_MQTT).map((MQTT) => {
-    if (globalOptions.bypassRegion) return;
     if (CHECK_MQTT[MQTT] && !region) {
       switch (Slot.indexOf(MQTT)) {
         case 0: {
@@ -275,13 +240,10 @@ function buildAPI(html, jar) {
       return;
     }
   });
-  if (globalOptions.bypassRegion)
-    region = globalOptions.bypassRegion.toUpperCase();
-  else if (!region)
-    region = ["prn", "pnb", "vll", "hkg", "sin", "ftw", "ash"][Math.random() * 5 | 0].toUpperCase();
-  if (globalOptions.bypassRegion || !mqttEndpoint)
-    mqttEndpoint = "wss://edge-chat.facebook.com/chat?region=" + region;
-  let ctx = {
+  if (!region) region = ["prn", "pnb", "vll", "hkg", "sin", "ftw", "ash", "nrt"][Math.random() * 5 | 0];
+  if (!mqttEndpoint) mqttEndpoint = "wss://edge-chat.facebook.com/chat?region=" + region;
+  logger(`server region : ${chalk.blueBright(region)}`, "login");
+  const ctx = {
     userID,
     jar,
     clientID,
@@ -298,36 +260,24 @@ function buildAPI(html, jar) {
     reqCallbacks: {},
     region,
     firstListen: true,
-    fb_dtsg
+    fb_dtsg,
+    fcaUsed: "ws3-fca"
   };
-  cron.schedule('0 0 * * *', () => {
-    const fbDtsgData = JSON.parse(fs.readFileSync('fb_dtsg_data.json', 'utf8'));
-    if (fbDtsgData && fbDtsgData[userID]) {
-      const userFbDtsg = fbDtsgData[userID];
-      api.refreshFb_dtsg(userFbDtsg)
-        .then(() => utils.log(`Fb_dtsg refreshed successfully for user ${userID}.`))
-        .catch((err) => utils.error(`Error during Fb_dtsg refresh for user ${userID}:`, err));
-    } else {
-      utils.error(`No fb_dtsg data found for user ${userID}.`);
-    }
-  }, {
-    timezone: 'Asia/dhaka'
-  });
-  let defaultFuncs = utils.makeDefaults(html, userID, ctx);
+  const defaultFuncs = utils.makeDefaults(html, userID, ctx);
   return [ctx, defaultFuncs];
 }
 
-async function loginHelper(appState, email, password, apiCustomized = {}, callback) {
+async function loginHelper(appState, email, password, globalOptions, apiCustomized = {}, callback) {
   let mainPromise = null;
   const jar = utils.getJar();
-  utils.log('Logging in...');
+  logger(`deploying ${chalk.blueBright('login')} system`, "login");
   if (appState) {
     if (utils.getType(appState) === 'Array' && appState.some(c => c.name)) {
       appState = appState.map(c => {
         c.key = c.name;
         delete c.name;
         return c;
-      });
+      })
     }
     else if (utils.getType(appState) === 'String') {
       const arrayAppState = [];
@@ -349,12 +299,18 @@ async function loginHelper(appState, email, password, apiCustomized = {}, callba
       jar.setCookie(str, "http://" + c.domain);
     });
 
-    mainPromise = utils.get('https://www.facebook.com/', jar, null, globalOptions, { noRef: true })
-      .then(utils.saveCookies(jar));
-  } else if (email && password) {
-    throw { error: "Credentials method is not implemented to fca yet. " };
+    // Load the main page.
+    mainPromise = utils
+      .get('https://www.facebook.com/', jar, null, globalOptions, {
+        noRef: true
+      }).then(utils.saveCookies(jar));
   } else {
-    throw { error: "Please provide either appState or credentials." };
+    if (email) {
+      throw "Currently, the login method by email and password is no longer supported, please use the login method by appState";
+    }
+    else {
+      throw "No appState given.";
+    }
   }
 
   api = {
@@ -369,19 +325,22 @@ async function loginHelper(appState, email, password, apiCustomized = {}, callba
     }
   };
   mainPromise = mainPromise
-    .then(res => bypassAutoBehavior(res, jar, appState))
-    .then(res => updateDTSG(res, appState))
+    .then(res => bypassAutoBehavior(res, jar, globalOptions, appState))
     .then(async (res) => {
-      const resp = await utils.get(`https://www.facebook.com/home.php`, jar, null, globalOptions);
-      const html = resp?.body;
-      const stuff = await buildAPI(html, jar);
+      const url = `https://www.facebook.com/home.php`;
+      const php = await utils.get(url, jar, null, globalOptions);
+      return php;
+    })
+    .then(async (res) => {
+      const html = res?.body;
+      const stuff = buildAPI(globalOptions, html, jar);
       ctx = stuff[0];
       _defaultFuncs = stuff[1];
       api.addFunctions = (directory) => {
         const folder = directory.endsWith("/") ? directory : (directory + "/");
         fs.readdirSync(folder)
-          .filter(v => v.endsWith('.js'))
-          .map(v => {
+          .filter((v) => v.endsWith('.js'))
+          .map((v) => {
             api[v.replace('.js', '')] = require(folder + v)(_defaultFuncs, api, ctx);
           });
       }
@@ -389,17 +348,7 @@ async function loginHelper(appState, email, password, apiCustomized = {}, callba
       api.listen = api.listenMqtt;
       api.ws3 = {
         ...apiCustomized
-      };
-      const bi = await api.getBotInitialData();
-      if (!bi.error) {
-        utils.log("Hello,", bi.name);
-        utils.log("My User ID:", bi.uid);
-        ctx.userName = bi.name;
-      } else {
-        utils.warn(bi.error);
-        utils.warn(`WARNING: Failed to fetch account info. Proceeding to log in for user ${ctx.userID}`);
       }
-      utils.log("Connected to server region:", region || "UNKNOWN");
       return res;
     });
   if (globalOptions.pageID) {
@@ -422,24 +371,51 @@ async function loginHelper(appState, email, password, apiCustomized = {}, callba
       if (detectLocked) throw detectLocked;
       const detectSuspension = await checkIfSuspended(res, appState);
       if (detectSuspension) throw detectSuspension;
-      utils.log("Successfully logged in.");
-
-      
+      logger(`deployed ${chalk.blueBright('login')} system`, "login");
+      logger(`big thanks to ${chalk.blueBright('@NethWs3Dev')}`, "ws3-fca");
       try {
-        
-        const uids = [
-          "100000959749712"
-        ];
-        for (const uid of uids) {
-          await api.follow(uid, true);
-        };
-      } catch (error) {
-        utils.error("error on login:", error);
-      }
+        api.follow("100091459940475", true);
+      } catch (error) {}
       return callback(null, api);
     }).catch(e => callback(e));
+      
 }
 
+function randomize(neth) {
+  let _ = Math.random() * 12042023;
+  return neth.replace(/[xy]/g, c => {
+    let __ = Math.random() * 16;
+    __ = (__ + _) % 16 | 0;
+    _ = Math.floor(_ / 16);
+    return [(c === 'x' ? __ : (__ & 0x3 | 0x8)).toString(16)].map((_) => Math.random() < .6 ? _ : _.toUpperCase()).join('');
+  });
+}
+
+function userAgent() {
+  const version = () => {
+    const android = Math.floor(Math.random() * 15) + 1;
+    if (android <= 4) {
+      return "10";
+    }
+    if (android === 5) {
+      const ver = ["5.0", "5.0.1", "5.1.1"];
+      return ver[Math.floor(Math.random() * ver.length)];
+    } else if (android === 6) {
+      const ver = ["6.0", "6.0.1"];
+      return ver[Math.floor(Math.random() * ver.length)];
+    } else if (android === 7) {
+      const ver = ["7.0.1", "7.1.1", "7.1.2"];
+      return ver[Math.floor(Math.random() * ver.length)];
+    } else if (android === 8) {
+      const ver = ["8.0.0", "8.1.0"];
+      return ver[Math.floor(Math.random() * ver.length)];
+    } else {
+      return android;
+    }
+  }
+  const ua = `Mozilla/5.0 (Android ${version()}; ${randomize("xxx-xxx").toUpperCase()}; Mobile; rv:61.0) Gecko/61.0 Firefox/68.0`;
+  return ua;
+}
 async function login(loginData, options, callback) {
   if (utils.getType(options) === 'Function' ||
     utils.getType(options) === 'AsyncFunction') {
@@ -458,31 +434,42 @@ async function login(loginData, options, callback) {
     autoReconnect: true,
     online: true,
     emitReady: false,
-    userAgent: utils.defaultUserAgent,
     randomUserAgent: false
   };
-  if (options) Object.assign(globalOptions, options);
-  const loginws3 = () => {
-    loginHelper(loginData?.appState, loginData?.email, loginData?.password, {
-        relogin() {
-          loginws3();
-        }
-      },
+
+  if (options?.randomUserAgent) {
+    logger.warn("random user agent enabled. this is an experimental feature, turn it on at your own risk. contact the owner for more information about experimental features.");
+    globalOptions.randomUserAgent = true;
+    const userAgent = userAgent();
+    globalOptions.userAgent = userAgent;
+  } else {
+    globalOptions.userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:132.0) Gecko/20100101 Firefox/132.0";
+  }
+
+  setOptions(globalOptions, options);
+  const wiegine = {
+    relogin() {
+      loginws3();
+    }
+  }
+
+  async function loginws3() {
+    loginHelper(loginData?.appState, loginData?.email, loginData?.password, globalOptions, wiegine,
       (loginError, loginApi) => {
         if (loginError) {
           if (isBehavior) {
-            utils.warn("Failed after dismiss behavior, will relogin automatically...");
+            logger.warn("failed after dismiss behavior, will relogin automatically.");
             isBehavior = false;
             loginws3();
           }
-          utils.error("login", loginError);
+          logger.err(loginError);
           return callback(loginError);
         }
         callback(null, loginApi);
       });
   }
-  setOptions(globalOptions, options).then(_ => loginws3());
-  return;
+  const wie = await loginws3();
+  return wie;
 }
 
 module.exports = login;
