@@ -1,13 +1,13 @@
 module.exports = function({ api, models, Users, Threads, Currencies }) {
   const stringSimilarity = require('string-similarity'),
     escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-    logger = require("../../catalogs/ryukoc.js");
+    logger = require("../../alihsan/shourovc.js");
   const axios = require('axios')
   const moment = require("moment-timezone");
   return async function({ event }) {
     const dateNow = Date.now()
     const time = moment.tz("Asia/Manila").format("HH:MM:ss DD/MM/YYYY");
-    const { allowInbox, adminOnly, keyAdminOnly } = global.ryuko;
+    const { allowInbox, adminOnly, keyAdminOnly } = global.shourov;
     const { PREFIX, ADMINBOT, developermode, OPERATOR, approval } = global.config;
     const { APPROVED } = global.approved;
     const { userBanned, threadBanned, threadInfo, threadData, commandBanned } = global.data;
@@ -26,13 +26,13 @@ module.exports = function({ api, models, Users, Threads, Currencies }) {
       if (APPROVED.includes(threadID)) {
         return api.sendMessage('this box is already approved', threadID, messageID)
       }
-      let ryukodev;
+      let shourovdev;
       let request;
         var groupname = await global.data.threadInfo.get(threadID).threadName || "name does not exist";
-        ryukodev = `group name : ${groupname}\ngroup id : ${threadID}`;
+        shourovdev = `group name : ${groupname}\ngroup id : ${threadID}`;
         request = `${groupname} group is requesting for approval`
       try {
-        send('box approval request', request + '\n\n' + ryukodev);
+        send('box approval request', request + '\n\n' + shourovdev);
         api.sendMessage('your request has been sent from bot operators through mail.', threadID, messageID);
 
  
@@ -175,10 +175,10 @@ module.exports = function({ api, models, Users, Threads, Currencies }) {
     var permssion = 0;
     var threadInfoo = (threadInfo.get(threadID) || await Threads.getInfo(threadID));
     const Find = threadInfoo.adminIDs.find(el => el.id == senderID);
-    const ryuko = '!OPERATOR.includes(senderID)';
+    const shourov = '!OPERATOR.includes(senderID)';
     if (OPERATOR.includes(senderID.toString())) permssion = 3;
     else if (ADMINBOT.includes(senderID.toString())) permssion = 2;
-    else if (!ADMINBOT.includes(senderID) && ryuko && Find) permssion = 1;
+    else if (!ADMINBOT.includes(senderID) && shourov && Find) permssion = 1;
     if (command && command.config && command.config.permission && command.config.permission > permssion) {
       return api.sendMessage(global.getText("handleCommand", "permissionNotEnough", command.config.name), event.threadID, event.messageID);
     }
