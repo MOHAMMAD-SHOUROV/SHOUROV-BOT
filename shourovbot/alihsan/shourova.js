@@ -119,6 +119,38 @@ console.log('✓ Author protection: PASSED');
 console.log('✓ Owner ID protection: PASSED');
 console.log('');
 
+// ===== START: robust globals & fallback services =====
+global.client = global.client || {};
+global.client.handleReply = Array.isArray(global.client.handleReply) ? global.client.handleReply : [];
+
+global._fallbackUsers = global._fallbackUsers || {
+  _names: {},
+  async getNameUser(uid) { if (this._names[uid]) return this._names[uid]; return `User${String(uid).slice(-4)}`; },
+  setNameUser(uid, name) { this._names[uid] = name; }
+};
+
+global._fallbackThreads = global._fallbackThreads || {
+  _data: {},
+  getData(threadID){ return this._data[threadID] || {}; },
+  setData(threadID, data){ this._data[threadID] = Object.assign(this._data[threadID]||{}, data); },
+  leftParticipantFbId(){ return null; }
+};
+
+global._fallbackCurrencies = global._fallbackCurrencies || {
+  _balances:{},
+  getBalance(uid){ return this._balances[uid] || 0; },
+  setBalance(uid,v){ this._balances[uid]=v; }
+};
+
+global.config = global.config || config || {};
+global.config.BOTNAME = global.config.BOTNAME || (config && config.BOTNAME) || 'MyBot';
+global.config.PREFIX = global.config.PREFIX || (config && config.PREFIX) || '/';
+
+let fsExtra = null;
+try { fsExtra = require('fs-extra'); } catch(e){ fsExtra = null; console.warn('fs-extra not installed — using fs fallback.'); }
+// ===== END fallback block =====
+
+
 // ---------- Start uptime server (optional, safe) ----------
 try {
   if (typeof startUptimeServer === 'function') {
@@ -257,100 +289,149 @@ if (!global.client) global.client = {};
 global.client.commands = commands;
 console.log('DEBUG: global.client.commands exposed ->', Array.from(global.client.commands.keys()));
 
-  // If your system uses event handlers/commands, they can be required/used here.
- if (api.listen) {
-  api.listen(async (errListen, event) => {
-    if (errListen) {
-      console.error('Listen error:', errListen);
-      return;
-    }
-
-    const threadID = event.threadID ||
-                     (event.thread_key && event.thread_key.thread_fbid) ||
-                     event.senderID || null;
-
-    console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
-    
-// AUTO-REPLY (quick test) — change to false to disable
-const autoReply = false; // true = on, false = off
-if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
-  try {
-    const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
-    if (tid && typeof api.sendMessage === 'function') {
-      api.sendMessage({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
-      console.log('Auto-replied to', tid);
-    } else if (tid && typeof api.send === 'function') {
-      api.send({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
-      console.log('Auto-replied (api.send) to', tid);
-    }
-  } catch(e) {
-    console.error('Auto-reply error:', e && e.message);
-  }
-}
-
-    // ---------- 1) Run global event handlers ----------
-    for (const evHandler of eventHandlers) {
-      try {
-        await evHandler.run({ event, api, config, language: global.language });
-      } catch (e) {
-        console.error('Event handler error:', e.message);
+   // If your system uses event handlers/commands, they can be required/used here.
+  if (api.listen) {
+    api.listen(async (errListen, event) => {
+      if (errListen) {
+        console.error('Listen error:', errListen);
+        return;
       }
-    }
 
-    // ---------- 2) Run message handler (if exists) ----------
-    try {
-      const messageHandlerPath = path.join(__dirname, '..', '..', 'shourov', 'events', 'message.js');
-      if (fs.existsSync(messageHandlerPath)) {
-        delete require.cache[require.resolve(messageHandlerPath)];
-        const messageHandler = require(messageHandlerPath);
+      const threadID = event.threadID ||
+                       (event.thread_key && event.thread_key.thread_fbid) ||
+                       event.senderID || null;
 
-        if (messageHandler && typeof messageHandler.run === 'function') {
-          await messageHandler.run({ event, api, config, language: global.language, commands });
-        }
-      }
-    } catch (e) {
-      console.error('Message handler error:', e.message);
-    }
+      console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
 
-    // ---------- 3) Command handler ----------
-    try {
-      if (event.type === 'message' || event.type === 'message_reply') {
-        const text = (event.body || '').toLowerCase().trim();
-        if (text) {
-         const parts = text.split(/\s+/);
-const rawFirst = (parts[0] || '').toString().trim().toLowerCase();
-let cmdName = rawFirst;
-
-// remove / or ! prefix
-if (cmdName.startsWith('/') || cmdName.startsWith('!')) {
-  cmdName = cmdName.slice(1);
-}
-
-const args = parts.slice(1);
-
-          if (commands.has(cmdName)) {
-            const cmd = commands.get(cmdName);
-            await cmd.run({ event, api, config, args, commands, language: global.language });
-          }
-        }
-
-        // Seen / read
+      // AUTO-REPLY (quick test) — change to false to disable
+      const autoReply = false; // true = on, false = off
+      if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
         try {
-          if (threadID) {
-            if (api.markAsRead) api.markAsRead(threadID,()=>{});
-            else if (api.setMessageRead) api.setMessageRead(threadID,()=>{});
-            else if (api.markSeen) api.markSeen(threadID,()=>{});
+          const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
+          if (tid && typeof api.sendMessage === 'function') {
+            api.sendMessage({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+            console.log('Auto-replied to', tid);
+          } else if (tid && typeof api.send === 'function') {
+            api.send({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+            console.log('Auto-replied (api.send) to', tid);
           }
-        } catch(e){}
+        } catch(e) {
+          console.error('Auto-reply error:', e && e.message);
+        }
       }
-    } catch (errCmd) {
-      console.error('Command error:', errCmd.message);
-    }
 
-  });
-} // end if (api.listen)
+      // ---------- 1) Run global event handlers ----------
+      for (const evHandler of eventHandlers) {
+        try {
+          await evHandler.run({ event, api, config, language: global.language });
+        } catch (e) {
+          console.error('Event handler error:', e && (e.stack || e.message));
+        }
+      }
 
-// 🔥 
+      // ---------- 2) Run message handler (if exists) ----------
+      try {
+        const messageHandlerPath = path.join(__dirname, '..', '..', 'shourov', 'events', 'message.js');
+        if (fs.existsSync(messageHandlerPath)) {
+          delete require.cache[require.resolve(messageHandlerPath)];
+          const messageHandler = require(messageHandlerPath);
+
+          if (messageHandler && typeof messageHandler.run === 'function') {
+            await messageHandler.run({ event, api, config, language: global.language, commands });
+          }
+        }
+      } catch (e) {
+        console.error('Message handler error:', e && (e.stack || e.message));
+      }
+
+      // ---------- handleReply lookup (if user replied to a bot message) ----------
+      try {
+        if (event.messageReply && Array.isArray(global.client.handleReply)) {
+          const repliedToId = event.messageReply.messageID;
+          const idx = global.client.handleReply.findIndex(x => x.messageID === repliedToId);
+          if (idx !== -1) {
+            const hr = global.client.handleReply[idx];
+            const moduleCmd = commands.get(hr.name) || (global.client.commands && global.client.commands.get(hr.name));
+            if (moduleCmd && typeof moduleCmd.handleReply === 'function') {
+              try {
+                await moduleCmd.handleReply({
+                  api,
+                  event,
+                  handleReply: hr,
+                  Users: (global.UsersService || global._fallbackUsers),
+                  Threads: (global.ThreadsService || global._fallbackThreads),
+                  Currencies: (global.CurrenciesService || global._fallbackCurrencies)
+                });
+              } catch (e) {
+                console.error('handleReply execution failed:', e && (e.stack || e.message));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('handleReply lookup failed:', e && (e.stack || e.message));
+      }
+
+      // ---------- 3) Command handler ----------
+      try {
+        if (event.type === 'message' || event.type === 'message_reply') {
+          const text = (event.body || '').toString().trim();
+          if (text) {
+            const parts = text.split(/\s+/);
+            const rawFirst = (parts[0] || '').toString().trim().toLowerCase();
+            let cmdName = rawFirst;
+
+            // remove / or ! prefix
+            if (cmdName.startsWith('/') || cmdName.startsWith('!')) {
+              cmdName = cmdName.slice(1);
+            }
+
+            const args = parts.slice(1);
+
+            if (commands.has(cmdName)) {
+              const cmd = commands.get(cmdName);
+
+              // choose real services if available, otherwise fallback
+              const UsersService = (typeof global.UsersService !== 'undefined') ? global.UsersService : global._fallbackUsers;
+              const ThreadsService = (typeof global.ThreadsService !== 'undefined') ? global.ThreadsService : global._fallbackThreads;
+              const CurrenciesService = (typeof global.CurrenciesService !== 'undefined') ? global.CurrenciesService : global._fallbackCurrencies;
+
+              try {
+                await cmd.run({
+                  event,
+                  api,
+                  config,
+                  args,
+                  commands,
+                  language: global.language,
+                  Users: UsersService,
+                  Threads: ThreadsService,
+                  Currencies: CurrenciesService
+                });
+              } catch (e) {
+                console.error('Command execution failed:', e && (e.stack || e.message));
+              }
+            }
+          }
+
+          // Seen / read marking (best-effort)
+          try {
+            if (threadID) {
+              if (typeof api.markAsRead === 'function') api.markAsRead(threadID, ()=>{});
+              else if (typeof api.setMessageRead === 'function') api.setMessageRead(threadID, ()=>{});
+              else if (typeof api.markSeen === 'function') api.markSeen(threadID, ()=>{});
+            }
+          } catch(e) {
+            console.warn('Mark-as-read failed:', e && e.message);
+          }
+        }
+      } catch (errCmd) {
+        console.error('Command handler error:', errCmd && (errCmd.stack || errCmd.message));
+      }
+
+    }); // end api.listen callback
+  } // end if (api.listen)
+
 }); // close login callback
 
 // Graceful shutdown
@@ -362,3 +443,4 @@ process.on('SIGTERM', () => {
   console.log('Received SIGTERM. Exiting...');
   process.exit(0);
 });
+
