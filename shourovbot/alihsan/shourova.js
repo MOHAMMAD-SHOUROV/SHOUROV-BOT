@@ -41,9 +41,9 @@ try {
 
   // Candidate locations (check alihsan languages first)
    const candidates = [
-    path.join(__dirname, 'languages', `${langCode}.lang`),
+    path.join(__dirname, 'languages', ${langCode}.lang),
     path.join(__dirname, 'languages', 'en.lang'),
-    path.join(__dirname, '..', 'languages', `${langCode}.lang`),
+    path.join(__dirname, '..', 'languages', ${langCode}.lang),
     path.join(__dirname, '..', 'languages', 'en.lang')
   ];
 ;
@@ -126,7 +126,7 @@ try {
     startUptimeServer(config);
     console.log('✓ Uptime server started (if configured)');
   } else {
-    console.warn('⚠️ Uptime module not exported as function; skipping uptime start.');
+    console.warn('⚠ Uptime module not exported as function; skipping uptime start.');
   }
 } catch (err) {
   console.error('❌ Failed to start uptime server:', err.message);
@@ -140,7 +140,7 @@ try {
     appState = JSON.parse(fs.readFileSync(FBSTATE_PATH, 'utf8'));
     console.log('✓ Facebook state (fbstate.json) loaded');
   } else {
-    console.warn('⚠️ fbstate.json not found — first-time login may require credentials.');
+    console.warn('⚠ fbstate.json not found — first-time login may require credentials.');
   }
 } catch (err) {
   console.error('❌ Error reading fbstate.json:', err.message);
@@ -159,4 +159,202 @@ login({ appState }, (err, api) => {
     api.setOptions({
       listenEvents: true,
       selfListen: false,
-      updatePresence:
+      updatePresence: true,
+      forceLogin: true,
+      mqttDisabled: false
+    });
+  } catch (e) {
+    console.warn('⚠ api.setOptions failed (maybe different API version):', e.message);
+  }
+
+  // Save fbstate on login update (optional)
+  try {
+    if (api.getAppState && typeof api.getAppState === 'function') {
+      const newState = api.getAppState();
+      fs.writeFileSync(FBSTATE_PATH, JSON.stringify(newState, null, 2), 'utf8');
+      console.log('✓ fbstate.json updated');
+    }
+  } catch (e) {
+    // ignore if not supported
+  }
+
+  console.log('═══════════════════════════════════════════');
+  console.log('🤖 Bot is now online and ready!');
+  console.log('═══════════════════════════════════════════');
+// --- Load commands & events ONCE ---
+const COMMANDS_DIR = path.join(__dirname,  '..', '..', 'shourov', 'commands');
+const EVENTS_DIR = path.join(__dirname,  '..', '..', 'shourov', 'events');
+
+// declare once
+const eventHandlers = [];
+const commands = new Map();
+
+// load commands
+try {
+  if (fs.existsSync(COMMANDS_DIR)) {
+    const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Commands found:', cmdFiles);
+    for (const f of cmdFiles) {
+      try {
+        const cmdPath = path.join(COMMANDS_DIR, f);
+        delete require.cache[require.resolve(cmdPath)];
+        const cmd = require(cmdPath);
+     let cmdName = null;
+
+if (cmd.name) cmdName = cmd.name;
+else if (cmd.config?.name) cmdName = cmd.config.name;
+
+if (cmdName) {
+    commands.set(String(cmdName).toLowerCase(), cmd);
+    console.log('Loaded command', f, '->', cmdName);
+} else {
+    console.log('Skipped command file (no name):', f);
+}
+      } catch (e) {
+        console.error('Error loading command', f, e && e.message);
+      }
+    }
+  } else {
+    console.log('Commands dir not found:', COMMANDS_DIR);
+  }
+} catch (e) {
+  console.error('Error reading commands dir:', e && e.message);
+}
+
+// load events
+try {
+  if (fs.existsSync(EVENTS_DIR)) {
+    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Events found:', evFiles);
+    for (const f of evFiles) {
+      try {
+        const evPath = path.join(EVENTS_DIR, f);
+        delete require.cache[require.resolve(evPath)];
+        const ev = require(evPath);
+        if (ev && typeof ev.run === 'function') {
+          eventHandlers.push(ev);
+          console.log('Loaded event', f);
+        } else {
+          console.log('Skipped event file (no run):', f);
+        }
+      } catch (e) {
+        console.error('Error loading event', f, e && e.message);
+      }
+    }
+  } else {
+    console.log('Events dir not found:', EVENTS_DIR);
+  }
+} catch (e) {
+  console.error('Error reading events dir:', e && e.message);
+}
+
+// debug info
+console.log('DEBUG: eventHandlers count =', eventHandlers.length);
+console.log('DEBUG: commands map size =', commands.size);
+console.log('DEBUG: commands keys =', Array.from(commands.keys()));
+
+  // If your system uses event handlers/commands, they can be required/used here.
+ if (api.listen) {
+  api.listen(async (errListen, event) => {
+    if (errListen) {
+      console.error('Listen error:', errListen);
+      return;
+    }
+
+    const threadID = event.threadID ||
+                     (event.thread_key && event.thread_key.thread_fbid) ||
+                     event.senderID || null;
+
+    console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
+    
+// AUTO-REPLY (quick test) — change to false to disable
+const autoReply = false; // true = on, false = off
+if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
+  try {
+    const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
+    if (tid && typeof api.sendMessage === 'function') {
+      api.sendMessage({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied to', tid);
+    } else if (tid && typeof api.send === 'function') {
+      api.send({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied (api.send) to', tid);
+    }
+  } catch(e) {
+    console.error('Auto-reply error:', e && e.message);
+  }
+}
+
+    // ---------- 1) Run global event handlers ----------
+    for (const evHandler of eventHandlers) {
+      try {
+        await evHandler.run({ event, api, config, language: global.language });
+      } catch (e) {
+        console.error('Event handler error:', e.message);
+      }
+    }
+
+    // ---------- 2) Run message handler (if exists) ----------
+    try {
+      const messageHandlerPath = path.join(__dirname, '..', '..', 'shourov', 'events', 'message.js');
+      if (fs.existsSync(messageHandlerPath)) {
+        delete require.cache[require.resolve(messageHandlerPath)];
+        const messageHandler = require(messageHandlerPath);
+
+        if (messageHandler && typeof messageHandler.run === 'function') {
+          await messageHandler.run({ event, api, config, language: global.language, commands });
+        }
+      }
+    } catch (e) {
+      console.error('Message handler error:', e.message);
+    }
+
+    // ---------- 3) Command handler ----------
+    try {
+      if (event.type === 'message' || event.type === 'message_reply') {
+        const text = (event.body || '').toLowerCase().trim();
+        if (text) {
+         const parts = text.split(/\s+/);
+const rawFirst = (parts[0] || '').toString().trim().toLowerCase();
+let cmdName = rawFirst;
+
+// remove / or ! prefix
+if (cmdName.startsWith('/') || cmdName.startsWith('!')) {
+  cmdName = cmdName.slice(1);
+}
+
+const args = parts.slice(1);
+
+          if (commands.has(cmdName)) {
+            const cmd = commands.get(cmdName);
+            await cmd.run({ event, api, config, args, commands, language: global.language });
+          }
+        }
+
+        // Seen / read
+        try {
+          if (threadID) {
+            if (api.markAsRead) api.markAsRead(threadID,()=>{});
+            else if (api.setMessageRead) api.setMessageRead(threadID,()=>{});
+            else if (api.markSeen) api.markSeen(threadID,()=>{});
+          }
+        } catch(e){}
+      }
+    } catch (errCmd) {
+      console.error('Command error:', errCmd.message);
+    }
+
+  });
+} // end if (api.listen)
+
+// 🔥 
+}); // close login callback
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Exiting...');
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Exiting...');
+  process.exit(0);
+});
