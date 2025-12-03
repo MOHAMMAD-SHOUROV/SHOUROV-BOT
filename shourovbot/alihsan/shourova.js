@@ -40,12 +40,13 @@ try {
   }
 
   // Candidate locations (check alihsan languages first)
-  const candidates = [
-    path.join(__dirname, 'languages', ${langCode}.lang),                // shourovbot/alihsan/languages/en.lang
+   const candidates = [
+    path.join(__dirname, 'languages', `${langCode}.lang`),
     path.join(__dirname, 'languages', 'en.lang'),
-    path.join(__dirname, '..', 'languages', ${langCode}.lang),         // shourovbot/languages/en.lang
+    path.join(__dirname, '..', 'languages', `${langCode}.lang`),
     path.join(__dirname, '..', 'languages', 'en.lang')
   ];
+;
 
   let found = null;
   for (const p of candidates) {
