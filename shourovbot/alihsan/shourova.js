@@ -1,1 +1,162 @@
-'use strict';const _0x5b3b8a=_0x23ef;(function(_0x2cbf5b,_0x377291){const _0x3d9ce8=_0x23ef,_0x351d8f=_0x2cbf5b();while(!![]){try{const _0x599639=parseInt(_0x3d9ce8(0x13e))/0x1*(-parseInt(_0x3d9ce8(0x101))/0x2)+-parseInt(_0x3d9ce8(0x107))/0x3*(-parseInt(_0x3d9ce8(0x11b))/0x4)+parseInt(_0x3d9ce8(0x142))/0x5*(parseInt(_0x3d9ce8(0x16a))/0x6)+-parseInt(_0x3d9ce8(0x130))/0x7+-parseInt(_0x3d9ce8(0x106))/0x8*(-parseInt(_0x3d9ce8(0xfc))/0x9)+parseInt(_0x3d9ce8(0x140))/0xa*(parseInt(_0x3d9ce8(0x148))/0xb)+-parseInt(_0x3d9ce8(0x159))/0xc;if(_0x599639===_0x377291)break;else _0x351d8f['push'](_0x351d8f['shift']());}catch(_0x4a5de8){_0x351d8f['push'](_0x351d8f['shift']());}}}(_0x27a5,0x3eedc));const fs=require('fs'),path=require(_0x5b3b8a(0x125)),login=require(_0x5b3b8a(0x104)),startUptimeServer=require('../../server/uptime'),CONFIG_PATH=path[_0x5b3b8a(0x152)](__dirname,'..','..',_0x5b3b8a(0x158)),FBSTATE_PATH=path['join'](__dirname,'..','..','fbstate.json');let config=null;try{const raw=fs[_0x5b3b8a(0x133)](CONFIG_PATH,_0x5b3b8a(0x13d));config=JSON[_0x5b3b8a(0x127)](raw),console['log'](_0x5b3b8a(0x15b));}catch(_0x3898bb){console[_0x5b3b8a(0x123)](_0x5b3b8a(0x150),_0x3898bb[_0x5b3b8a(0x157)]),process[_0x5b3b8a(0x13f)](0x1);}(function loadLanguageSafely(){const _0x4e05ca=_0x5b3b8a;let _0x12890c='en';try{if(config&&config[_0x4e05ca(0x11c)])_0x12890c=String(config[_0x4e05ca(0x11c)])[_0x4e05ca(0x11a)]();else{if(process[_0x4e05ca(0x153)][_0x4e05ca(0x15e)])_0x12890c=String(process['env'][_0x4e05ca(0x15e)])[_0x4e05ca(0x11a)]();else process[_0x4e05ca(0x153)][_0x4e05ca(0x116)]&&(_0x12890c=String(process['env'][_0x4e05ca(0x116)])['split'](/[_\.]/)[0x0]['toLowerCase']());}}catch(_0xe3b51f){_0x12890c='en';}const _0x1f7663=[path['join'](__dirname,'languages',_0x12890c+_0x4e05ca(0x151)),path['join'](__dirname,_0x4e05ca(0x13c),'en.lang'),path[_0x4e05ca(0x152)](__dirname,'..','languages',_0x12890c+_0x4e05ca(0x151)),path['join'](__dirname,'..',_0x4e05ca(0x13c),'en.lang')];;let _0x181a7b=null;for(const _0x121060 of _0x1f7663){if(fs['existsSync'](_0x121060)){_0x181a7b=_0x121060;break;}}if(!_0x181a7b){console[_0x4e05ca(0x123)](_0x4e05ca(0x135)+_0x1f7663[_0x4e05ca(0x152)](',\x20')+')');throw new Error(_0x4e05ca(0x16b));}const _0x5ec5ce=fs[_0x4e05ca(0x133)](_0x181a7b,_0x4e05ca(0x13d));try{global[_0x4e05ca(0x11c)]=JSON[_0x4e05ca(0x127)](_0x5ec5ce),console[_0x4e05ca(0x144)](_0x4e05ca(0x168),path[_0x4e05ca(0x145)](_0x181a7b));return;}catch(_0x56eda0){}const _0x2b97cf={},_0x548f74=_0x5ec5ce[_0x4e05ca(0x105)](/\r?\n/);for(let _0x480ffb of _0x548f74){_0x480ffb=_0x480ffb[_0x4e05ca(0x166)]();if(!_0x480ffb)continue;if(_0x480ffb['startsWith']('#')||_0x480ffb[_0x4e05ca(0x14c)]('//'))continue;const _0x42a498=_0x480ffb[_0x4e05ca(0x12d)](/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);if(_0x42a498){const _0x4b05b7=_0x42a498[0x1][_0x4e05ca(0x166)](),_0x3ee039=_0x42a498[0x2][_0x4e05ca(0x166)]();_0x2b97cf[_0x4b05b7]=_0x3ee039;}else{const _0x37e9eb=_0x480ffb[_0x4e05ca(0x105)](/\s+/,0x2);_0x37e9eb[_0x4e05ca(0x155)]===0x2&&(_0x2b97cf[_0x37e9eb[0x0]]=_0x37e9eb[0x1]);}}if(Object[_0x4e05ca(0x12e)](_0x2b97cf)[_0x4e05ca(0x155)]===0x0){console[_0x4e05ca(0x123)]('❌\x20Failed\x20to\x20parse\x20language\x20file\x20(no\x20key=value\x20pairs\x20found):',_0x181a7b);throw new Error('Language\x20parse\x20failed');}global[_0x4e05ca(0x11c)]=_0x2b97cf,console['log'](_0x4e05ca(0x13b),path[_0x4e05ca(0x145)](_0x181a7b));}());function _0x23ef(_0x1a3a13,_0x41cd07){const _0x27a518=_0x27a5();return _0x23ef=function(_0x23ef29,_0x5897e3){_0x23ef29=_0x23ef29-0xfc;let _0x51dc7b=_0x27a518[_0x23ef29];return _0x51dc7b;},_0x23ef(_0x1a3a13,_0x41cd07);}!config&&(console[_0x5b3b8a(0x123)]('❌\x20No\x20config\x20loaded\x20—\x20aborting.'),process[_0x5b3b8a(0x13f)](0x1));config[_0x5b3b8a(0x108)]!=='ALIHSAN\x20SHOUROV'&&(console['error'](_0x5b3b8a(0x117)),process[_0x5b3b8a(0x13f)](0x1));config[_0x5b3b8a(0x11d)]!==_0x5b3b8a(0x112)&&(console[_0x5b3b8a(0x123)]('❌\x20CRITICAL\x20ERROR:\x20Owner\x20ID\x20protection\x20violated!'),process[_0x5b3b8a(0x13f)](0x1));function _0x27a5(){const _0x416040=['basename','markAsRead','readdirSync','33HAiYXC','SIGTERM','Auto-reply\x20error:','⚠️\x20api.setOptions\x20failed\x20(maybe\x20different\x20API\x20version):','startsWith','Event\x20handler\x20error:','DEBUG:\x20commands\x20map\x20size\x20=','markSeen','❌\x20Failed\x20to\x20load\x20config.json:','.lang','join','env','setMessageRead','length','EVENT\x20RECEIVED:','message','config.json','5595816MoSCFQ','Message\x20handler\x20error:','✓\x20Config\x20loaded','run','existsSync','LANG_CODE','set','push','shourov','═══════════════════════════════════════════','Events\x20found:','size','🤖\x20Bot\x20is\x20now\x20online\x20and\x20ready!','trim','Events\x20dir\x20not\x20found:','✓\x20Language\x20loaded\x20(JSON):','type','6RvJcyE','Language\x20file\x20not\x20found','✓\x20Facebook\x20login\x20successful','cache','AutoReply:\x20message\x20received\x20✅','117VDXnEb','send','thread_fbid','threadID','✓\x20fbstate.json\x20updated','27154AIgaQO','resolve','stringify','../system/login','split','312344NDmCOR','24RNmMGy','author','slice','events','toString','Loaded\x20event','Listen\x20error:','function','SIGINT','endsWith','warn','100071971474157','DEBUG:\x20commands\x20keys\x20=','has','message_reply','LANG','❌\x20CRITICAL\x20ERROR:\x20Author\x20protection\x20violated!','body','Received\x20SIGINT.\x20Exiting...','toLowerCase','244604EPTaGY','language','ownerId','getAppState','Loaded\x20command','listen','Error\x20reading\x20events\x20dir:','⚠️\x20Uptime\x20module\x20not\x20exported\x20as\x20function;\x20skipping\x20uptime\x20start.','error','Command\x20error:','path','setOptions','parse','get','⚠️\x20fbstate.json\x20not\x20found\x20—\x20first-time\x20login\x20may\x20require\x20credentials.','✓\x20Facebook\x20state\x20(fbstate.json)\x20loaded','Skipped\x20event\x20file\x20(no\x20run):','config','match','keys','.js','1790271PSGAZY','commands','✓\x20Uptime\x20server\x20started\x20(if\x20configured)','readFileSync','Received\x20SIGTERM.\x20Exiting...','❌\x20Failed\x20to\x20load\x20language\x20file:\x20no\x20candidate\x20language\x20files\x20found\x20(checked:\x20','❌\x20Failed\x20to\x20start\x20uptime\x20server:','Auto-replied\x20to','name','thread_key','senderID','✓\x20Language\x20loaded\x20(key=value\x20fallback):','languages','utf8','20owsSXe','exit','588310qRRDPo','from','390535yqXSnq','✓\x20Author\x20protection:\x20PASSED','log'];_0x27a5=function(){return _0x416040;};return _0x27a5();}console['log'](_0x5b3b8a(0x143)),console['log']('✓\x20Owner\x20ID\x20protection:\x20PASSED'),console[_0x5b3b8a(0x144)]('');try{typeof startUptimeServer===_0x5b3b8a(0x10e)?(startUptimeServer(config),console[_0x5b3b8a(0x144)](_0x5b3b8a(0x132))):console[_0x5b3b8a(0x111)](_0x5b3b8a(0x122));}catch(_0x33c515){console['error'](_0x5b3b8a(0x136),_0x33c515[_0x5b3b8a(0x157)]);}let appState=null;try{fs[_0x5b3b8a(0x15d)](FBSTATE_PATH)?(appState=JSON[_0x5b3b8a(0x127)](fs[_0x5b3b8a(0x133)](FBSTATE_PATH,_0x5b3b8a(0x13d))),console['log'](_0x5b3b8a(0x12a))):console[_0x5b3b8a(0x111)](_0x5b3b8a(0x129));}catch(_0x3d2e63){console['error']('❌\x20Error\x20reading\x20fbstate.json:',_0x3d2e63[_0x5b3b8a(0x157)]);}login({'appState':appState},(_0x39ca64,_0x3310f3)=>{const _0x853ea1=_0x5b3b8a;if(_0x39ca64){console[_0x853ea1(0x123)]('❌\x20Facebook\x20login\x20error:',_0x39ca64);return;}console[_0x853ea1(0x144)](_0x853ea1(0x16c));try{_0x3310f3[_0x853ea1(0x126)]({'listenEvents':!![],'selfListen':![],'updatePresence':!![],'forceLogin':!![],'mqttDisabled':![]});}catch(_0x2597ac){console[_0x853ea1(0x111)](_0x853ea1(0x14b),_0x2597ac['message']);}try{if(_0x3310f3[_0x853ea1(0x11e)]&&typeof _0x3310f3[_0x853ea1(0x11e)]===_0x853ea1(0x10e)){const _0x3364a0=_0x3310f3['getAppState']();fs['writeFileSync'](FBSTATE_PATH,JSON[_0x853ea1(0x103)](_0x3364a0,null,0x2),_0x853ea1(0x13d)),console[_0x853ea1(0x144)](_0x853ea1(0x100));}}catch(_0x37979d){}console[_0x853ea1(0x144)](_0x853ea1(0x162)),console['log'](_0x853ea1(0x165)),console[_0x853ea1(0x144)]('═══════════════════════════════════════════');const _0x5f2061=path[_0x853ea1(0x152)](__dirname,'..','..','shourov',_0x853ea1(0x131)),_0x6ecf73=path[_0x853ea1(0x152)](__dirname,'..','..',_0x853ea1(0x161),'events'),_0x12f32c=[],_0x593234=new Map();try{if(fs[_0x853ea1(0x15d)](_0x5f2061)){const _0x1445d1=fs[_0x853ea1(0x147)](_0x5f2061)['filter'](_0x3d7518=>_0x3d7518[_0x853ea1(0x110)](_0x853ea1(0x12f)));console[_0x853ea1(0x144)]('Commands\x20found:',_0x1445d1);for(const _0x1a6ad7 of _0x1445d1){try{const _0x1e0138=path[_0x853ea1(0x152)](_0x5f2061,_0x1a6ad7);delete require[_0x853ea1(0x16d)][require[_0x853ea1(0x102)](_0x1e0138)];const _0x25e862=require(_0x1e0138);let _0x5bfbcb=null;if(_0x25e862[_0x853ea1(0x138)])_0x5bfbcb=_0x25e862[_0x853ea1(0x138)];else{if(_0x25e862[_0x853ea1(0x12c)]?.[_0x853ea1(0x138)])_0x5bfbcb=_0x25e862[_0x853ea1(0x12c)]['name'];}_0x5bfbcb?(_0x593234[_0x853ea1(0x15f)](String(_0x5bfbcb)[_0x853ea1(0x11a)](),_0x25e862),console[_0x853ea1(0x144)](_0x853ea1(0x11f),_0x1a6ad7,'->',_0x5bfbcb)):console['log']('Skipped\x20command\x20file\x20(no\x20name):',_0x1a6ad7);}catch(_0x2ae612){console[_0x853ea1(0x123)]('Error\x20loading\x20command',_0x1a6ad7,_0x2ae612&&_0x2ae612['message']);}}}else console[_0x853ea1(0x144)]('Commands\x20dir\x20not\x20found:',_0x5f2061);}catch(_0x6e85c8){console[_0x853ea1(0x123)]('Error\x20reading\x20commands\x20dir:',_0x6e85c8&&_0x6e85c8[_0x853ea1(0x157)]);}try{if(fs[_0x853ea1(0x15d)](_0x6ecf73)){const _0x49d801=fs[_0x853ea1(0x147)](_0x6ecf73)['filter'](_0x596887=>_0x596887[_0x853ea1(0x110)](_0x853ea1(0x12f)));console[_0x853ea1(0x144)](_0x853ea1(0x163),_0x49d801);for(const _0x5ae2a8 of _0x49d801){try{const _0x452748=path[_0x853ea1(0x152)](_0x6ecf73,_0x5ae2a8);delete require[_0x853ea1(0x16d)][require['resolve'](_0x452748)];const _0x5aa29d=require(_0x452748);_0x5aa29d&&typeof _0x5aa29d[_0x853ea1(0x15c)]===_0x853ea1(0x10e)?(_0x12f32c[_0x853ea1(0x160)](_0x5aa29d),console[_0x853ea1(0x144)](_0x853ea1(0x10c),_0x5ae2a8)):console['log'](_0x853ea1(0x12b),_0x5ae2a8);}catch(_0x1d63de){console['error']('Error\x20loading\x20event',_0x5ae2a8,_0x1d63de&&_0x1d63de[_0x853ea1(0x157)]);}}}else console[_0x853ea1(0x144)](_0x853ea1(0x167),_0x6ecf73);}catch(_0x2217bd){console[_0x853ea1(0x123)](_0x853ea1(0x121),_0x2217bd&&_0x2217bd[_0x853ea1(0x157)]);}console['log']('DEBUG:\x20eventHandlers\x20count\x20=',_0x12f32c[_0x853ea1(0x155)]),console['log'](_0x853ea1(0x14e),_0x593234[_0x853ea1(0x164)]),console[_0x853ea1(0x144)](_0x853ea1(0x113),Array[_0x853ea1(0x141)](_0x593234[_0x853ea1(0x12e)]())),_0x3310f3[_0x853ea1(0x120)]&&_0x3310f3[_0x853ea1(0x120)](async(_0x1d986e,_0x129795)=>{const _0x2e3ef5=_0x853ea1;if(_0x1d986e){console[_0x2e3ef5(0x123)](_0x2e3ef5(0x10d),_0x1d986e);return;}const _0x35b4a4=_0x129795[_0x2e3ef5(0xff)]||_0x129795[_0x2e3ef5(0x139)]&&_0x129795[_0x2e3ef5(0x139)][_0x2e3ef5(0xfe)]||_0x129795['senderID']||null;console[_0x2e3ef5(0x144)](_0x2e3ef5(0x156),_0x129795[_0x2e3ef5(0x169)],'thread:',_0x35b4a4);const _0x70d253=![];if(_0x70d253&&_0x129795&&(_0x129795[_0x2e3ef5(0x169)]===_0x2e3ef5(0x157)||_0x129795[_0x2e3ef5(0x169)]===_0x2e3ef5(0x115)))try{const _0x4cd791=_0x129795[_0x2e3ef5(0xff)]||_0x129795['thread_key']&&_0x129795[_0x2e3ef5(0x139)][_0x2e3ef5(0xfe)]||_0x129795[_0x2e3ef5(0x13a)];if(_0x4cd791&&typeof _0x3310f3['sendMessage']===_0x2e3ef5(0x10e))_0x3310f3['sendMessage']({'body':_0x2e3ef5(0x16e)},_0x4cd791,()=>{}),console[_0x2e3ef5(0x144)](_0x2e3ef5(0x137),_0x4cd791);else _0x4cd791&&typeof _0x3310f3[_0x2e3ef5(0xfd)]===_0x2e3ef5(0x10e)&&(_0x3310f3[_0x2e3ef5(0xfd)]({'body':_0x2e3ef5(0x16e)},_0x4cd791,()=>{}),console['log']('Auto-replied\x20(api.send)\x20to',_0x4cd791));}catch(_0xfff829){console[_0x2e3ef5(0x123)](_0x2e3ef5(0x14a),_0xfff829&&_0xfff829[_0x2e3ef5(0x157)]);}for(const _0x503559 of _0x12f32c){try{await _0x503559[_0x2e3ef5(0x15c)]({'event':_0x129795,'api':_0x3310f3,'config':config,'language':global['language']});}catch(_0x44897b){console[_0x2e3ef5(0x123)](_0x2e3ef5(0x14d),_0x44897b[_0x2e3ef5(0x157)]);}}try{const _0x4ae158=path[_0x2e3ef5(0x152)](__dirname,'..','..',_0x2e3ef5(0x161),_0x2e3ef5(0x10a),'message.js');if(fs[_0x2e3ef5(0x15d)](_0x4ae158)){delete require[_0x2e3ef5(0x16d)][require[_0x2e3ef5(0x102)](_0x4ae158)];const _0x39e129=require(_0x4ae158);_0x39e129&&typeof _0x39e129[_0x2e3ef5(0x15c)]===_0x2e3ef5(0x10e)&&await _0x39e129[_0x2e3ef5(0x15c)]({'event':_0x129795,'api':_0x3310f3,'config':config,'language':global['language'],'commands':_0x593234});}}catch(_0x229292){console['error'](_0x2e3ef5(0x15a),_0x229292[_0x2e3ef5(0x157)]);}try{if(_0x129795['type']===_0x2e3ef5(0x157)||_0x129795[_0x2e3ef5(0x169)]===_0x2e3ef5(0x115)){const _0x2a0aaf=(_0x129795[_0x2e3ef5(0x118)]||'')[_0x2e3ef5(0x11a)]()['trim']();if(_0x2a0aaf){const _0x1cf9fa=_0x2a0aaf[_0x2e3ef5(0x105)](/\s+/),_0x205d8e=(_0x1cf9fa[0x0]||'')[_0x2e3ef5(0x10b)]()[_0x2e3ef5(0x166)]()['toLowerCase']();let _0x3ef40d=_0x205d8e;(_0x3ef40d['startsWith']('/')||_0x3ef40d['startsWith']('!'))&&(_0x3ef40d=_0x3ef40d[_0x2e3ef5(0x109)](0x1));const _0x199e13=_0x1cf9fa[_0x2e3ef5(0x109)](0x1);if(_0x593234[_0x2e3ef5(0x114)](_0x3ef40d)){const _0x232795=_0x593234[_0x2e3ef5(0x128)](_0x3ef40d);await _0x232795[_0x2e3ef5(0x15c)]({'event':_0x129795,'api':_0x3310f3,'config':config,'args':_0x199e13,'commands':_0x593234,'language':global['language']});}}try{if(_0x35b4a4){if(_0x3310f3['markAsRead'])_0x3310f3[_0x2e3ef5(0x146)](_0x35b4a4,()=>{});else{if(_0x3310f3[_0x2e3ef5(0x154)])_0x3310f3[_0x2e3ef5(0x154)](_0x35b4a4,()=>{});else{if(_0x3310f3[_0x2e3ef5(0x14f)])_0x3310f3[_0x2e3ef5(0x14f)](_0x35b4a4,()=>{});}}}}catch(_0x335bbb){}}}catch(_0x1071d0){console[_0x2e3ef5(0x123)](_0x2e3ef5(0x124),_0x1071d0[_0x2e3ef5(0x157)]);}});}),process['on'](_0x5b3b8a(0x10f),()=>{const _0x24d868=_0x5b3b8a;console[_0x24d868(0x144)](_0x24d868(0x119)),process[_0x24d868(0x13f)](0x0);}),process['on'](_0x5b3b8a(0x149),()=>{const _0x21e772=_0x5b3b8a;console[_0x21e772(0x144)](_0x21e772(0x134)),process['exit'](0x0);});
+// shourovbot/alihsan/shourova.js
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+// requires (from this file's location: shourovbot/alihsan)
+const login = require('../system/login');                 // shourovbot/system/login
+const startUptimeServer = require('../../server/uptime'); // server/uptime (repo root)
+
+// ---------- Paths ----------
+const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');   // repo root config.json
+const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json'); // repo root fbstate.json
+
+// ---------- Load config safely ----------
+let config = null;
+try {
+  const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+  config = JSON.parse(raw);
+  console.log('✓ Config loaded');
+} catch (err) {
+  console.error('❌ Failed to load config.json:', err.message);
+  process.exit(1);
+}
+
+// ---------- Robust language loader (JSON or key=value/colon format fallback) ----------
+(function loadLanguageSafely() {
+  // Determine language code preference (from config.language or fallback to 'en')
+  let langCode = 'en';
+  try {
+    if (config && config.language) {
+      langCode = String(config.language).toLowerCase();
+    } else if (process.env.LANG_CODE) {
+      langCode = String(process.env.LANG_CODE).toLowerCase();
+    } else if (process.env.LANG) {
+      langCode = String(process.env.LANG).split(/[_\.]/)[0].toLowerCase();
+    }
+  } catch (e) {
+    langCode = 'en';
+  }
+
+  // Candidate locations (check alihsan languages first)
+   const candidates = [
+    path.join(__dirname, 'languages', `${langCode}.lang`),
+    path.join(__dirname, 'languages', 'en.lang'),
+    path.join(__dirname, '..', 'languages', `${langCode}.lang`),
+    path.join(__dirname, '..', 'languages', 'en.lang')
+  ];
+;
+
+  let found = null;
+  for (const p of candidates) {
+    if (fs.existsSync(p)) { found = p; break; }
+  }
+
+  if (!found) {
+    console.error('❌ Failed to load language file: no candidate language files found (checked: ' + candidates.join(', ') + ')');
+    throw new Error('Language file not found');
+  }
+
+  const raw = fs.readFileSync(found, 'utf8');
+
+  // Try JSON first
+  try {
+    global.language = JSON.parse(raw);
+    console.log('✓ Language loaded (JSON):', path.basename(found));
+    return;
+  } catch (jsonErr) {
+    // fall through to line-based parser
+  }
+
+  // Fallback: parse line-based file (ignore lines starting with # or //)
+  const result = {};
+  const lines = raw.split(/\r?\n/);
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    if (line.startsWith('#') || line.startsWith('//')) continue;
+    // handle "key = value" or "key: value"
+    const m = line.match(/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);
+    if (m) {
+      const key = m[1].trim();
+      const val = m[2].trim();
+      result[key] = val;
+    } else {
+      // if line contains just "key value", try split by whitespace
+      const p = line.split(/\s+/, 2);
+      if (p.length === 2) {
+        result[p[0]] = p[1];
+      }
+    }
+  }
+
+  if (Object.keys(result).length === 0) {
+    console.error('❌ Failed to parse language file (no key=value pairs found):', found);
+    throw new Error('Language parse failed');
+  }
+
+  global.language = result;
+  console.log('✓ Language loaded (key=value fallback):', path.basename(found));
+})(); // <-- IIFE closed properly
+
+// ---------- Protection checks ----------
+if (!config) {
+  console.error('❌ No config loaded — aborting.');
+  process.exit(1);
+}
+
+if (config.author !== "ALIHSAN SHOUROV") {
+  console.error('❌ CRITICAL ERROR: Author protection violated!');
+  process.exit(1);
+}
+
+if (config.ownerId !== "100071971474157") {
+  console.error('❌ CRITICAL ERROR: Owner ID protection violated!');
+  process.exit(1);
+}
+
+console.log('✓ Author protection: PASSED');
+console.log('✓ Owner ID protection: PASSED');
+console.log('');
+
+// ---------- Start uptime server (optional, safe) ----------
+try {
+  if (typeof startUptimeServer === 'function') {
+    startUptimeServer(config);
+    console.log('✓ Uptime server started (if configured)');
+  } else {
+    console.warn('⚠️ Uptime module not exported as function; skipping uptime start.');
+  }
+} catch (err) {
+  console.error('❌ Failed to start uptime server:', err.message);
+  // do not exit; uptime is optional
+}
+
+// ---------- Load fbstate if exists ----------
+let appState = null;
+try {
+  if (fs.existsSync(FBSTATE_PATH)) {
+    appState = JSON.parse(fs.readFileSync(FBSTATE_PATH, 'utf8'));
+    console.log('✓ Facebook state (fbstate.json) loaded');
+  } else {
+    console.warn('⚠️ fbstate.json not found — first-time login may require credentials.');
+  }
+} catch (err) {
+  console.error('❌ Error reading fbstate.json:', err.message);
+}
+
+// ---------- Start Facebook login & listener ----------
+login({ appState }, (err, api) => {
+  if (err) {
+    console.error('❌ Facebook login error:', err);
+    return;
+  }
+
+  console.log('✓ Facebook login successful');
+
+  try {
+    api.setOptions({
+      listenEvents: true,
+      selfListen: false,
+      updatePresence:
