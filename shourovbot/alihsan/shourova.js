@@ -199,12 +199,17 @@ try {
         const cmdPath = path.join(COMMANDS_DIR, f);
         delete require.cache[require.resolve(cmdPath)];
         const cmd = require(cmdPath);
-        if (cmd && cmd.name) {
-          commands.set(String(cmd.name).toLowerCase(), cmd);
-          console.log('Loaded command', f, '->', cmd.name);
-        } else {
-          console.log('Skipped command file (no name):', f);
-        }
+     let cmdName = null;
+
+if (cmd.name) cmdName = cmd.name;
+else if (cmd.config?.name) cmdName = cmd.config.name;
+
+if (cmdName) {
+    commands.set(String(cmdName).toLowerCase(), cmd);
+    console.log('Loaded command', f, '->', cmdName);
+} else {
+    console.log('Skipped command file (no name):', f);
+}
       } catch (e) {
         console.error('Error loading command', f, e && e.message);
       }
