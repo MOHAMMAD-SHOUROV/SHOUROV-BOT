@@ -2,200 +2,142 @@ module.exports.config = {
   name: "join",
   eventType: ['log:subscribe'],
   version: "1.0.0",
-  credits: "// FIXED BY YAN shourov
+  credits: "// FIXED BY YAN shourov",
   description: "GROUP UPDATE NOTIFICATION"
 };
 
 const fs = require('fs-extra');
 const { loadImage, createCanvas, registerFont } = require("canvas");
 const request = require('request');
-//const { join } = require('path');
 const axios = require('axios');
-const jimp = require("jimp")
-const fontlink = 'https://drive.google.com/u/0/uc?id=10XFWm9F6u2RKnuVIfwoEdlav2HhkAUIB&export=download'
-let PRFX = `${global.config.PREFIX}`;
+const jimp = require("jimp");
+const moment = require("moment-timezone");
 
 module.exports.circle = async (image) => {
   image = await jimp.read(image);
   image.circle();
   return await image.getBufferAsync("image/png");
-}
-
-let suffix;
+};
 
 module.exports.run = async function({ api, event, Users }) {
-  var fullYear = global.client.getTime("fullYear");
-  var getHours = await global.client.getTime("hours");
-  var session = `${getHours < 3 ? "midnight" : getHours < 8 ? "Early morning" : getHours < 12 ? "noon" : getHours < 17 ? "afternoon" : getHours < 23 ? "evening" : "midnight"}`
-  const moment = require("moment-timezone");
-  var thu = moment.tz('Asia/dhaka').format('dddd');
-  if (thu == 'Sunday') thu = 'Sunday'
-  if (thu == 'Monday') thu = 'Monday'
-  if (thu == 'Tuesday') thu = 'Tuesday'
-  if (thu == 'Wednesday') thu = 'Wednesday'
-  if (thu == "Thursday") thu = 'Thursday'
-  if (thu == 'Friday') thu = 'Friday'
-  if (thu == 'Saturday') thu = 'Saturday'
-  const time = moment.tz("Asia/dhaka").format("HH:mm:ss - DD/MM/YYYY");
-  const hours = moment.tz("Asia/dhaka").format("HH");
-  const { commands } = global.client;
-  const { threadID } = event;
-  let threadInfo = await api.getThreadInfo(event.threadID);
-  let threadName = threadInfo.threadName;
-  if (!event.logMessageData.addedParticipants || !Array.isArray(event.logMessageData.addedParticipants)) {
-    return;
-  }
-  if (event.logMessageData.addedParticipants && Array.isArray(event.logMessageData.addedParticipants) && event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-    //api.changeNickname(`𝗕𝗢𝗧 ${(!global.config.BOTNAME) ? "Buddy" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
+  try {
+    const threadID = event.threadID;
+    const time = moment.tz("Asia/Dhaka").format("HH:mm:ss - DD/MM/YYYY");
+    const thu = moment.tz("Asia/Dhaka").format("dddd");
 
-    let gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
-let gifPath = __dirname + '/shourov/join/join.gif';
+    let threadInfo = await api.getThreadInfo(threadID);
+    let threadName = threadInfo.threadName;
 
-axios.get(gifUrl, { responseType: 'arraybuffer' })
-.then(response => {
-    fs.writeFileSync(gifPath, response.data);
-  if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-    api.changeNickname(`[ ${global.config.PREFIX} ] • ➠${(!global.config.BOTNAME) ? "bot" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
-    return api.sendMessage("চলে এসেছি আমি পিচ্চি সৌরভ তোমাদের মাঝে🤭!", event.threadID, () => api.sendMessage({ body: `${global.config.BOTNAME} CONNECTED«\n\nAssalamualaykum☘️
-<------------------------------>  
-BOT CONNECTED SUCCESFUL !!! 
+    // bot join হলে message
+    if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
 
-APPROVAL ALLOW IN THIS GROUP!!!
-<------------------------------>\n\nTO VIEW ANY COMMAND Use👉${global.config.PREFIX}help\nSee command👉 ${global.config.PREFIX}command
-\n\EXAMPLE:👇\n${global.config.PREFIX}admin (information)\n${global.config.PREFIX}islam (video)\n${global.config.PREFIX}tik (link)\n${global.config.PREFIX}fbvideo (link)
-<------------------------------>
-AND FOR ANY COMPLAINTS OR CONTACT BOT OPERATOR 
+      let gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
+      let gifPath = __dirname + '/shourov/join/join.gif';
 
-DEVELOPER :𝐊𝐈𝐍𝐆 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 
+      let gifData = (await axios.get(gifUrl, { responseType: "arraybuffer" })).data;
+      fs.writeFileSync(gifPath, gifData);
 
-🟣Facebook Account Link: 
+      api.changeNickname(`[ ${global.config.PREFIX} ] • ${global.config.BOTNAME}`, threadID, api.getCurrentUserID());
 
-https://www.facebook.com/www.xsxx.com365
+      return api.sendMessage(
+        {
+          body: `BOT CONNECTED SUCCESSFULLY! 🤖✨
 
-🔵WHATSAPP NUMBER: wa.me/+8801709281334
+Assalamualaikum ☘️  
+Use: ${global.config.PREFIX}help  
+Command Example:
+${global.config.PREFIX}admin  
+${global.config.PREFIX}islam  
+${global.config.PREFIX}fbvideo  
 
-🟢SUPPORT EMAIL: www.shourovislam5430@gmail.com`, attachment: fs.createReadStream(gifPath)}, threadID));
-  }})
-.catch(error => {
-    console.error(error);
-});
-  }
-  else {
-    try {
-      if (!fs.existsSync(__dirname + `/shourov/font/Semi.ttf`)) {
-        let getfont = (await axios.get(fontlink, { responseType: "arraybuffer" })).data;
-        fs.writeFileSync(__dirname + `/shourov/font/Semi.ttf`, Buffer.from(getfont, "utf-8"));
-      };
-      const { createReadStream, existsSync, mkdirSync, readdirSync } = global.nodemodule["fs-extra"];
-      let { threadName, participantIDs } = await api.getThreadInfo(threadID);
-      const threadData = global.data.threadData.get(parseInt(threadID)) || {};
-      var mentions = [], nameArray = [], memLength = [], iduser = [], i = 0;
-      var abx = [];
-      for (id in event.logMessageData.addedParticipants) {
-        const userName = event.logMessageData.addedParticipants[id].fullName; iduser.push(event.logMessageData.addedParticipants[id].userFbId.toString());
-        nameArray.push(userName);
-        mentions.push({ tag: userName, id: event.senderID });
-        memLength.push(participantIDs.length - i++);
-        console.log(userName)
-      }
-      // console.log(event.logMessageData.addedParticipants)
-      var id = [];
-      for (let o = 0; o < event.logMessageData.addedParticipants.length; o++) {
-        let pathImg = __dirname + `/shourov/join/${o}.png`;
-        let pathAva = __dirname + `/shourov/join/avt.png`;
-        let avtAnime = (await axios.get(encodeURI(
-          `https://graph.facebook.com/${event.logMessageData.addedParticipants[o].userFbId}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`), { responseType: "arraybuffer" })).data;
-        var ok = [
-          'https://i.imgur.com/WKUqCkQ.jpeg',
-          'https://i.imgur.com/ccVuwrA.jpeg',
-          'https://i.imgur.com/ZPGBaPD.jpeg',
-          'https://i.imgur.com/las7yGW.jpeg',
-          'https://i.imgur.com/bxDnRQC.jpeg'
-        ]
-        let background = await new Promise((resolve, reject) => {
-          request.get(
-            encodeURI(`${ok[Math.floor(Math.random() * ok.length)]}`),
-            { encoding: null },
-            (error, response, body) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(body);
-              }
-            }
-          );
-        });
-        fs.writeFileSync(pathAva, Buffer.from(avtAnime, "utf-8"));
-        fs.writeFileSync(pathImg, Buffer.from(background, "utf-8"));
-        var avatar = await this.circle(pathAva);
-        let baseImage = await loadImage(pathImg);
-        let baseAva = await loadImage(avatar);
-        registerFont(__dirname + `/shourov/font/Semi.ttf`, {
-          family: "Semi"
-        });
-        let canvas = createCanvas(1902, 1082);
-        console.log(canvas.width, canvas.height)
-        let ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
-        ctx.drawImage(baseAva, canvas.width / 2 - 188, canvas.height / 2 - 375, 375, 355);
-        ctx.fillStyle = "#FFF";
-        ctx.textAlign = "center";
-        ctx.font = `155px Semi`;
-        ctx.fillText(`${event.logMessageData.addedParticipants[o].fullName}`, canvas.width / 2 + 20, canvas.height / 2 + 100);
-        ctx.save();
-        ctx.font = `75px Semi`;
-        ctx.fillText(`Welcome to ${threadName}`, canvas.width / 2 - 15, canvas.height / 2 + 235)
-        const number = participantIDs.length - o;
-
-        if (number === 11 || number === 12 || number === 13) {
-          suffix = "th";
-        } else {
-          const lastDigit = number % 10;
-          switch (lastDigit) {
-            case 1:
-              suffix = "st";
-              break;
-            case 2:
-              suffix = "nd";
-              break;
-            case 3:
-              suffix = "rd";
-              break;
-            default:
-              suffix = "th";
-              break;
-          }
-        }
-
-        ctx.fillText(`You are the ${number}${suffix} member of this group`, canvas.width / 2 - 15, canvas.height / 2 + 350);
-        ctx.restore();
-        const imageBuffer = canvas.toBuffer();
-        fs.writeFileSync(pathImg, imageBuffer);
-        abx.push(fs.createReadStream(__dirname + `/shourov/join/${o}.png`))
-      }
-      memLength.sort((a, b) => a - b);
-      (typeof threadData.customJoin == "undefined") ? msg = `╭•┄┅═══❁🌺❁═══┅┄•╮\n   আসসালামু আলাইকুম-!!🖤\n╰•┄┅═══❁🌺❁═══┅┄•╯ \n\n    ✨🆆🅴🅻🅻 🅲🅾🅼🅴✨\n\n                ❥𝐍𝐄𝐖~\n\n        ~🇲‌🇪‌🇲‌🇧‌🇪‌🇷‌~\n\n {name} {threadName}\n\n🌺✨!!—এর পক্ষ-থেকে-!!✨🌺\n\n❤️🫰_ভালোবাস_অভিরাম_🫰❤️\n\n༆-✿আপনি_এই_গ্রুপের {soThanhVien}নং মেম্বার࿐\n\n╭•┄┅═══❁🌺❁═══┅┄•╮\n  🌸      𝐂 𝐄 𝐎
-        𝐒𝐇𝐎𝐔𝐑𝐎𝐕
-  🌸\n╰•┄┅═══❁🌺❁═══┅┄•╯"\n─────────────────\n[ {time} - {thu} ]` : msg = threadData.customJoin;
-      var nameAuthor = await Users.getNameUser(event.author)
-      msg = msg
-        .replace(/\{iduser}/g, iduser.join(', '))
-        .replace(/\{name}/g, nameArray.join(', '))
-        .replace(/\{type}/g, (memLength.length > 1) ? 'You' : 'You')
-        .replace(/\{soThanhVien}/g, memLength.join(', '))
-        .replace(/\{threadName}/g, threadName)
-        .replace(/\{author}/g, nameAuthor)
-        .replace(/\{uidAuthor}/g, event.author)
-        .replace(/\{buoi}/g, session)
-        .replace(/\{time}/g, time)
-        .replace(/\{thu}/g, thu);
-
-      var formPush = { body: msg, attachment: abx, mentions }
-      api.sendMessage(formPush, threadID);
-      for (let ii = 0; ii < parseInt(id.length); ii++) {
-        fs.unlinkSync(__dirname + `/shourov/join/${ii}.png`)
-      }
-    } catch (e) { return console.log(e) };
-  }
+Developer: KING SHOUROV  
+Facebook: https://www.facebook.com/www.xsxx.com365
+WhatsApp: wa.me/+8801709281334`,
+          attachment: fs.createReadStream(gifPath)
+        },
+        threadID
+      );
     }
+
+    // New member join হলে image তৈরি
+    let attachments = [];
+    let names = [];
+
+    for (let member of event.logMessageData.addedParticipants) {
+      let userID = member.userFbId;
+      let userName = member.fullName;
+      names.push(userName);
+
+      let avatarBuffer = (
+        await axios.get(
+          `https://graph.facebook.com/${userID}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
+          { responseType: "arraybuffer" }
+        )
+      ).data;
+
+      let backgrounds = [
+        'https://i.imgur.com/WKUqCkQ.jpeg',
+        'https://i.imgur.com/ccVuwrA.jpeg',
+        'https://i.imgur.com/ZPGBaPD.jpeg',
+        'https://i.imgur.com/las7yGW.jpeg',
+        'https://i.imgur.com/bxDnRQC.jpeg'
+      ];
+
+      let bgBuffer = (
+        await axios.get(backgrounds[Math.floor(Math.random() * backgrounds.length)], {
+          responseType: "arraybuffer"
+        })
+      ).data;
+
+      let circleAvatar = await this.circle(avatarBuffer);
+
+      let canvas = createCanvas(1900, 1080);
+      let ctx = canvas.getContext("2d");
+
+      let bgImage = await loadImage(bgBuffer);
+      let avImage = await loadImage(circleAvatar);
+
+      ctx.drawImage(bgImage, 0, 0, 1900, 1080);
+
+      registerFont(__dirname + `/shourov/font/Semi.ttf`, { family: "Semi" });
+
+      ctx.drawImage(avImage, 760, 120, 380, 380);
+
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+
+      ctx.font = "120px Semi";
+      ctx.fillText(userName, 950, 600);
+
+      ctx.font = "60px Semi";
+      ctx.fillText(`Welcome to ${threadName}`, 950, 700);
+
+      let imagePath = __dirname + `/shourov/join/${userID}.png`;
+      fs.writeFileSync(imagePath, canvas.toBuffer());
+      attachments.push(fs.createReadStream(imagePath));
+    }
+
+    let msg = `╭•┄┅══❁🌺❁══┅┄•╮
+      আসসালামু আলাইকুম 🖤
+╰•┄┅══❁🌺❁══┅┄•╯
+
+✨ নতুন সদস্য যোগ দিয়েছেন!
+👤 সদস্য: ${names.join(", ")}
+
+📌 সময়: ${time}
+📌 দিন: ${thu}
+
+🌺 স্বাগতম আমাদের গ্রুপে 🌺`;
+
+    return api.sendMessage(
+      {
+        body: msg,
+        attachment: attachments
+      },
+      threadID
+    );
+
+  } catch (err) {
+    console.log("JOIN ERROR:", err);
+  }
+};
