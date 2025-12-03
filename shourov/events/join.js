@@ -49,7 +49,7 @@ module.exports.run = async function({ api, event, Users }) {
     //api.changeNickname(`𝗕𝗢𝗧 ${(!global.config.BOTNAME) ? "Buddy" : global.config.BOTNAME}`, threadID, api.getCurrentUserID());
 
     let gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
-let gifPath = __dirname + '/Nayan/join/join.gif';
+let gifPath = __dirname + '/shourov/join/join.gif';
 
 axios.get(gifUrl, { responseType: 'arraybuffer' })
 .then(response => {
@@ -82,9 +82,9 @@ https://www.facebook.com/www.xsxx.com365
   }
   else {
     try {
-      if (!fs.existsSync(__dirname + `/Nayan/font/Semi.ttf`)) {
+      if (!fs.existsSync(__dirname + `/shourov/font/Semi.ttf`)) {
         let getfont = (await axios.get(fontlink, { responseType: "arraybuffer" })).data;
-        fs.writeFileSync(__dirname + `/Nayan/font/Semi.ttf`, Buffer.from(getfont, "utf-8"));
+        fs.writeFileSync(__dirname + `/shourov/font/Semi.ttf`, Buffer.from(getfont, "utf-8"));
       };
       const { createReadStream, existsSync, mkdirSync, readdirSync } = global.nodemodule["fs-extra"];
       let { threadName, participantIDs } = await api.getThreadInfo(threadID);
@@ -101,8 +101,8 @@ https://www.facebook.com/www.xsxx.com365
       // console.log(event.logMessageData.addedParticipants)
       var id = [];
       for (let o = 0; o < event.logMessageData.addedParticipants.length; o++) {
-        let pathImg = __dirname + `/Nayan/join/${o}.png`;
-        let pathAva = __dirname + `/Nayan/join/avt.png`;
+        let pathImg = __dirname + `/shourov/join/${o}.png`;
+        let pathAva = __dirname + `/shourov/join/avt.png`;
         let avtAnime = (await axios.get(encodeURI(
           `https://graph.facebook.com/${event.logMessageData.addedParticipants[o].userFbId}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`), { responseType: "arraybuffer" })).data;
         var ok = [
@@ -130,7 +130,7 @@ https://www.facebook.com/www.xsxx.com365
         var avatar = await this.circle(pathAva);
         let baseImage = await loadImage(pathImg);
         let baseAva = await loadImage(avatar);
-        registerFont(__dirname + `/Nayan/font/Semi.ttf`, {
+        registerFont(__dirname + `/shourov/font/Semi.ttf`, {
           family: "Semi"
         });
         let canvas = createCanvas(1902, 1082);
@@ -172,7 +172,7 @@ https://www.facebook.com/www.xsxx.com365
         ctx.restore();
         const imageBuffer = canvas.toBuffer();
         fs.writeFileSync(pathImg, imageBuffer);
-        abx.push(fs.createReadStream(__dirname + `/Nayan/join/${o}.png`))
+        abx.push(fs.createReadStream(__dirname + `/shourov/join/${o}.png`))
       }
       memLength.sort((a, b) => a - b);
       (typeof threadData.customJoin == "undefined") ? msg = `╭•┄┅═══❁🌺❁═══┅┄•╮\n   আসসালামু আলাইকুম-!!🖤\n╰•┄┅═══❁🌺❁═══┅┄•╯ \n\n    ✨🆆🅴🅻🅻 🅲🅾🅼🅴✨\n\n                ❥𝐍𝐄𝐖~\n\n        ~🇲‌🇪‌🇲‌🇧‌🇪‌🇷‌~\n\n {name} {threadName}\n\n🌺✨!!—এর পক্ষ-থেকে-!!✨🌺\n\n❤️🫰_ভালোবাস_অভিরাম_🫰❤️\n\n༆-✿আপনি_এই_গ্রুপের {soThanhVien}নং মেম্বার࿐\n\n╭•┄┅═══❁🌺❁═══┅┄•╮\n  🌸      𝐂 𝐄 𝐎
@@ -194,7 +194,7 @@ https://www.facebook.com/www.xsxx.com365
       var formPush = { body: msg, attachment: abx, mentions }
       api.sendMessage(formPush, threadID);
       for (let ii = 0; ii < parseInt(id.length); ii++) {
-        fs.unlinkSync(__dirname + `/Nayan/join/${ii}.png`)
+        fs.unlinkSync(__dirname + `/shourov/join/${ii}.png`)
       }
     } catch (e) { return console.log(e) };
   }
