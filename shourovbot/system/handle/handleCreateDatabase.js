@@ -1,6 +1,6 @@
 
 module.exports = function ({ Users, Threads, Currencies }) {
-    const logger =require("../../catalogs/Nayanc.js");
+    const logger =require("../../alihsan/shourovc.js");
     return async function ({ event }) {
         const { allUserID, allCurrenciesID, allThreadID, userName, threadInfo } = global.data; 
         const { autoCreateDB } = global.Nayan;
