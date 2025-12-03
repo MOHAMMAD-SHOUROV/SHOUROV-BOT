@@ -2,7 +2,7 @@ module.exports.config = {
   name: "antichange",
   eventType: ["log:subscribe", "log:thread-name", "log:thread-image"],
   version: "1.0.0",
-  credits: "shourov",
+  credits: "Nayan",
   description: "Prevent unauthorized group changes",
 };
 
