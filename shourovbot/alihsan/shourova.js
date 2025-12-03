@@ -252,6 +252,11 @@ console.log('DEBUG: eventHandlers count =', eventHandlers.length);
 console.log('DEBUG: commands map size =', commands.size);
 console.log('DEBUG: commands keys =', Array.from(commands.keys()));
 
+// Expose commands map so modules (like help) can find it reliably
+if (!global.client) global.client = {};
+global.client.commands = commands;
+console.log('DEBUG: global.client.commands exposed ->', Array.from(global.client.commands.keys()));
+
   // If your system uses event handlers/commands, they can be required/used here.
  if (api.listen) {
   api.listen(async (errListen, event) => {
