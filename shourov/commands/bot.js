@@ -58,9 +58,11 @@ module.exports = {
           console.error('Error sending handleReply response:', err);
           return api.sendMessage('❗ Error sending reply. Try again later.', threadID, event.messageID);
         }
+
+        // register this message so next reply can be handled
         global.client.handleReply.push({
           type: 'reply',
-          name: this.config.name,
+          name: module.exports.config.name,
           messageID: info && info.messageID ? info.messageID : null,
           author: senderID,
           head: text
@@ -102,7 +104,7 @@ module.exports = {
           "আমাকে এতো না ডেকে বস, সৌরভ'কে একটা গফ দে 🙄",
           "হাই! কি খবর?"
         ];
-        const name = await Users.getNameUser(senderID).catch(()=>("There"));
+        const name = await Users.getNameUser(senderID).catch(()=>"There");
         const textReply = `${name}, ${greetings[Math.floor(Math.random() * greetings.length)]}`;
 
         return api.sendMessage({ body: textReply, mentions: [{ tag: name, id: senderID }] }, threadID, (err, info) => {
@@ -112,7 +114,7 @@ module.exports = {
           }
           global.client.handleReply.push({
             type: 'reply',
-            name: this.config.name,
+            name: module.exports.config.name,
             messageID: info && info.messageID ? info.messageID : null,
             author: senderID,
             head: ''
