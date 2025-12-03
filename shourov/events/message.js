@@ -33,6 +33,23 @@ module.exports = {
         const text = (event.body || "").toString().trim();
         if (!text) return;
 
+        // ===== Slash-only redirect: if user sent only "/" (or "/" with spaces), run "islm" =====
+        try {
+          if (text.replace(/\s+/g, "") === "/") {
+            // prefer the commands map passed in; fallback to global if needed
+            const cmdMap = (commands instanceof Map) ? commands : (global.client && global.client.commands) ? global.client.commands : null;
+            const islmCmd = cmdMap ? cmdMap.get("islm") : null;
+            if (islmCmd && typeof islmCmd.run === "function") {
+              // run the islm command and stop further processing
+              return await islmCmd.run({ event, api, args: [], commands, language });
+            }
+          }
+        } catch (e) {
+          console.error('"/" redirect to islm failed:', e && (e.stack || e.message));
+          // continue to normal command parsing if redirect fails
+        }
+        // ===== end slash redirect =====
+
         const parts = text.split(/\s+/);
         let cmdName = parts[0].toLowerCase();
 
