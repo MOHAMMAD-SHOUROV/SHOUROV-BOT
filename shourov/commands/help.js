@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports.config = {
   name: "help",
-  version: "1.0.5",
+  version: "1.0.6",
   permission: 0,
   credits: "shourov",
   description: "Show all commands or detailed info for a specific command",
@@ -40,9 +40,6 @@ module.exports.languages = {
   }
 };
 
-/**
- * Helper to get language text (fallback to en)
- */
 module.exports.getText = function (key, lang = "en") {
   try {
     if (this.languages && this.languages[lang] && this.languages[lang][key]) return this.languages[lang][key];
@@ -50,9 +47,20 @@ module.exports.getText = function (key, lang = "en") {
   return this.languages.en[key] || "";
 };
 
+/**
+ * Helper: try to resolve the commands Map from common global locations
+ */
+function resolveCommandsMap() {
+  if (global && global.client && global.client.commands && typeof global.client.commands.get === 'function') return global.client.commands;
+  if (global && global.commands && typeof global.commands.get === 'function') return global.commands;
+  if (global && global.commandsMap && typeof global.commandsMap.get === 'function') return global.commandsMap;
+  // last resort: some loaders attach `commands` to globalThis
+  if (globalThis && globalThis.commands && typeof globalThis.commands.get === 'function') return globalThis.commands;
+  return null;
+}
+
 module.exports.handleEvent = function ({ api, event, getText }) {
-  // Keep compatibility: if someone uses 'help <command>' as message (not command invocation)
-  // we will not handle it here to avoid duplicate behavior — the run method covers explicit calls.
+  // keep silent — explicit run handles help invocations
   return;
 };
 
@@ -60,25 +68,36 @@ module.exports.run = async function ({ api, event, args, Users, Threads, getText
   try {
     const threadID = event.threadID;
     const messageID = event.messageID;
-    const lang = (global.data && global.data.threadData && global.data.threadData.get(threadID) && global.data.threadData.get(threadID).lang) ? global.data.threadData.get(threadID).lang : "en";
+
+    // language for this thread (fallback to en)
+    const threadData = (global.data && global.data.threadData && global.data.threadData.get(threadID)) ? global.data.threadData.get(threadID) : {};
+    const lang = threadData.lang || "en";
+
     const text = (key, ...rest) => {
       const tpl = this.getText(key, lang);
       return rest.length ? tpl.replace(/%(\d+)/g, (_, n) => rest[parseInt(n) - 1]) : tpl;
     };
 
-    const prefix = (global.data && global.data.threadData && global.data.threadData.get(threadID) && global.data.threadData.get(threadID).PREFIX) ? global.data.threadData.get(threadID).PREFIX : (global.config && global.config.PREFIX ? global.config.PREFIX : "");
+    // determine prefix (thread override -> global.config -> empty)
+    const prefix = (threadData.PREFIX) ? threadData.PREFIX : ((global.config && global.config.PREFIX) ? global.config.PREFIX : "");
 
-    // If user asked for a specific command: help <command>
+    // resolve commands map robustly
+    const commandsMap = resolveCommandsMap();
+    if (!commandsMap) {
+      // nothing to show
+      return api.sendMessage("❗ Commands map not found on the bot (debug: loader may not expose commands globally).", threadID, messageID);
+    }
+
+    // If asking for a specific command (help foo)
     if (args && args.length > 0 && isNaN(args[0])) {
       const name = args[0].toLowerCase();
-      const command = global.client.commands.get(name);
+      const command = (commandsMap.get && commandsMap.get(name)) ? commandsMap.get(name) : null;
       if (!command) {
         return api.sendMessage(text("noCommand", name), threadID, messageID);
       }
 
-      // Prepare permission text
       const perm = (cmd) => {
-        const p = cmd.config.hasPermssion || cmd.config.permission || 0;
+        const p = (cmd.config && (cmd.config.hasPermssion || cmd.config.permission)) != null ? (cmd.config.hasPermssion || cmd.config.permission) : 0;
         if (p === 0) return text("perm_user");
         if (p === 1) return text("perm_admin");
         return text("perm_op");
@@ -92,19 +111,16 @@ module.exports.run = async function ({ api, event, args, Users, Threads, getText
         command.config.category || command.config.commandCategory || "Unknown",
         command.config.cooldowns != null ? String(command.config.cooldowns) : "0",
         perm(command),
-        command.config.credits || command.config.credits || "unknown"
+        command.config.credits || command.config.author || "unknown"
       );
 
       return api.sendMessage(infoMsg, threadID, messageID);
     }
 
-    // Otherwise show paginated list
-    const allCommands = Array.from(global.client.commands.values())
+    // Build list of commands (array)
+    const allCommands = Array.from(commandsMap.values())
       .filter(cmd => cmd && cmd.config && cmd.config.name)
-      // optionally filter out hidden commands if you have that flag
-      //.filter(cmd => !cmd.config.hidden)
       .sort((a, b) => {
-        // sort by category then name
         const ca = (a.config.category || a.config.commandCategory || "").toLowerCase();
         const cb = (b.config.category || b.config.commandCategory || "").toLowerCase();
         if (ca < cb) return -1;
@@ -113,18 +129,16 @@ module.exports.run = async function ({ api, event, args, Users, Threads, getText
       });
 
     const numberOfOnePage = 10;
-    let page = parseInt(args[0]) || 1;
+    let page = parseInt(args && args[0]) || 1;
     const totalPages = Math.max(1, Math.ceil(allCommands.length / numberOfOnePage));
     if (isNaN(page) || page < 1 || page > totalPages) {
       page = 1;
-      // inform user if they provided bad page (optional)
-      if (args[0]) await api.sendMessage(text("pageArgErr"), threadID);
+      if (args && args[0]) await api.sendMessage(text("pageArgErr"), threadID, messageID);
     }
 
     const start = (page - 1) * numberOfOnePage;
     const pageSlice = allCommands.slice(start, start + numberOfOnePage);
 
-    // Build nice message
     let msg = "";
     msg += `╭─── ${text("helpListTitle", page, totalPages)} ───╮\n\n`;
     let index = start;
@@ -137,23 +151,20 @@ module.exports.run = async function ({ api, event, args, Users, Threads, getText
       msg += `│  ↳ Category: ${cat} • Cooldown: ${cmd.config.cooldowns || 0}s\n`;
       msg += `╰────────────────────\n`;
     }
-
     msg += `\n` + text("helpListFooter", prefix, allCommands.length) + `\n`;
 
-    // Send message and unsend if configured in envConfig
-    const { autoUnsend, delayUnsend } = (global.configModule && global.configModule[this.config.name]) ? global.configModule[this.config.name] : this.config.envConfig || { autoUnsend: false, delayUnsend: 60 };
+    // unsend config (module-level env override)
+    const moduleEnv = (global.configModule && global.configModule[this.config.name]) ? global.configModule[this.config.name] : null;
+    const { autoUnsend, delayUnsend } = moduleEnv ? moduleEnv : (this.config.envConfig || { autoUnsend: false, delayUnsend: 60 });
 
     api.sendMessage(msg, threadID, async (err, info) => {
       if (err) return console.error("help: sendMessage error:", err);
       if (autoUnsend) {
         try {
-          // delayUnsend is in seconds — ensure positive and not extremely large
           const delay = Math.max(5, parseInt(delayUnsend) || 60);
           await new Promise(resolve => setTimeout(resolve, delay * 1000));
           return api.unsendMessage(info.messageID);
-        } catch (e) {
-          // ignore unsend errors
-        }
+        } catch (e) { /* ignore unsend errors */ }
       }
     }, messageID);
 
