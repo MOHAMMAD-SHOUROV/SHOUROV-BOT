@@ -32,7 +32,7 @@ module.exports = {
 
       // fetch API config (safe)
       const apiCfg = await safeFetchApiConfig();
-      const apiUrl = apiCfg.sim || 'https://api.example.com';
+      const apiUrl = apiCfg.sim || 'https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourovbot/main/api.json';
       const api2 = apiCfg.api2 || apiUrl;
 
       // ask remote sim with uid
@@ -86,7 +86,7 @@ module.exports = {
 
       // fetch API endpoints for sim and font (safe)
       const apiCfg = await safeFetchApiConfig();
-      const apiUrl = apiCfg.sim || 'https://api.example.com';
+      const apiUrl = apiCfg.sim || 'https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourovbot/main/api.json';
       const api2 = apiCfg.api2 || apiUrl;
 
       // ensure global.client.handleReply exists
@@ -181,7 +181,7 @@ module.exports = {
         if ((replyMessage || "").toLowerCase().includes("already")) {
           return api.sendMessage(`📝 Your data already exists.\nQ: ${question}\nA: ${answer}`, threadID, event.messageID);
         }
-        return api.sendMessage(`📝 Added to database.\nQ: ${question}\nA: ${answer}`, threadID, event.messageID);
+        return sendWithMention(api, threadID, `📝 Added to database.\nQ: ${question}\nA: ${answer}`, senderID);
       }
 
       // askinfo
