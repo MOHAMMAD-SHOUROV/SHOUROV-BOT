@@ -10,7 +10,7 @@ A powerful Facebook Messenger bot built by [FACEBOOK](https://www.facebook.com/s
 ## Alihsan Shourov
 
 
-<img src='https://imgur.com/a/0SqPQfF'/>
+<img src='[https://imgur.com/a/0SqPQfF](https://i.postimg.cc/Yq2H9kTC/Whats-App-Image-2025-11-12-at-12-07-50-bc11358f.jpg)'/>
 
 -------
 
@@ -22,11 +22,11 @@ A powerful Facebook Messenger bot built by [FACEBOOK](https://www.facebook.com/s
 --------
 
 <p align="center">
-<a href="https://github.com/cyber-ullash/"><img title="Followers" src="https://img.shields.io/github/followers/cyber-ullash?color=blue&style=flat-square"></a>
-<a href="https://github.com/cyber-ullash/CYBER-BOT-COMMUNITY/stargazers/"><img title="Stars" src="https://img.shields.io/github/stars/cyber-ullash/CYBER-BOT-COMMUNITY/?color=blue&style=flat-square"></a>
-<a href="https://github.com/cyber-ullash/CYBER-BOT-COMMUNITY/network/members"><img title="Forks" src="https://img.shields.io/github/forks/cyber-ullash/CYBER-BOT-COMMUNITY?color=blue&style=flat-square"></a>
-<a href="https://github.com/cyber-ullash/CYBER-BOT-COMMUNITY/"><img title="Size" src="https://img.shields.io/github/repo-size/cyber-ullash/CYBER-BOT-COMMUNITY?style=flat-square&color=blue"></a>
-<a href="https://github.com/cyber-ullash/CYBER-BOT-COMMUNITY/graphs/commit-activity"><img height="20" src="https://img.shields.io/badge/Maintained%3F-yes-green.svg"></a>&nbsp;&nbsp;
+<a href="https://github.com/MOHAMMAD-SHOUROV/"><img title="Followers" src="https://img.shields.io/github/followers/MOHAMMAD-SHOUROV?color=blue&style=flat-square"></a>
+<a href="https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT/stargazers/"><img title="Stars" src="https://img.shields.io/github/stars/MOHAMMAD-SHOUROV/SHOUROV-BOT/?color=blue&style=flat-square"></a>
+<a href="https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT/network/members"><img title="Forks" src="https://img.shields.io/github/forks/MOHAMMAD-SHOUROV/SHOUROV-BOT?color=blue&style=flat-square"></a>
+<a href="https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT/"><img title="Size" src="https://img.shields.io/github/repo-size/cyber-ullash/MOHAMMAD-SHOUROV?style=flat-square&color=blue"></a>
+<a href="https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT/graphs/commit-activity"><img height="20" src="https://img.shields.io/badge/Maintained%3F-yes-green.svg"></a>&nbsp;&nbsp;
 </p>
 <p align='center'>
 </p>
