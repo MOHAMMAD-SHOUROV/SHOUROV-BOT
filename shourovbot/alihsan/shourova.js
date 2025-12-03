@@ -1,1 +1,359 @@
-'use strict';const _0x2a442d=_0xc264;(function(_0xa09db1,_0x497418){const _0x3ad420=_0xc264,_0x407d89=_0xa09db1();while(!![]){try{const _0x4ba20f=parseInt(_0x3ad420(0x193))/0x1+parseInt(_0x3ad420(0x184))/0x2*(-parseInt(_0x3ad420(0x16a))/0x3)+-parseInt(_0x3ad420(0x18a))/0x4+-parseInt(_0x3ad420(0x1a0))/0x5*(-parseInt(_0x3ad420(0x19f))/0x6)+parseInt(_0x3ad420(0x18c))/0x7*(-parseInt(_0x3ad420(0x187))/0x8)+parseInt(_0x3ad420(0x1a9))/0x9*(-parseInt(_0x3ad420(0x1ac))/0xa)+parseInt(_0x3ad420(0x18f))/0xb*(parseInt(_0x3ad420(0x15e))/0xc);if(_0x4ba20f===_0x497418)break;else _0x407d89['push'](_0x407d89['shift']());}catch(_0x1c4e62){_0x407d89['push'](_0x407d89['shift']());}}}(_0x327f,0x62291));const fs=require('fs'),path=require(_0x2a442d(0x1a2)),login=require(_0x2a442d(0x153)),startUptimeServer=require(_0x2a442d(0x155)),CONFIG_PATH=path[_0x2a442d(0x172)](__dirname,'..','..',_0x2a442d(0x16b)),FBSTATE_PATH=path[_0x2a442d(0x172)](__dirname,'..','..',_0x2a442d(0x15b));function _0xc264(_0xfbecff,_0x4952eb){const _0x327f6f=_0x327f();return _0xc264=function(_0xc264db,_0x3ca9a5){_0xc264db=_0xc264db-0x13d;let _0x45ae57=_0x327f6f[_0xc264db];return _0x45ae57;},_0xc264(_0xfbecff,_0x4952eb);}let config=null;try{const raw=fs[_0x2a442d(0x1a6)](CONFIG_PATH,_0x2a442d(0x148));config=JSON[_0x2a442d(0x170)](raw),console[_0x2a442d(0x19d)](_0x2a442d(0x140));}catch(_0x195b6f){console['error'](_0x2a442d(0x18e),_0x195b6f[_0x2a442d(0x191)]),process['exit'](0x1);}function _0x327f(){const _0x761e01=['AutoReply:\x20message\x20received\x20✅','startsWith','282560qGwJjK','Language\x20parse\x20failed','Loaded\x20event','DEBUG:\x20commands\x20keys\x20=','Event\x20handler\x20error:','setMessageRead','existsSync','═══════════════════════════════════════════','message.js','threadID','message_reply','✓\x20Config\x20loaded','senderID','languages','sendMessage','name','Loaded\x20command','ownerId','function','utf8','Error\x20reading\x20commands\x20dir:','.js','author','⚠️\x20Uptime\x20module\x20not\x20exported\x20as\x20function;\x20skipping\x20uptime\x20start.','Events\x20dir\x20not\x20found:','DEBUG:\x20commands\x20map\x20size\x20=','basename','EVENT\x20RECEIVED:','send','⚠️\x20api.setOptions\x20failed\x20(maybe\x20different\x20API\x20version):','../system/login','push','../../server/uptime','run','❌\x20Failed\x20to\x20load\x20language\x20file:\x20no\x20candidate\x20language\x20files\x20found\x20(checked:\x20','set','toLowerCase','DEBUG:\x20eventHandlers\x20count\x20=','fbstate.json','SIGINT','toString','23792556yvkLsL','resolve','❌\x20CRITICAL\x20ERROR:\x20Author\x20protection\x20violated!','.lang','listen','error','Command\x20error:','thread_key','✓\x20fbstate.json\x20updated','✓\x20Owner\x20ID\x20protection:\x20PASSED','❌\x20Error\x20reading\x20fbstate.json:','✓\x20Language\x20loaded\x20(JSON):','954195lLeNZs','config.json','warn','markAsRead','❌\x20Failed\x20to\x20parse\x20language\x20file\x20(no\x20key=value\x20pairs\x20found):','commands','parse','filter','join','body','writeFileSync','length','Listen\x20error:','markSeen','Skipped\x20event\x20file\x20(no\x20run):','Message\x20handler\x20error:','env','endsWith','LANG','Auto-reply\x20error:','Error\x20loading\x20event','❌\x20CRITICAL\x20ERROR:\x20Owner\x20ID\x20protection\x20violated!','thread_fbid','events','⚠️\x20fbstate.json\x20not\x20found\x20—\x20first-time\x20login\x20may\x20require\x20credentials.','✓\x20Language\x20loaded\x20(key=value\x20fallback):','4rpBVyo','Skipped\x20command\x20file\x20(no\x20name):','cache','40teGWOr','size','split','2890908PVXaTa','✓\x20Author\x20protection:\x20PASSED','66661zLwDqh','❌\x20No\x20config\x20loaded\x20—\x20aborting.','❌\x20Failed\x20to\x20load\x20config.json:','11qFVbSu','en.lang','message','trim','432085toKOdr','type','get','Commands\x20found:','100071971474157','LANG_CODE','exit','Events\x20found:','language','SIGTERM','log','getAppState','6QlkNcR','641975zTGglA','keys','path','Language\x20file\x20not\x20found','✓\x20Facebook\x20state\x20(fbstate.json)\x20loaded','slice','readFileSync','shourov','Auto-replied\x20to','234nJQlBe'];_0x327f=function(){return _0x761e01;};return _0x327f();}(function loadLanguageSafely(){const _0x2c2393=_0x2a442d;let _0x515dbd='en';try{if(config&&config[_0x2c2393(0x19b)])_0x515dbd=String(config['language'])[_0x2c2393(0x159)]();else{if(process['env'][_0x2c2393(0x198)])_0x515dbd=String(process[_0x2c2393(0x17a)][_0x2c2393(0x198)])[_0x2c2393(0x159)]();else process['env'][_0x2c2393(0x17c)]&&(_0x515dbd=String(process[_0x2c2393(0x17a)][_0x2c2393(0x17c)])[_0x2c2393(0x189)](/[_\.]/)[0x0][_0x2c2393(0x159)]());}}catch(_0x1360dc){_0x515dbd='en';}const _0x284646=[path['join'](__dirname,_0x2c2393(0x142),_0x515dbd+'.lang'),path[_0x2c2393(0x172)](__dirname,_0x2c2393(0x142),'en.lang'),path[_0x2c2393(0x172)](__dirname,'..',_0x2c2393(0x142),_0x515dbd+_0x2c2393(0x161)),path[_0x2c2393(0x172)](__dirname,'..',_0x2c2393(0x142),_0x2c2393(0x190))];let _0x4b512e=null;for(const _0x3c1323 of _0x284646){if(fs[_0x2c2393(0x1b2)](_0x3c1323)){_0x4b512e=_0x3c1323;break;}}if(!_0x4b512e){console[_0x2c2393(0x163)](_0x2c2393(0x157)+_0x284646[_0x2c2393(0x172)](',\x20')+')');throw new Error(_0x2c2393(0x1a3));}const _0x5dcc7c=fs['readFileSync'](_0x4b512e,_0x2c2393(0x148));try{global[_0x2c2393(0x19b)]=JSON[_0x2c2393(0x170)](_0x5dcc7c),console['log'](_0x2c2393(0x169),path[_0x2c2393(0x14f)](_0x4b512e));return;}catch(_0x949902){}const _0x837a8d={},_0x3908bc=_0x5dcc7c['split'](/\r?\n/);for(let _0xfce266 of _0x3908bc){_0xfce266=_0xfce266[_0x2c2393(0x192)]();if(!_0xfce266)continue;if(_0xfce266[_0x2c2393(0x1ab)]('#')||_0xfce266[_0x2c2393(0x1ab)]('//'))continue;const _0x3f6286=_0xfce266['match'](/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);if(_0x3f6286){const _0x481387=_0x3f6286[0x1][_0x2c2393(0x192)](),_0x399f5f=_0x3f6286[0x2][_0x2c2393(0x192)]();_0x837a8d[_0x481387]=_0x399f5f;}else{const _0x548a17=_0xfce266[_0x2c2393(0x189)](/\s+/,0x2);_0x548a17[_0x2c2393(0x175)]===0x2&&(_0x837a8d[_0x548a17[0x0]]=_0x548a17[0x1]);}}if(Object[_0x2c2393(0x1a1)](_0x837a8d)[_0x2c2393(0x175)]===0x0){console[_0x2c2393(0x163)](_0x2c2393(0x16e),_0x4b512e);throw new Error(_0x2c2393(0x1ad));}global['language']=_0x837a8d,console[_0x2c2393(0x19d)](_0x2c2393(0x183),path[_0x2c2393(0x14f)](_0x4b512e));}());!config&&(console[_0x2a442d(0x163)](_0x2a442d(0x18d)),process[_0x2a442d(0x199)](0x1));config[_0x2a442d(0x14b)]!=='ALIHSAN\x20SHOUROV'&&(console[_0x2a442d(0x163)](_0x2a442d(0x160)),process[_0x2a442d(0x199)](0x1));config[_0x2a442d(0x146)]!==_0x2a442d(0x197)&&(console[_0x2a442d(0x163)](_0x2a442d(0x17f)),process[_0x2a442d(0x199)](0x1));console[_0x2a442d(0x19d)](_0x2a442d(0x18b)),console['log'](_0x2a442d(0x167)),console['log']('');try{typeof startUptimeServer===_0x2a442d(0x147)?(startUptimeServer(config),console[_0x2a442d(0x19d)]('✓\x20Uptime\x20server\x20started\x20(if\x20configured)')):console['warn'](_0x2a442d(0x14c));}catch(_0x4ef878){console[_0x2a442d(0x163)]('❌\x20Failed\x20to\x20start\x20uptime\x20server:',_0x4ef878[_0x2a442d(0x191)]);}let appState=null;try{fs[_0x2a442d(0x1b2)](FBSTATE_PATH)?(appState=JSON[_0x2a442d(0x170)](fs[_0x2a442d(0x1a6)](FBSTATE_PATH,_0x2a442d(0x148))),console[_0x2a442d(0x19d)](_0x2a442d(0x1a4))):console[_0x2a442d(0x16c)](_0x2a442d(0x182));}catch(_0x4b7964){console['error'](_0x2a442d(0x168),_0x4b7964[_0x2a442d(0x191)]);}login({'appState':appState},(_0x496e5f,_0x3383b5)=>{const _0x4c001c=_0x2a442d;if(_0x496e5f){console['error']('❌\x20Facebook\x20login\x20error:',_0x496e5f);return;}console[_0x4c001c(0x19d)]('✓\x20Facebook\x20login\x20successful');try{_0x3383b5['setOptions']({'listenEvents':!![],'selfListen':![],'updatePresence':!![],'forceLogin':!![],'mqttDisabled':![]});}catch(_0xdf65){console[_0x4c001c(0x16c)](_0x4c001c(0x152),_0xdf65[_0x4c001c(0x191)]);}try{if(_0x3383b5[_0x4c001c(0x19e)]&&typeof _0x3383b5[_0x4c001c(0x19e)]===_0x4c001c(0x147)){const _0x21d139=_0x3383b5[_0x4c001c(0x19e)]();fs[_0x4c001c(0x174)](FBSTATE_PATH,JSON['stringify'](_0x21d139,null,0x2),_0x4c001c(0x148)),console[_0x4c001c(0x19d)](_0x4c001c(0x166));}}catch(_0x340ee6){}console[_0x4c001c(0x19d)](_0x4c001c(0x1b3)),console[_0x4c001c(0x19d)]('🤖\x20Bot\x20is\x20now\x20online\x20and\x20ready!'),console[_0x4c001c(0x19d)](_0x4c001c(0x1b3));const _0x54829f=path[_0x4c001c(0x172)](__dirname,'..','..','shourov',_0x4c001c(0x16f)),_0x5938c2=path[_0x4c001c(0x172)](__dirname,'..','..',_0x4c001c(0x1a7),_0x4c001c(0x181)),_0xdee6c3=[],_0x1dd951=new Map();try{if(fs[_0x4c001c(0x1b2)](_0x54829f)){const _0x2ef215=fs['readdirSync'](_0x54829f)[_0x4c001c(0x171)](_0x552f57=>_0x552f57['endsWith'](_0x4c001c(0x14a)));console[_0x4c001c(0x19d)](_0x4c001c(0x196),_0x2ef215);for(const _0x44b291 of _0x2ef215){try{const _0x3d03ea=path[_0x4c001c(0x172)](_0x54829f,_0x44b291);delete require[_0x4c001c(0x186)][require['resolve'](_0x3d03ea)];const _0x3eb63c=require(_0x3d03ea);_0x3eb63c&&_0x3eb63c[_0x4c001c(0x144)]?(_0x1dd951[_0x4c001c(0x158)](String(_0x3eb63c['name'])[_0x4c001c(0x159)](),_0x3eb63c),console[_0x4c001c(0x19d)](_0x4c001c(0x145),_0x44b291,'->',_0x3eb63c[_0x4c001c(0x144)])):console[_0x4c001c(0x19d)](_0x4c001c(0x185),_0x44b291);}catch(_0x4ae73a){console[_0x4c001c(0x163)]('Error\x20loading\x20command',_0x44b291,_0x4ae73a&&_0x4ae73a[_0x4c001c(0x191)]);}}}else console[_0x4c001c(0x19d)]('Commands\x20dir\x20not\x20found:',_0x54829f);}catch(_0x14d5be){console[_0x4c001c(0x163)](_0x4c001c(0x149),_0x14d5be&&_0x14d5be[_0x4c001c(0x191)]);}try{if(fs['existsSync'](_0x5938c2)){const _0x3d3ce1=fs['readdirSync'](_0x5938c2)[_0x4c001c(0x171)](_0x38a749=>_0x38a749[_0x4c001c(0x17b)](_0x4c001c(0x14a)));console[_0x4c001c(0x19d)](_0x4c001c(0x19a),_0x3d3ce1);for(const _0x1408dd of _0x3d3ce1){try{const _0xee001=path[_0x4c001c(0x172)](_0x5938c2,_0x1408dd);delete require[_0x4c001c(0x186)][require[_0x4c001c(0x15f)](_0xee001)];const _0x500ba5=require(_0xee001);_0x500ba5&&typeof _0x500ba5[_0x4c001c(0x156)]==='function'?(_0xdee6c3[_0x4c001c(0x154)](_0x500ba5),console[_0x4c001c(0x19d)](_0x4c001c(0x1ae),_0x1408dd)):console['log'](_0x4c001c(0x178),_0x1408dd);}catch(_0x22ca61){console['error'](_0x4c001c(0x17e),_0x1408dd,_0x22ca61&&_0x22ca61[_0x4c001c(0x191)]);}}}else console[_0x4c001c(0x19d)](_0x4c001c(0x14d),_0x5938c2);}catch(_0x4c9a87){console['error']('Error\x20reading\x20events\x20dir:',_0x4c9a87&&_0x4c9a87['message']);}console[_0x4c001c(0x19d)](_0x4c001c(0x15a),_0xdee6c3['length']),console['log'](_0x4c001c(0x14e),_0x1dd951[_0x4c001c(0x188)]),console[_0x4c001c(0x19d)](_0x4c001c(0x1af),Array['from'](_0x1dd951[_0x4c001c(0x1a1)]())),_0x3383b5[_0x4c001c(0x162)]&&_0x3383b5[_0x4c001c(0x162)](async(_0x21a98b,_0x1029f2)=>{const _0x4dc1a3=_0x4c001c;if(_0x21a98b){console[_0x4dc1a3(0x163)](_0x4dc1a3(0x176),_0x21a98b);return;}const _0x375fac=_0x1029f2[_0x4dc1a3(0x13e)]||_0x1029f2[_0x4dc1a3(0x165)]&&_0x1029f2[_0x4dc1a3(0x165)][_0x4dc1a3(0x180)]||_0x1029f2[_0x4dc1a3(0x141)]||null;console[_0x4dc1a3(0x19d)](_0x4dc1a3(0x150),_0x1029f2[_0x4dc1a3(0x194)],'thread:',_0x375fac);const _0x19ddb6=![];if(_0x19ddb6&&_0x1029f2&&(_0x1029f2[_0x4dc1a3(0x194)]===_0x4dc1a3(0x191)||_0x1029f2[_0x4dc1a3(0x194)]===_0x4dc1a3(0x13f)))try{const _0x4d5ccc=_0x1029f2[_0x4dc1a3(0x13e)]||_0x1029f2[_0x4dc1a3(0x165)]&&_0x1029f2[_0x4dc1a3(0x165)][_0x4dc1a3(0x180)]||_0x1029f2['senderID'];if(_0x4d5ccc&&typeof _0x3383b5[_0x4dc1a3(0x143)]===_0x4dc1a3(0x147))_0x3383b5[_0x4dc1a3(0x143)]({'body':_0x4dc1a3(0x1aa)},_0x4d5ccc,()=>{}),console['log'](_0x4dc1a3(0x1a8),_0x4d5ccc);else _0x4d5ccc&&typeof _0x3383b5['send']==='function'&&(_0x3383b5[_0x4dc1a3(0x151)]({'body':_0x4dc1a3(0x1aa)},_0x4d5ccc,()=>{}),console[_0x4dc1a3(0x19d)]('Auto-replied\x20(api.send)\x20to',_0x4d5ccc));}catch(_0x209ff0){console[_0x4dc1a3(0x163)](_0x4dc1a3(0x17d),_0x209ff0&&_0x209ff0[_0x4dc1a3(0x191)]);}for(const _0x15318b of _0xdee6c3){try{await _0x15318b['run']({'event':_0x1029f2,'api':_0x3383b5,'config':config,'language':global['language']});}catch(_0x1b60ca){console[_0x4dc1a3(0x163)](_0x4dc1a3(0x1b0),_0x1b60ca[_0x4dc1a3(0x191)]);}}try{const _0x15908e=path['join'](__dirname,'..',_0x4dc1a3(0x1a7),_0x4dc1a3(0x181),_0x4dc1a3(0x13d));if(fs[_0x4dc1a3(0x1b2)](_0x15908e)){delete require[_0x4dc1a3(0x186)][require[_0x4dc1a3(0x15f)](_0x15908e)];const _0x5165cf=require(_0x15908e);_0x5165cf&&typeof _0x5165cf[_0x4dc1a3(0x156)]===_0x4dc1a3(0x147)&&await _0x5165cf[_0x4dc1a3(0x156)]({'event':_0x1029f2,'api':_0x3383b5,'config':config,'language':global[_0x4dc1a3(0x19b)],'commands':_0x1dd951});}}catch(_0x4b7131){console[_0x4dc1a3(0x163)](_0x4dc1a3(0x179),_0x4b7131[_0x4dc1a3(0x191)]);}try{if(_0x1029f2['type']===_0x4dc1a3(0x191)||_0x1029f2[_0x4dc1a3(0x194)]==='message_reply'){const _0x2941da=(_0x1029f2[_0x4dc1a3(0x173)]||'')[_0x4dc1a3(0x159)]()[_0x4dc1a3(0x192)]();if(_0x2941da){const _0x36e5e3=_0x2941da['split'](/\s+/),_0x1775fd=(_0x36e5e3[0x0]||'')[_0x4dc1a3(0x15d)]()[_0x4dc1a3(0x192)]()['toLowerCase']();let _0x16bd8e=_0x1775fd;(_0x16bd8e[_0x4dc1a3(0x1ab)]('/')||_0x16bd8e[_0x4dc1a3(0x1ab)]('!'))&&(_0x16bd8e=_0x16bd8e[_0x4dc1a3(0x1a5)](0x1));const _0x500e77=_0x36e5e3[_0x4dc1a3(0x1a5)](0x1);if(_0x1dd951['has'](_0x16bd8e)){const _0x1a9b50=_0x1dd951[_0x4dc1a3(0x195)](_0x16bd8e);await _0x1a9b50['run']({'event':_0x1029f2,'api':_0x3383b5,'config':config,'args':_0x500e77,'commands':_0x1dd951,'language':global['language']});}}try{if(_0x375fac){if(_0x3383b5[_0x4dc1a3(0x16d)])_0x3383b5[_0x4dc1a3(0x16d)](_0x375fac,()=>{});else{if(_0x3383b5[_0x4dc1a3(0x1b1)])_0x3383b5[_0x4dc1a3(0x1b1)](_0x375fac,()=>{});else{if(_0x3383b5[_0x4dc1a3(0x177)])_0x3383b5[_0x4dc1a3(0x177)](_0x375fac,()=>{});}}}}catch(_0x2ab2ae){}}}catch(_0x400d91){console['error'](_0x4dc1a3(0x164),_0x400d91[_0x4dc1a3(0x191)]);}});}),process['on'](_0x2a442d(0x15c),()=>{const _0x2db03f=_0x2a442d;console[_0x2db03f(0x19d)]('Received\x20SIGINT.\x20Exiting...'),process[_0x2db03f(0x199)](0x0);}),process['on'](_0x2a442d(0x19c),()=>{const _0x2f667f=_0x2a442d;console[_0x2f667f(0x19d)]('Received\x20SIGTERM.\x20Exiting...'),process[_0x2f667f(0x199)](0x0);});
+// shourovbot/alihsan/shourova.js
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+// requires (from this file's location: shourovbot/alihsan)
+const login = require('../system/login');                 // shourovbot/system/login
+const startUptimeServer = require('../../server/uptime'); // server/uptime (repo root)
+
+// ---------- Paths ----------
+const CONFIG_PATH = path.join(__dirname, '..', '..', 'config.json');   // repo root config.json
+const FBSTATE_PATH = path.join(__dirname, '..', '..', 'fbstate.json'); // repo root fbstate.json
+
+// ---------- Load config safely ----------
+let config = null;
+try {
+  const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+  config = JSON.parse(raw);
+  console.log('✓ Config loaded');
+} catch (err) {
+  console.error('❌ Failed to load config.json:', err.message);
+  process.exit(1);
+}
+
+// ---------- Robust language loader (JSON or key=value/colon format fallback) ----------
+(function loadLanguageSafely() {
+  // Determine language code preference (from config.language or fallback to 'en')
+  let langCode = 'en';
+  try {
+    if (config && config.language) {
+      langCode = String(config.language).toLowerCase();
+    } else if (process.env.LANG_CODE) {
+      langCode = String(process.env.LANG_CODE).toLowerCase();
+    } else if (process.env.LANG) {
+      langCode = String(process.env.LANG).split(/[_\.]/)[0].toLowerCase();
+    }
+  } catch (e) {
+    langCode = 'en';
+  }
+
+  // Candidate locations (check alihsan languages first)
+  const candidates = [
+    path.join(__dirname, 'languages', `${langCode}.lang`),
+    path.join(__dirname, 'languages', 'en.lang'),
+    path.join(__dirname, '..', 'languages', `${langCode}.lang`),
+    path.join(__dirname, '..', 'languages', 'en.lang')
+  ];
+
+  let found = null;
+  for (const p of candidates) {
+    if (fs.existsSync(p)) { found = p; break; }
+  }
+
+  if (!found) {
+    console.error('❌ Failed to load language file: no candidate language files found (checked: ' + candidates.join(', ') + ')');
+    throw new Error('Language file not found');
+  }
+
+  const raw = fs.readFileSync(found, 'utf8');
+
+  // Try JSON first
+  try {
+    global.language = JSON.parse(raw);
+    console.log('✓ Language loaded (JSON):', path.basename(found));
+    return;
+  } catch (jsonErr) {
+    // fall through to line-based parser
+  }
+
+  // Fallback: parse line-based file (ignore lines starting with # or //)
+  const result = {};
+  const lines = raw.split(/\r?\n/);
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    if (line.startsWith('#') || line.startsWith('//')) continue;
+    // handle "key = value" or "key: value"
+    const m = line.match(/^([^=:#]+?)\s*(?:=|:)\s*(.+)$/);
+    if (m) {
+      const key = m[1].trim();
+      const val = m[2].trim();
+      result[key] = val;
+    } else {
+      // if line contains just "key value", try split by whitespace
+      const p = line.split(/\s+/, 2);
+      if (p.length === 2) {
+        result[p[0]] = p[1];
+      }
+    }
+  }
+
+  if (Object.keys(result).length === 0) {
+    console.error('❌ Failed to parse language file (no key=value pairs found):', found);
+    throw new Error('Language parse failed');
+  }
+
+  global.language = result;
+  console.log('✓ Language loaded (key=value fallback):', path.basename(found));
+})(); // <-- IIFE closed properly
+
+// ---------- Protection checks ----------
+if (!config) {
+  console.error('❌ No config loaded — aborting.');
+  process.exit(1);
+}
+
+if (config.author !== "ALIHSAN SHOUROV") {
+  console.error('❌ CRITICAL ERROR: Author protection violated!');
+  process.exit(1);
+}
+
+if (config.ownerId !== "100071971474157") {
+  console.error('❌ CRITICAL ERROR: Owner ID protection violated!');
+  process.exit(1);
+}
+
+console.log('✓ Author protection: PASSED');
+console.log('✓ Owner ID protection: PASSED');
+console.log('');
+
+// ---------- Start uptime server (optional, safe) ----------
+try {
+  if (typeof startUptimeServer === 'function') {
+    startUptimeServer(config);
+    console.log('✓ Uptime server started (if configured)');
+  } else {
+    console.warn('⚠ Uptime module not exported as function; skipping uptime start.');
+  }
+} catch (err) {
+  console.error('❌ Failed to start uptime server:', err.message);
+  // do not exit; uptime is optional
+}
+
+// ---------- Load fbstate if exists ----------
+let appState = null;
+try {
+  if (fs.existsSync(FBSTATE_PATH)) {
+    appState = JSON.parse(fs.readFileSync(FBSTATE_PATH, 'utf8'));
+    console.log('✓ Facebook state (fbstate.json) loaded');
+  } else {
+    console.warn('⚠ fbstate.json not found — first-time login may require credentials.');
+  }
+} catch (err) {
+  console.error('❌ Error reading fbstate.json:', err.message);
+}
+
+// ---------- Start Facebook login & listener ----------
+login({ appState }, (err, api) => {
+  if (err) {
+    console.error('❌ Facebook login error:', err);
+    return;
+  }
+
+  console.log('✓ Facebook login successful');
+
+  try {
+    api.setOptions({
+      listenEvents: true,
+      selfListen: false,
+      updatePresence: true,
+      forceLogin: true,
+      mqttDisabled: false
+    });
+  } catch (e) {
+    console.warn('⚠ api.setOptions failed (maybe different API version):', e.message);
+  }
+
+  // Save fbstate on login update (optional)
+  try {
+    if (api.getAppState && typeof api.getAppState === 'function') {
+      const newState = api.getAppState();
+      fs.writeFileSync(FBSTATE_PATH, JSON.stringify(newState, null, 2), 'utf8');
+      console.log('✓ fbstate.json updated');
+    }
+  } catch (e) {
+    // ignore if not supported
+  }
+
+  console.log('═══════════════════════════════════════════');
+  console.log('🤖 Bot is now online and ready!');
+  console.log('═══════════════════════════════════════════');
+// --- Load commands & events ONCE ---
+const COMMANDS_DIR = path.join(__dirname,  '..', '..', 'shourov', 'commands');
+const EVENTS_DIR = path.join(__dirname,  '..', '..', 'shourov', 'events');
+
+// declare once
+const eventHandlers = [];
+const commands = new Map();
+
+// load commands
+try {
+  if (fs.existsSync(COMMANDS_DIR)) {
+    const cmdFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Commands found:', cmdFiles);
+    for (const f of cmdFiles) {
+      try {
+        const cmdPath = path.join(COMMANDS_DIR, f);
+        delete require.cache[require.resolve(cmdPath)];
+        const cmd = require(cmdPath);
+     let cmdName = null;
+
+if (cmd.name) cmdName = cmd.name;
+else if (cmd.config?.name) cmdName = cmd.config.name;
+
+if (cmdName) {
+    commands.set(String(cmdName).toLowerCase(), cmd);
+    console.log('Loaded command', f, '->', cmdName);
+} else {
+    console.log('Skipped command file (no name):', f);
+}
+      } catch (e) {
+        console.error('Error loading command', f, e && e.message);
+      }
+    }
+  } else {
+    console.log('Commands dir not found:', COMMANDS_DIR);
+  }
+} catch (e) {
+  console.error('Error reading commands dir:', e && e.message);
+}
+
+// load events
+try {
+  if (fs.existsSync(EVENTS_DIR)) {
+    const evFiles = fs.readdirSync(EVENTS_DIR).filter(f => f.endsWith('.js'));
+    console.log('Events found:', evFiles);
+    for (const f of evFiles) {
+      try {
+        const evPath = path.join(EVENTS_DIR, f);
+        delete require.cache[require.resolve(evPath)];
+        const ev = require(evPath);
+        if (ev && typeof ev.run === 'function') {
+          eventHandlers.push(ev);
+          console.log('Loaded event', f);
+        } else {
+          console.log('Skipped event file (no run):', f);
+        }
+      } catch (e) {
+        console.error('Error loading event', f, e && e.message);
+      }
+    }
+  } else {
+    console.log('Events dir not found:', EVENTS_DIR);
+  }
+} catch (e) {
+  console.error('Error reading events dir:', e && e.message);
+}
+
+// debug info
+console.log('DEBUG: eventHandlers count =', eventHandlers.length);
+console.log('DEBUG: commands map size =', commands.size);
+console.log('DEBUG: commands keys =', Array.from(commands.keys()));
+
+  // If your system uses event handlers/commands, they can be required/used here.
+ if (api.listen) {
+  api.listen(async (errListen, event) => {
+    if (errListen) {
+      console.error('Listen error:', errListen);
+      return;
+    }
+
+    const threadID = event.threadID ||
+                     (event.thread_key && event.thread_key.thread_fbid) ||
+                     event.senderID || null;
+
+    console.log('EVENT RECEIVED:', event.type, 'thread:', threadID);
+    
+// AUTO-REPLY (quick test) — change to false to disable
+const autoReply = false; // true = on, false = off
+if (autoReply && event && (event.type === 'message' || event.type === 'message_reply')) {
+  try {
+    const tid = event.threadID || (event.thread_key && event.thread_key.thread_fbid) || event.senderID;
+    if (tid && typeof api.sendMessage === 'function') {
+      api.sendMessage({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied to', tid);
+    } else if (tid && typeof api.send === 'function') {
+      api.send({ body: 'AutoReply: message received ✅' }, tid, ()=>{});
+      console.log('Auto-replied (api.send) to', tid);
+    }
+  } catch(e) {
+    console.error('Auto-reply error:', e && e.message);
+  }
+}
+
+    // ---------- 1) Run global event handlers ----------
+    for (const evHandler of eventHandlers) {
+      try {
+        await evHandler.run({ event, api, config, language: global.language });
+      } catch (e) {
+        console.error('Event handler error:', e.message);
+      }
+    }
+
+    // ---------- 2) Run message handler (if exists) ----------
+    try {
+      const messageHandlerPath = path.join(__dirname, '..', '..', 'shourov', 'events', 'message.js');
+      if (fs.existsSync(messageHandlerPath)) {
+        delete require.cache[require.resolve(messageHandlerPath)];
+        const messageHandler = require(messageHandlerPath);
+
+        if (messageHandler && typeof messageHandler.run === 'function') {
+          await messageHandler.run({ event, api, config, language: global.language, commands });
+        }
+      }
+    } catch (e) {
+      console.error('Message handler error:', e.message);
+    }
+
+    // ---------- 3) Command handler ----------
+    try {
+      if (event.type === 'message' || event.type === 'message_reply') {
+        const text = (event.body || '').toLowerCase().trim();
+        if (text) {
+         const parts = text.split(/\s+/);
+const rawFirst = (parts[0] || '').toString().trim().toLowerCase();
+let cmdName = rawFirst;
+
+// remove / or ! prefix
+if (cmdName.startsWith('/') || cmdName.startsWith('!')) {
+  cmdName = cmdName.slice(1);
+}
+
+const args = parts.slice(1);
+
+          if (commands.has(cmdName)) {
+            const cmd = commands.get(cmdName);
+            await cmd.run({ event, api, config, args, commands, language: global.language });
+          }
+        }
+
+        // Seen / read
+        try {
+          if (threadID) {
+            if (api.markAsRead) api.markAsRead(threadID,()=>{});
+            else if (api.setMessageRead) api.setMessageRead(threadID,()=>{});
+            else if (api.markSeen) api.markSeen(threadID,()=>{});
+          }
+        } catch(e){}
+      }
+    } catch (errCmd) {
+      console.error('Command error:', errCmd.message);
+    }
+
+  });
+} // end if (api.listen)
+
+// 🔥 
+}); // close login callback
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Exiting...');
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Exiting...');
+  process.exit(0);
+});
