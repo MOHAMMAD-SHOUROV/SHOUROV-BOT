@@ -1,5 +1,5 @@
 module.exports.config = {
-  name: "slash",
+  name: "ig",
   version: "1.0.2",
   permission: 0,
   credits: "shourov",
