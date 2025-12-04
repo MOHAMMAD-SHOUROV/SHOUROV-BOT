@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'spy', aliases: ['observe'], role: 0, description: 'Spy mode' }, run: async ({ api, event }) => { api.sendMessage('🕵️ Spy Mode\n\n👀 Observing...', event.threadID); } };
