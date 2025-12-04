@@ -115,4 +115,4 @@ module.exports.run = async function({ api, event, args }) {
   } finally {
     try { api.sendTypingIndicator(threadID, false); } catch (e) {}
   }
-};
+}; 
