@@ -5,14 +5,14 @@ const path = require("path");
 const request = require("request");
 
 module.exports.config = {
-  name: "caption",
+  name: "ig",
   version: "1.0.1",
   permission: 0,
   credits: "shourov (fixed)",
   description: "Send random caption + image when user sends '/' or uses the command",
   prefix: true,
   category: "user",
-  usages: "/  OR  /caption",
+  usages: "/  ",
   cooldowns: 5
 };
 
@@ -52,7 +52,7 @@ async function sendCaption(api, threadID, messageID) {
   try {
     const caption = CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)];
     const imageUrl = IMAGES[Math.floor(Math.random() * IMAGES.length)];
-    const ownerLine = "\n\n⚜️ 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑: 𝐊𝐈𝐍𝐆 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 ⚜️";
+    const ownerLine = "\n\n⚜️ 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑: 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 ⚜️";
     const messageBody = `${caption}${ownerLine}`;
 
     const cacheDir = path.join(__dirname, "cache");
