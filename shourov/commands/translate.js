@@ -1,45 +1,64 @@
 module.exports.config = {
   name: "translate",
-  version: "1.0.1",
+  version: "1.1.0",
   permission: 0,
-  credits: "ryuko",
-  description: "text translation",
+  credits: "shourov ",
+  description: "Translate text to any language.",
   prefix: false,
   category: "without prefix",
-  usages: `translate fr hello, how are you?`,
-  cooldowns: 5,
+  usages: "translate <lang> <text>",
+  cooldowns: 3,
   dependencies: {
-    "request": ""
+    "axios": ""
   }
 };
 
 module.exports.run = async ({ api, event, args }) => {
-  const request = global.nodemodule["request"];
-  const targetLanguage = args[0];
-  const content = args.slice(1).join(" ");
+  const axios = global.nodemodule["axios"];
 
-  if (content.length === 0 && event.type !== "message_reply")
-    return global.utils.throwError(this.config.name, event.threadID, event.messageID);
+  // Must have a target language
+  if (!args[0])
+    return api.sendMessage("❌ Please specify a target language.\nExample: translate en ami valo achi", event.threadID, event.messageID);
 
-  let translateThis, lang;
+  const targetLang = args[0].trim().toLowerCase();
+  let textToTranslate = "";
 
+  // If message is replied → translate the replied text
   if (event.type === "message_reply") {
-    translateThis = event.messageReply.body;
-    lang = targetLanguage || global.config.language;
+    textToTranslate = event.messageReply.body;
   } else {
-    translateThis = content;
-    lang = targetLanguage || global.config.language;
+    textToTranslate = args.slice(1).join(" ");
   }
 
-  return request(encodeURI(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang}&dt=t&q=${translateThis}`), (err, response, body) => {
-    if (err)
-      return api.sendMessage("an error has occurred.", event.threadID, event.messageID);
+  if (!textToTranslate)
+    return api.sendMessage("❌ No text provided to translate.", event.threadID, event.messageID);
 
-    const retrieve = JSON.parse(body);
-    let text = '';
-    retrieve[0].forEach(item => (item[0]) ? text += item[0] : '');
-    const fromLang = (retrieve[2] === retrieve[8][0][0]) ? retrieve[2] : retrieve[8][0][0];
+  try {
+    // Request Google translate
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+    const res = await axios.get(url);
 
-    api.sendMessage(`translation : ${text}\ntranslated from ${fromLang} to ${lang}`, event.threadID, event.messageID);
-  });
+    const data = res.data;
+
+    // Extract translated text
+    let translated = "";
+    data[0].forEach(item => {
+      if (item[0]) translated += item[0];
+    });
+
+    const detectedLang = data[2] || "auto";
+
+    return api.sendMessage(
+      `🌍 *TRANSLATION*\n` +
+      `🔤 From: ${detectedLang}\n` +
+      `➡️ To: ${targetLang}\n\n` +
+      `📌 *${translated}*`,
+      event.threadID,
+      event.messageID
+    );
+
+  } catch (err) {
+    console.error(err);
+    return api.sendMessage("❌ Translation failed. Try again later.", event.threadID, event.messageID);
+  }
 };
