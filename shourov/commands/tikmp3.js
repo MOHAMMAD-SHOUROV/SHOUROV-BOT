@@ -2,7 +2,7 @@ module.exports.config = {
   name: "tikmp3",
   version: "2.0.1",
   permission: 0,
-  credits: " shourov",
+  credits: "shourov",
   description: "Download audio from TikTok link",
   prefix: true,
   category: "admin",
