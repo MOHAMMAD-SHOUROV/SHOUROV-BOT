@@ -1,109 +1,104 @@
-const fs = require("fs-extra");
 const axios = require("axios");
-const request = require("request");
-const https = require("https");
+const fs = require("fs-extra");
+const path = require("path");
+const https = require("https"); // ADD this line
 
 module.exports.config = {
-  name: "auto",
-  version: "1.0.1",
-  permission: 0,
-  credits: "Mahabub",
-  description: "Auto video downloader",
-  prefix: false,
-  category: "User",
-  cooldowns: 5
+	  name: "auto",
+	  version: "0.0.9",
+	  permission: 0,
+	  credits: "MR᭄﹅ MAHABUB﹅ メꪜ",
+	  description: "Auto video downloader",
+	  prefix: true,
+	  premium: false,
+	  category: "link",
+	  usages: "",
+	  cooldowns: 5
 };
 
-// ================================
-// 🔥 Auto event trigger (NO prefix)
-// ================================
-module.exports.handleEvent = async function ({ api, event }) {
-  try {
-    const body = event.body?.trim() || "";
-    if (!body.startsWith("https://")) return;
+module.exports.handleEvent = async ({ api, event }) => {
+	  const content = event.body ? event.body.trim() : '';
+	  const body = content.toLowerCase();
 
-    // detect only http links
-    const videoLink = body;
-    await module.exports.run({ api, event, args: [videoLink] }); // <-- important
-  } catch (err) {
-    console.error("auto.handleEvent ERROR:", err);
-  }
+	  if (body.startsWith("auto")) return;
+	  if (!body.startsWith("https://")) return;
+
+	  try {
+		      api.setMessageReaction("♻", event.messageID, () => {}, true);
+
+		      const jsonRes = await axios.get("https://raw.githubusercontent.com/MR-MAHABUB-004/MAHABUB-BOT-STORAGE/refs/heads/main/APIURL.json");
+		      const baseAPI = jsonRes.data.Alldl;
+
+		      const response = await axios.get(`${baseAPI}${encodeURIComponent(content)}`);
+		      const { hd, sd, title } = response.data;
+
+		      if (!hd && !sd) {
+			            api.setMessageReaction("✖", event.messageID, () => {}, true);
+			            console.log("✖ No valid video links found.");
+			            return;
+			          }
+
+		      const isFacebook = (hd || sd || "").includes("fbcdn.net");
+		      const headers = isFacebook
+		        ? {
+				          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+				          "Accept": "*/*",
+				          "Referer": "https://www.facebook.com/"
+				        }
+		        : {
+				          "User-Agent": "Mozilla/5.0"
+				        };
+
+		      const httpsAgent = isFacebook
+		        ? new https.Agent({ family: 4 })  // Force IPv4 for Facebook links
+		        : undefined;
+
+		      await fs.ensureDir(path.join(__dirname, "cache"));
+		      let videoBuffer, qualityUsed = "HD";
+
+		      try {
+			            videoBuffer = (await axios.get(hd, {
+					            responseType: "arraybuffer",
+					            timeout: 30000,
+					            headers,
+					            httpsAgent
+					          })).data;
+			          } catch (hdError) {
+					        console.warn("⚠ HD failed:", hdError.message);
+					        qualityUsed = "SD";
+					        try {
+							        videoBuffer = (await axios.get(sd, {
+									          responseType: "arraybuffer",
+									          timeout: 30000,
+									          headers,
+									          httpsAgent
+									        })).data;
+							      } catch (sdError) {
+								              console.error("✖ SD failed:", sdError.message);
+								              api.setMessageReaction("✖", event.messageID, () => {}, true);
+								              return;
+								            }
+					      }
+
+		      const filePath = path.join(__dirname, "cache", "auto.mp4");
+		      fs.writeFileSync(filePath, Buffer.from(videoBuffer, "binary"));
+
+		      api.setMessageReaction("✔", event.messageID, () => {}, true);
+
+		      api.sendMessage({
+			            body: `《TITLE》: ${title || "No Title Found"}`,
+			            attachment: fs.createReadStream(filePath)
+			          }, event.threadID, () => {
+					        fs.unlink(filePath, () => {});
+					      }, event.messageID);
+
+		    } catch (err) {
+			        api.setMessageReaction("✖", event.messageID, () => {}, true);
+			        console.error(err.message || err);
+			        console.error(err.stack);
+			      }
 };
 
-// ================================
-// 🧠 Actual command logic (RUN MUST EXIST)
-// ================================
-module.exports.run = async function ({ api, event, args }) {
-  try {
-    const videoLink = args[0];
-    const threadID = event.threadID;
-    const messageID = event.messageID;
-
-    if (!videoLink || !videoLink.startsWith("https://")) {
-      return api.sendMessage("❌ Please send a valid video URL.", threadID, messageID);
-    }
-
-    api.setMessageReaction("🔍", messageID, () => {}, true);
-
-    const isFacebook = videoLink.includes("facebook.com");
-
-    const headers = isFacebook
-      ? {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          "Accept": "*/*",
-          "Referer": "https://www.facebook.com/"
-        }
-      : { "User-Agent": "Mozilla/5.0" };
-
-    const httpsAgent = isFacebook ? new https.Agent({ family: 4 }) : undefined;
-
-    // 🔗 Fetch API base URL
-    const apiJSON = await axios.get(
-      "https://raw.githubusercontent.com/MR-MAHABUB-004/MAHABUB-BOT-STORAGE/main/APIURL.json"
-    );
-
-    const apiBase = apiJSON.data.Alldl;
-
-    // 📡 Call downloader API
-    const res = await axios.get(
-      `${apiBase}${encodeURIComponent(videoLink)}`,
-      { headers, httpsAgent }
-    );
-
-    const { platform, title, hd, sd } = res.data;
-    const downloadURL = hd || sd;
-
-    if (!downloadURL) {
-      api.setMessageReaction("⚠️", messageID, () => {}, true);
-      return api.sendMessage("❌ Could not fetch video download URL.", threadID, messageID);
-    }
-
-    const filePath = __dirname + "/cache/auto.mp4";
-
-    // 📥 Download video
-    request({ url: downloadURL, headers })
-      .pipe(fs.createWriteStream(filePath))
-      .on("close", async () => {
-        api.setMessageReaction("✔️", messageID, () => {}, true);
-
-        await api.sendMessage(
-          {
-            body: `✅ Downloaded!\n\n📌 Platform: ${platform || "Unknown"}\n🎬 Title: ${title || "No Title"}\n📥 Quality: ${hd ? "HD" : "SD"}`,
-            attachment: fs.createReadStream(filePath)
-          },
-          threadID,
-          () => fs.unlinkSync(filePath)
-        );
-      })
-      .on("error", err => {
-        console.error("Download Error:", err);
-        api.setMessageReaction("❌", messageID, () => {}, true);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        api.sendMessage("❌ Error downloading video.", threadID, messageID);
-      });
-
-  } catch (err) {
-    console.error("auto.run ERROR:", err.response?.data || err.message || err);
-    api.setMessageReaction("❌", event.messageID, () => {}, true);
-  }
+module.exports.run = async ({ api, event }) => {
+	  api.sendMessage("", event.threadID, event.messageID);
 };
