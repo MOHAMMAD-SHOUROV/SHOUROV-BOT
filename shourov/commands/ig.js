@@ -5,7 +5,7 @@ const path = require("path");
 const request = require("request");
 
 module.exports.config = {
-  name: "ig",
+  name: "/",
   version: "1.0.1",
   permission: 0,
   credits: "shourov (fixed)",
