@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'slap', aliases: ['hit'], role: 0, description: 'Slap someone' }, run: async ({ api, event }) => { const mentions = Object.keys(event.mentions); const name = mentions.length > 0 ? event.mentions[mentions[0]].replace('@', '') : 'air'; api.sendMessage(`👋 *Slaps ${name}*\n\n💥 SMACK!`, event.threadID); } };

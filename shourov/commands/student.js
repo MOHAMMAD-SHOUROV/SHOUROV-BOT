@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'student', aliases: ['edu', 'school'], role: 0, description: 'Student mode' }, run: async ({ api, event }) => { api.sendMessage('📚 Student Mode\n\n🎓 Education mode active\n\n✏️ Study time!', event.threadID); } };

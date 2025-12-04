@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'status', aliases: ['info', 'stat'], role: 0, description: 'Bot status' }, run: async ({ api, event }) => { api.sendMessage('📊 Status\n\n✅ Bot Online\n⚡ All systems operational', event.threadID); } };

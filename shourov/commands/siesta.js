@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'siesta', aliases: ['nap', 'rest'], role: 0, description: 'Take a nap' }, run: async ({ api, event }) => { api.sendMessage('😴 Siesta Time!\n\n💤 Sweet dreams', event.threadID); } };

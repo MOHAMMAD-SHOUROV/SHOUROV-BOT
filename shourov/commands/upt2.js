@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'upt2', aliases: ['uptime-v2'], role: 0, description: 'Uptime v2' }, run: async ({ api, event }) => { api.sendMessage('⏱️ Bot Status: Excellent', event.threadID); } };

@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'women', aliases: ['ladies'], role: 0, description: 'Women empowerment' }, run: async ({ api, event }) => { api.sendMessage('👩 Women Power\n\n💪 Strong & Independent\n\n👑 Respect all women!', event.threadID); } };

@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'virgin', aliases: [], role: 2, description: 'Restricted' }, run: async ({ api, event }) => { api.sendMessage('⚠️ Restricted content', event.threadID); } };

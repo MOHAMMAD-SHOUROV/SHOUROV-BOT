@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'thread', aliases: ['chat-room'], role: 0, description: 'Thread information' }, run: async ({ api, event }) => { api.sendMessage('💬 Thread Info\n\n📊 Chat statistics', event.threadID); } };

@@ -1,1 +1,0 @@
-module.exports = { config: { name: 'world', aliases: ['global'], role: 0, description: 'World information' }, run: async ({ api, event }) => { api.sendMessage('🌍 World\n\n🌎 Global community\n\n🤝 Unity!', event.threadID); } };
