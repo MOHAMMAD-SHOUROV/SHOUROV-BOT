@@ -1,8 +1,9 @@
+// shourov/events/join.js (patched - defensive)
 module.exports.config = {
   name: "join",
   eventType: ['log:subscribe'],
-  version: "1.0.0",
-  credits: "// FIXED BY YAN shourov",
+  version: "1.0.1",
+  credits: "FIXED BY YAN & shourov",
   description: "GROUP UPDATE NOTIFICATION"
 };
 
@@ -11,133 +12,131 @@ const { loadImage, createCanvas, registerFont } = require("canvas");
 const request = require('request');
 const axios = require('axios');
 const jimp = require("jimp");
-const moment = require("moment-timezone");
+const fontlink = 'https://drive.google.com/u/0/uc?id=10XFWm9F6u2RKnuVIfwoEdlav2HhkAUIB&export=download';
 
 module.exports.circle = async (image) => {
   image = await jimp.read(image);
   image.circle();
   return await image.getBufferAsync("image/png");
-};
+}
 
 module.exports.run = async function({ api, event, Users }) {
   try {
+    // safety checks
+    if (!event || !event.logMessageData) return; // nothing to do
+    const added = event.logMessageData.addedParticipants;
+    if (!Array.isArray(added) || added.length === 0) return; // no new participants
+
+    // ensure api.getCurrentUserID exists
+    const botId = (typeof api.getCurrentUserID === 'function') ? api.getCurrentUserID() : null;
+
+    // if bot was just added -> special welcome for bot only
+    if (added.some(p => String(p.userFbId) === String(botId))) {
+      try {
+        const threadID = event.threadID;
+        await api.changeNickname(`[ ${global.config.PREFIX} ] • ➠${(!global.config.BOTNAME) ? "bot" : global.config.BOTNAME}`, threadID, botId);
+        const gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
+        const gifPath = __dirname + '/shourov/join/join.gif';
+        const resp = await axios.get(gifUrl, { responseType: 'arraybuffer' });
+        fs.writeFileSync(gifPath, resp.data);
+        await api.sendMessage("চলে এসেছি আমি পিচ্চি সৌরভ তোমাদের মাঝে🤭!", threadID);
+        await api.sendMessage({ body: `${global.config.BOTNAME} CONNECTED\nUse ${global.config.PREFIX}help`, attachment: fs.createReadStream(gifPath) }, threadID);
+        return;
+      } catch (e) {
+        console.warn("bot-joined flow error:", e && e.message);
+      }
+    }
+
+    // Normal user(s) joined -> build image(s) & message
     const threadID = event.threadID;
-    const time = moment.tz("Asia/Dhaka").format("HH:mm:ss - DD/MM/YYYY");
-    const thu = moment.tz("Asia/Dhaka").format("dddd");
+    const threadInfo = await api.getThreadInfo(threadID).catch(()=>({ threadName: "" }));
+    const threadName = threadInfo.threadName || "Group";
 
-    let threadInfo = await api.getThreadInfo(threadID);
-    let threadName = threadInfo.threadName;
-
-    // bot join হলে message
-    if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-
-      let gifUrl = 'https://i.postimg.cc/Kj8stktZ/flamingtext-com-2578872570.gif';
-      let gifPath = __dirname + '/shourov/join/join.gif';
-
-      let gifData = (await axios.get(gifUrl, { responseType: "arraybuffer" })).data;
-      fs.writeFileSync(gifPath, gifData);
-
-      api.changeNickname(`[ ${global.config.PREFIX} ] • ${global.config.BOTNAME}`, threadID, api.getCurrentUserID());
-
-      return api.sendMessage(
-        {
-          body: `BOT CONNECTED SUCCESSFULLY! 🤖✨
-
-Assalamualaikum ☘️  
-Use: ${global.config.PREFIX}help  
-Command Example:
-${global.config.PREFIX}admin  
-${global.config.PREFIX}islam  
-${global.config.PREFIX}fbvideo  
-
-Developer: KING SHOUROV  
-Facebook: https://www.facebook.com/www.xsxx.com365
-WhatsApp: wa.me/+8801709281334`,
-          attachment: fs.createReadStream(gifPath)
-        },
-        threadID
-      );
+    // prepare fonts dir if needed
+    try {
+      const fontDir = __dirname + `/shourov/font`;
+      if (!fs.existsSync(fontDir)) {
+        fs.mkdirSync(fontDir, { recursive: true });
+      }
+      if (!fs.existsSync(__dirname + `/shourov/font/Semi.ttf`)) {
+        let getfont = (await axios.get(fontlink, { responseType: "arraybuffer" })).data;
+        fs.writeFileSync(__dirname + `/shourov/font/Semi.ttf`, Buffer.from(getfont, "utf-8"));
+      }
+    } catch (e) {
+      // non-fatal
+      console.warn("font fetch error:", e && e.message);
     }
 
-    // New member join হলে image তৈরি
-    let attachments = [];
-    let names = [];
+    // create images for each added participant
+    const abx = [];
+    const mentions = [];
+    for (let o = 0; o < added.length; o++) {
+      try {
+        const user = added[o];
+        const userId = user.userFbId;
+        const userName = user.fullName || (await Users.getNameUser(userId).catch(()=>("Unknown")));
+        mentions.push({ tag: userName, id: userId });
 
-    for (let member of event.logMessageData.addedParticipants) {
-      let userID = member.userFbId;
-      let userName = member.fullName;
-      names.push(userName);
+        const pathAva = __dirname + `/shourov/join/avt_${o}.png`;
+        const pathImg = __dirname + `/shourov/join/${o}.png`;
 
-      let avatarBuffer = (
-        await axios.get(
-          `https://graph.facebook.com/${userID}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
-          { responseType: "arraybuffer" }
-        )
-      ).data;
+        // fetch avatar safely
+        const avtResp = await axios.get(`https://graph.facebook.com/${userId}/picture?height=720&width=720`, { responseType: 'arraybuffer' }).catch(()=>null);
+        if (avtResp && avtResp.data) fs.writeFileSync(pathAva, Buffer.from(avtResp.data));
 
-      let backgrounds = [
-        'https://i.imgur.com/WKUqCkQ.jpeg',
-        'https://i.imgur.com/ccVuwrA.jpeg',
-        'https://i.imgur.com/ZPGBaPD.jpeg',
-        'https://i.imgur.com/las7yGW.jpeg',
-        'https://i.imgur.com/bxDnRQC.jpeg'
-      ];
+        // pick random background
+        const backgrounds = [
+          'https://i.imgur.com/WKUqCkQ.jpeg',
+          'https://i.imgur.com/ccVuwrA.jpeg',
+          'https://i.imgur.com/ZPGBaPD.jpeg'
+        ];
+        const bgUrl = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+        const bgResp = await axios.get(bgUrl, { responseType: 'arraybuffer' }).catch(()=>null);
+        if (bgResp && bgResp.data) fs.writeFileSync(pathImg, Buffer.from(bgResp.data));
 
-      let bgBuffer = (
-        await axios.get(backgrounds[Math.floor(Math.random() * backgrounds.length)], {
-          responseType: "arraybuffer"
-        })
-      ).data;
+        // compose canvas
+        const avatarBuffer = await this.circle(pathAva);
+        const baseImage = await loadImage(pathImg);
+        const baseAva = await loadImage(avatarBuffer);
+        registerFont(__dirname + `/shourov/font/Semi.ttf`, { family: "Semi" });
 
-      let circleAvatar = await this.circle(avatarBuffer);
+        const canvas = createCanvas(1902, 1082);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(baseAva, canvas.width/2 - 188, canvas.height/2 - 375, 375, 355);
+        ctx.fillStyle = "#FFF";
+        ctx.textAlign = "center";
+        ctx.font = `55px Semi`;
+        ctx.fillText(`${userName}`, canvas.width/2, canvas.height/2 + 140);
+        ctx.font = `36px Semi`;
+        ctx.fillText(`Welcome to ${threadName}`, canvas.width/2, canvas.height/2 + 200);
 
-      let canvas = createCanvas(1900, 1080);
-      let ctx = canvas.getContext("2d");
-
-      let bgImage = await loadImage(bgBuffer);
-      let avImage = await loadImage(circleAvatar);
-
-      ctx.drawImage(bgImage, 0, 0, 1900, 1080);
-
-      registerFont(__dirname + `/shourov/font/Semi.ttf`, { family: "Semi" });
-
-      ctx.drawImage(avImage, 760, 120, 380, 380);
-
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-
-      ctx.font = "120px Semi";
-      ctx.fillText(userName, 950, 600);
-
-      ctx.font = "60px Semi";
-      ctx.fillText(`Welcome to ${threadName}`, 950, 700);
-
-      let imagePath = __dirname + `/shourov/join/${userID}.png`;
-      fs.writeFileSync(imagePath, canvas.toBuffer());
-      attachments.push(fs.createReadStream(imagePath));
+        const buffer = canvas.toBuffer();
+        fs.writeFileSync(pathImg, buffer);
+        abx.push(fs.createReadStream(pathImg));
+      } catch (e) {
+        console.warn("join: per-user image build failed:", e && e.message);
+      }
     }
 
-    let msg = `╭•┄┅══❁🌺❁══┅┄•╮
-      আসসালামু আলাইকুম 🖤
-╰•┄┅══❁🌺❁══┅┄•╯
+    // compose message template (allow customJoin in thread data)
+    let threadData = {};
+    try { threadData = global.data.threadData.get(parseInt(threadID)) || {}; } catch(e){ threadData = {}; }
+    let msg = threadData.customJoin || `╭•┄┅═══❁🌺❁═══┅┄•╮\n   আসসালামু আলাইকুম-!!🖤\n╰•┄┅═══❁🌺❁═══┅┄•╯\n\nWelcome {name} to ${threadName}\n\n{time}`;
+    msg = msg.replace(/\{name\}/g, added.map(x=>x.fullName || "").join(", ")).replace(/\{time\}/g, new Date().toLocaleString("en-GB",{timeZone:"Asia/Dhaka"}));
 
-✨ নতুন সদস্য যোগ দিয়েছেন!
-👤 সদস্য: ${names.join(", ")}
+    // send
+    await api.sendMessage({ body: msg, attachment: abx, mentions }, threadID);
 
-📌 সময়: ${time}
-📌 দিন: ${thu}
-
-🌺 স্বাগতম আমাদের গ্রুপে 🌺`;
-
-    return api.sendMessage(
-      {
-        body: msg,
-        attachment: attachments
-      },
-      threadID
-    );
+    // cleanup files (best-effort)
+    try {
+      for (let i = 0; i < added.length; i++) {
+        const p = __dirname + `/shourov/join/${i}.png`;
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      }
+    } catch (e) { /* ignore */ }
 
   } catch (err) {
-    console.log("JOIN ERROR:", err);
+    console.error("join.js error:", err && (err.stack || err));
   }
 };
