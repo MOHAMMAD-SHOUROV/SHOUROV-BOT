@@ -1,3 +1,4 @@
+// commands/bot.js
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -5,284 +6,257 @@ const path = require('path');
 module.exports = {
   config: {
     name: "bot",
-    version: "1.0.1",
+    version: "1.0.2",
     aliases: ["mim"],
     permission: 0,
     credits: "shourov",
     description: "talk with bot",
-    prefix: 3,
+    prefix: true, // use boolean; loader will use global.config.PREFIX or default
     category: "talk",
     usages: "hi",
     cooldowns: 5,
   },
 
-  /**
-   * handleReply will be called when someone replies to a message that this command sent
-   * @param {object} param0 - { api, event }
-   */
+  // handle replies to messages sent by this command
   handleReply: async function ({ api, event }) {
     try {
-      // load api endpoints
-      const apiJson = await axios.get('https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json', { timeout: 8000 });
-      const apiUrl = apiJson.data?.sim;
-      const apiUrl2 = apiJson.data?.api2;
+      const apiJson = await safeLoadApiJson();
+      const apiUrl = apiJson?.sim;
+      const apiUrl2 = apiJson?.api2;
 
-      if (!apiUrl) return api.sendMessage("API endpoint unavailable.", event.threadID);
+      if (!apiUrl) return safeSend(api, event.threadID, "Sim API unavailable.");
 
-      // ask sim with the reply body
       const resp = await axios.get(`${apiUrl}/sim?type=ask&ask=${encodeURIComponent(event.body)}`, { timeout: 10000 });
-      const result = resp.data?.data?.msg || resp.data?.msg || "No response from sim API";
+      const result = resp.data?.data?.msg || resp.data?.msg || "No response";
 
-      // load style for thread
-      const textStyles = loadTextStyles();
-      const userStyle = textStyles[event.threadID]?.style || 'normal';
+      const styles = loadTextStyles();
+      const userStyle = styles[event.threadID]?.style || 'normal';
 
-      // stylize text via api2
       let finalText = result;
       if (apiUrl2) {
         try {
-          const fontResp = await axios.get(`${apiUrl2}/bold?text=${encodeURIComponent(result)}&type=${encodeURIComponent(userStyle)}`, { timeout: 8000 });
-          finalText = fontResp.data?.data?.bolded || result;
+          const f = await axios.get(`${apiUrl2}/bold?text=${encodeURIComponent(result)}&type=${encodeURIComponent(userStyle)}`, { timeout: 8000 });
+          finalText = f.data?.data?.bolded || result;
         } catch (e) {
-          // fallback to plain result if styling fails
           finalText = result;
         }
       }
 
-      api.sendMessage(finalText, event.threadID, (error, info) => {
-        if (error) {
-          console.error('Error sending handleReply response:', error);
-          return api.sendMessage('An error occurred while sending reply. Try again later.', event.threadID);
-        }
-
-        // ensure global.client.handleReply exists
-        global.client = global.client || {};
-        global.client.handleReply = global.client.handleReply || [];
-
+      safeSend(api, event.threadID, finalText, (err, info) => {
+        if (!global.client) global.client = {};
+        if (!global.client.handleReply) global.client.handleReply = [];
         global.client.handleReply.push({
           type: 'reply',
           name: this.config.name,
-          messageID: info.messageID,
+          messageID: info?.messageID || null,
           author: event.senderID,
           head: event.body
         });
       }, event.messageID);
-    } catch (error) {
-      console.error('Error in handleReply:', error && (error.stack || error));
-      try { api.sendMessage('An error occurred while processing your reply.', event.threadID); } catch (_) {}
+    } catch (err) {
+      console.error("handleReply error:", err && (err.stack || err));
+      try { safeSend(api, event.threadID, "Error processing reply."); } catch (_) {}
     }
   },
 
-  /**
-   * start will be called when user invokes /bot (or prefix+bot) command
-   * signature depends on your bot loader; here I accept { shourov, event, args, Users }
-   */
-  start: async function ({ shourov, event, args, Users }) {
-    try {
-      const msg = (args || []).join(" ").trim();
+  // support both "start" (some loaders) and "run" (others)
+  start: async function (context) {
+    return commandHandler(context);
+  },
 
-      // load api.json once
-      let apiJson = null;
-      try {
-        apiJson = (await axios.get('https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json', { timeout: 8000 })).data;
-      } catch (e) {
-        console.warn("Could not load remote api.json:", e && e.message ? e.message : e);
-      }
-      const apiUrl = apiJson?.sim || null;
+  run: async function (context) {
+    return commandHandler(context);
+  }
+};
 
-      // if no message -> send greeting and register handleReply
-      if (!msg) {
-        const greetings = [
-          "আহ শুনা আমার তোমার অলিতে গলিতে উম্মাহ😇😘",
-          "কি গো সোনা আমাকে ডাকছ কেনো",
-          "বার বার আমাকে ডাকস কেন😡",
-          "আহ শোনা আমার আমাকে এতো ডাকে কেনো আসো বুকে আশো🥱",
-          "হুম জান তোমার অইখানে উম্মমাহ😷😘",
-          "আসসালামু আলাইকুম বলেন আপনার জন্য কি করতে পারি",
-          "আমাকে এতো না ডেকে বস সৌরভ'কে একটা গফ দে 🙄",
-          "jang hanga korba",
-          "jang bal falaba🙂"
-        ];
-        const name = (Users && typeof Users.getNameUser === 'function') ? await Users.getNameUser(event.senderID) : event.senderID;
-        const rand = greetings[Math.floor(Math.random() * greetings.length)];
+// main handler used by both start/run
+async function commandHandler({ shourov, nayan, api, event, args = [], Users }) {
+  // detect bot api object to reply: prefer shourov -> nayan -> api
+  const bot = shourov || nayan || api;
+  if (!bot) {
+    console.error("No bot API object provided to commandHandler.");
+    return;
+  }
 
-        return shourov.reply({
-          body: `${name}, ${rand}`,
-          mentions: [{ tag: name, id: event.senderID }]
-        }, event.threadID, (error, info) => {
-          if (error) {
-            console.error("Greeting reply error:", error);
-            return shourov.reply('An error occurred while processing your request. Please try again later.', event.threadID, event.messageID);
-          }
+  const threadID = event.threadID;
+  const messageID = event.messageID;
+  const msg = (args || []).join(" ").trim();
 
-          global.client = global.client || {};
-          global.client.handleReply = global.client.handleReply || [];
-          global.client.handleReply.push({
-            type: 'reply',
-            name: this.config.name,
-            messageID: info.messageID,
-            author: event.senderID,
-            head: msg
-          });
-        }, event.messageID);
-      }
+  try {
+    const apiJson = await safeLoadApiJson();
+    const apiUrl = apiJson?.sim || null;
+    const api2 = apiJson?.api2 || null;
 
-      // set text style for this thread
-      if (msg.startsWith("textType")) {
-        const selectedStyle = msg.split(" ")[1];
-        const options = ['serif', 'sans', 'italic', 'italic-sans', 'medieval', 'normal'];
-
-        if (options.includes(selectedStyle)) {
-          saveTextStyle(event.threadID, selectedStyle);
-          return shourov.reply({ body: `Text type set to "${selectedStyle}" successfully!` }, event.threadID, event.messageID);
-        } else {
-          return shourov.reply({ body: `Invalid text type! Please choose from: ${options.join(", ")}` }, event.threadID, event.messageID);
-        }
-      }
-
-      // delete pair
-      if (msg.startsWith("delete")) {
-        if (!apiUrl) return shourov.reply('Sim API not available right now.', event.threadID, event.messageID);
-        const deleteParams = msg.replace("delete", "").trim().split("&");
-        const question = (deleteParams[0] || "").replace("ask=", "").trim();
-        const answer = (deleteParams[1] || "").replace("ans=", "").trim();
-
-        const d = await axios.get(`${apiUrl}/sim?type=delete&ask=${encodeURIComponent(question)}&ans=${encodeURIComponent(answer)}&uid=${event.senderID}`, { timeout: 10000 });
-        const replyMessage = d.data?.msg || d.data?.data?.msg || "No response";
-        return shourov.reply({ body: replyMessage }, event.threadID, event.messageID);
-      }
-
-      // edit question
-      if (msg.startsWith("edit")) {
-        if (!apiUrl) return shourov.reply('Sim API not available right now.', event.threadID, event.messageID);
-        const editParams = msg.replace("edit", "").trim().split("&");
-        const oldQuestion = (editParams[0] || "").replace("old=", "").trim();
-        const newQuestion = (editParams[1] || "").replace("new=", "").trim();
-
-        const d = await axios.get(`${apiUrl}/sim?type=edit&old=${encodeURIComponent(oldQuestion)}&new=${encodeURIComponent(newQuestion)}&uid=${event.senderID}`, { timeout: 10000 });
-        const replyMessage = d.data?.msg || d.data?.data?.msg || "No response received.";
-        return shourov.reply({ body: replyMessage }, event.threadID, event.messageID);
-      }
-
-      // info stats
-      if (msg.startsWith("info")) {
-        if (!apiUrl) return shourov.reply('Sim API not available right now.', event.threadID, event.messageID);
-        const response = await axios.get(`${apiUrl}/sim?type=info`, { timeout: 10000 });
-        const totalAsk = response.data?.data?.totalKeys || 0;
-        const totalAns = response.data?.data?.totalResponses || 0;
-        return shourov.reply({ body: `Total Ask: ${totalAsk}\nTotal Answer: ${totalAns}` }, event.threadID, event.messageID);
-      }
-
-      // teach new pair
-      if (msg.startsWith("teach")) {
-        if (!apiUrl) return shourov.reply('Sim API not available right now.', event.threadID, event.messageID);
-        const teachParams = msg.replace("teach", "").trim().split("&");
-        const question = (teachParams[0] || "").replace("ask=", "").trim();
-        const answer = (teachParams[1] || "").replace("ans=", "").trim();
-
-        const response = await axios.get(`${apiUrl}/sim?type=teach&ask=${encodeURIComponent(question)}&ans=${encodeURIComponent(answer)}`, { timeout: 10000 });
-        const replyMessage = response.data?.msg || "";
-        const ask = response.data?.data?.ask || question;
-        const ans = response.data?.data?.ans || answer;
-
-        if (replyMessage && replyMessage.toString().toLowerCase().includes("already")) {
-          return shourov.reply(`📝Your Data Already Added To Database\n1️⃣ASK: ${ask}\n2️⃣ANS: ${ans}`, event.threadID, event.messageID);
-        }
-
-        return shourov.reply({ body: `📝Your Data Added To Database Successfully\n1️⃣ASK: ${ask}\n2️⃣ANS: ${ans}` }, event.threadID, event.messageID);
-      }
-
-      // askinfo
-      if (msg.startsWith("askinfo")) {
-        if (!apiUrl) return shourov.reply('Sim API not available right now.', event.threadID, event.messageID);
-        const question = msg.replace("askinfo", "").trim();
-
-        if (!question) {
-          return shourov.reply('Please provide a question to get information about.', event.threadID, event.messageID);
-        }
-
-        const response = await axios.get(`${apiUrl}/sim?type=keyinfo&ask=${encodeURIComponent(question)}`, { timeout: 10000 });
-        const replyData = response.data?.data || {};
-        const answers = replyData.answers || [];
-
-        if (!answers.length) {
-          return shourov.reply(`No information available for the question: "${question}"`, event.threadID, event.messageID);
-        }
-
-        const replyMessage = `Info for "${question}":\n\n` +
-          answers.map((answer, index) => `📌 ${index + 1}. ${answer}`).join("\n") +
-          `\n\nTotal answers: ${answers.length}`;
-
-        return shourov.reply({ body: replyMessage }, event.threadID, event.messageID);
-      }
-
-      // help
-      if (msg.startsWith("help")) {
-        const cmd = this.config.name;
-        const prefix = global.config?.PREFIX || "/";
-        const helpMessage = `
-🌟 Available Commands:
-
-1. ${prefix}${cmd} askinfo [question] - Get information about a specific question.
-2. ${prefix}${cmd} teach ask=[question]&ans=[answer] - Teach the bot a new Q&A pair.
-3. ${prefix}${cmd} delete ask=[question]&ans=[answer] - Delete a Q&A pair. (Admin only)
-4. ${prefix}${cmd} edit old=[old_question]&new=[new_question] - Edit an existing question. (Admin only)
-5. ${prefix}${cmd} info - Get total number of questions & answers.
-6. ${prefix}${cmd} hi - Send a random greeting.
-7. ${prefix}${cmd} textType [type] - Set text type (serif, sans, italic, italic-sans, medieval, normal).
-        `;
-        return shourov.reply({ body: helpMessage }, event.threadID, event.messageID);
-      }
-
-      // default: ask the sim API and reply with styled text
-      // (fallback to plain reply if api missing)
-      if (!apiUrl) {
-        return shourov.reply('Sim API is currently unavailable. Try again later.', event.threadID, event.messageID);
-      }
-
-      const response = await axios.get(`${apiUrl}/sim?type=ask&ask=${encodeURIComponent(msg)}`, { timeout: 10000 });
-      const replyMessage = response.data?.data?.msg || response.data?.msg || "No response";
-
-      const textStyles = loadTextStyles();
-      const userStyle = textStyles[event.threadID]?.style || 'normal';
-
-      const api2 = apiJson?.api2 || null;
-      let styledText = replyMessage;
-      if (api2) {
-        try {
-          const font = await axios.get(`${api2}/bold?text=${encodeURIComponent(replyMessage)}&type=${encodeURIComponent(userStyle)}`, { timeout: 8000 });
-          styledText = font.data?.data?.bolded || replyMessage;
-        } catch (e) {
-          styledText = replyMessage;
-        }
-      }
-
-      shourov.reply({ body: styledText }, event.threadID, (error, info) => {
-        if (error) {
-          console.error('Error replying to user:', error);
-          return shourov.reply('An error occurred while processing your request. Please try again later.', event.threadID, event.messageID);
-        }
-
+    // no args => greet and register handleReply
+    if (!msg) {
+      const greetings = [
+        "আহ শুনা আমার তোমার অলিতে গলিতে উম্মাহ😇😘",
+        "কি গো সোনা আমাকে ডাকছ কেনো",
+        "বার বার আমাকে ডাকস কেন😡",
+        "আহ শোনা আমার আমাকে এতো ডাকে কেনো আসো বুকে আশো🥱",
+        "হুম জান তোমার অইখানে উম্মমাহ😷😘",
+        "আসসালামু আলাইকুম বলেন আপনার জন্য কি করতে পারি",
+        "আমাকে এতো না ডেকে বস সৌরভ'কে একটা গফ দে 🙄",
+        "jang hanga korba",
+        "jang bal falaba🙂"
+      ];
+      const name = (Users && typeof Users.getNameUser === 'function') ? await Users.getNameUser(event.senderID) : event.senderID;
+      const rand = greetings[Math.floor(Math.random() * greetings.length)];
+      return safeReply(bot, threadID, `${name}, ${rand}`, messageID, (err, info) => {
         global.client = global.client || {};
         global.client.handleReply = global.client.handleReply || [];
         global.client.handleReply.push({
           type: 'reply',
-          name: this.config.name,
-          messageID: info.messageID,
+          name: "bot",
+          messageID: info?.messageID || null,
           author: event.senderID,
-          head: msg,
+          head: msg
         });
-      }, event.messageID);
-
-    } catch (error) {
-      console.error('Error in start handler:', error && (error.stack || error));
-      try { return (shourov && typeof shourov.reply === "function") ? shourov.reply('An error has occurred, please try again later.', event.threadID, event.messageID) : null; } catch (_) {}
+      });
     }
+
+    // textType command
+    if (msg.startsWith("textType")) {
+      const selectedStyle = msg.split(" ")[1];
+      const options = ['serif', 'sans', 'italic', 'italic-sans', 'medieval', 'normal'];
+      if (options.includes(selectedStyle)) {
+        saveTextStyle(event.threadID, selectedStyle);
+        return safeReply(bot, threadID, `Text type set to "${selectedStyle}" successfully!`, messageID);
+      } else return safeReply(bot, threadID, `Invalid type. Choose: ${options.join(", ")}`, messageID);
+    }
+
+    // delete
+    if (msg.startsWith("delete")) {
+      if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+      const parts = msg.replace("delete", "").trim().split("&");
+      const q = (parts[0] || "").replace("ask=", "").trim();
+      const a = (parts[1] || "").replace("ans=", "").trim();
+      const d = await axios.get(`${apiUrl}/sim?type=delete&ask=${encodeURIComponent(q)}&ans=${encodeURIComponent(a)}&uid=${event.senderID}`, { timeout: 10000 });
+      const replyMessage = d.data?.msg || d.data?.data?.msg || "No response";
+      return safeReply(bot, threadID, replyMessage, messageID);
+    }
+
+    // edit
+    if (msg.startsWith("edit")) {
+      if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+      const params = msg.replace("edit", "").trim().split("&");
+      const oldQ = (params[0] || "").replace("old=", "").trim();
+      const newQ = (params[1] || "").replace("new=", "").trim();
+      const d = await axios.get(`${apiUrl}/sim?type=edit&old=${encodeURIComponent(oldQ)}&new=${encodeURIComponent(newQ)}&uid=${event.senderID}`, { timeout: 10000 });
+      const replyMessage = d.data?.msg || d.data?.data?.msg || "No response";
+      return safeReply(bot, threadID, replyMessage, messageID);
+    }
+
+    // info
+    if (msg.startsWith("info")) {
+      if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+      const r = await axios.get(`${apiUrl}/sim?type=info`, { timeout: 10000 });
+      const totalAsk = r.data?.data?.totalKeys || 0;
+      const totalAns = r.data?.data?.totalResponses || 0;
+      return safeReply(bot, threadID, `Total Ask: ${totalAsk}\nTotal Answer: ${totalAns}`, messageID);
+    }
+
+    // teach
+    if (msg.startsWith("teach")) {
+      if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+      const teachParams = msg.replace("teach", "").trim().split("&");
+      const q = (teachParams[0] || "").replace("ask=", "").trim();
+      const a = (teachParams[1] || "").replace("ans=", "").trim();
+      const resp = await axios.get(`${apiUrl}/sim?type=teach&ask=${encodeURIComponent(q)}&ans=${encodeURIComponent(a)}`, { timeout: 10000 });
+      const replyMessage = resp.data?.msg || "";
+      const ask = resp.data?.data?.ask || q;
+      const ans = resp.data?.data?.ans || a;
+      if (replyMessage && replyMessage.toString().toLowerCase().includes("already")) {
+        return safeReply(bot, threadID, `📝Your Data Already Added To Database\n1️⃣ASK: ${ask}\n2️⃣ANS: ${ans}`, messageID);
+      }
+      return safeReply(bot, threadID, `📝Your Data Added To Database Successfully\n1️⃣ASK: ${ask}\n2️⃣ANS: ${ans}`, messageID);
+    }
+
+    // askinfo
+    if (msg.startsWith("askinfo")) {
+      if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+      const question = msg.replace("askinfo", "").trim();
+      if (!question) return safeReply(bot, threadID, 'Provide a question after askinfo.', messageID);
+      const r = await axios.get(`${apiUrl}/sim?type=keyinfo&ask=${encodeURIComponent(question)}`, { timeout: 10000 });
+      const answers = r.data?.data?.answers || [];
+      if (!answers.length) return safeReply(bot, threadID, `No information for "${question}"`, messageID);
+      const replyMessage = `Info for "${question}":\n\n` + answers.map((x, i) => `📌 ${i+1}. ${x}`).join("\n") + `\n\nTotal answers: ${answers.length}`;
+      return safeReply(bot, threadID, replyMessage, messageID);
+    }
+
+    // help
+    if (msg.startsWith("help")) {
+      const prefix = (global.config && global.config.PREFIX) ? global.config.PREFIX : "/";
+      const help = `🌟 Commands:\n${prefix}bot askinfo [q]\n${prefix}bot teach ask=[q]&ans=[a]\n${prefix}bot delete ask=[q]&ans=[a]\n${prefix}bot edit old=[old]&new=[new]\n${prefix}bot info\n${prefix}bot textType [type]\n${prefix}bot (no args) -> greeting`;
+      return safeReply(bot, threadID, help, messageID);
+    }
+
+    // default: ask sim api and style text
+    if (!apiUrl) return safeReply(bot, threadID, 'Sim API unavailable.', messageID);
+
+    const r = await axios.get(`${apiUrl}/sim?type=ask&ask=${encodeURIComponent(msg)}`, { timeout: 10000 });
+    const replyMessage = r.data?.data?.msg || r.data?.msg || "No response";
+
+    const styles = loadTextStyles();
+    const userStyle = styles[event.threadID]?.style || 'normal';
+    let styled = replyMessage;
+    if (api2) {
+      try {
+        const f = await axios.get(`${api2}/bold?text=${encodeURIComponent(replyMessage)}&type=${encodeURIComponent(userStyle)}`, { timeout: 8000 });
+        styled = f.data?.data?.bolded || replyMessage;
+      } catch (e) { styled = replyMessage; }
+    }
+
+    safeReply(bot, threadID, styled, messageID, (err, info) => {
+      global.client = global.client || {};
+      global.client.handleReply = global.client.handleReply || [];
+      global.client.handleReply.push({
+        type: 'reply',
+        name: "bot",
+        messageID: info?.messageID || null,
+        author: event.senderID,
+        head: msg
+      });
+    });
+
+  } catch (err) {
+    console.error("commandHandler error:", err && (err.stack || err));
+    safeReply(shourov || nayan || api, event.threadID, 'An error has occurred. Try again later.', event.messageID);
   }
-};
+}
 
+// helper to send message compatible with various objects
+function safeSend(apiObj, threadID, body, cb, replyMessageID) {
+  try {
+    if (!apiObj) return;
+    // many loaders use api.sendMessage
+    if (typeof apiObj.sendMessage === "function") return apiObj.sendMessage(body, threadID, cb || (() => {}), replyMessageID);
+    // some use reply method: shourov.reply / nayan.reply
+    if (typeof apiObj.reply === "function") return apiObj.reply(body, threadID, cb || (() => {}), replyMessageID);
+    // fallback: console
+    console.warn("No send method found on apiObj");
+  } catch (e) {
+    console.error("safeSend error:", e && e.message ? e.message : e);
+  }
+}
 
-// utility: load/save text styles per thread
+// wrapper accepts both api object and event-style call
+function safeReply(apiObj, threadID, body, messageID, cb) {
+  return safeSend(apiObj, threadID, { body }, cb, messageID);
+}
+
+// load remote api.json safely
+async function safeLoadApiJson() {
+  try {
+    const res = await axios.get('https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json', { timeout: 8000 });
+    return res.data || {};
+  } catch (e) {
+    console.warn("safeLoadApiJson failed:", e && e.message ? e.message : e);
+    return {};
+  }
+}
+
+// text styles persistence
 function loadTextStyles() {
   const Path = path.join(__dirname, 'system', 'textStyles.json');
   try {
@@ -292,20 +266,20 @@ function loadTextStyles() {
     }
     const data = fs.readFileSync(Path, 'utf8');
     return JSON.parse(data || '{}');
-  } catch (error) {
-    console.error('Error loading text styles:', error);
+  } catch (e) {
+    console.error("loadTextStyles error:", e);
     return {};
   }
 }
 
 function saveTextStyle(threadID, style) {
-  const styles = loadTextStyles();
-  styles[threadID] = { style };
   const Path = path.join(__dirname, 'system', 'textStyles.json');
   try {
+    const styles = loadTextStyles();
+    styles[threadID] = { style };
     fs.mkdirSync(path.dirname(Path), { recursive: true });
     fs.writeFileSync(Path, JSON.stringify(styles, null, 2));
-  } catch (error) {
-    console.error('Error saving text styles:', error);
+  } catch (e) {
+    console.error("saveTextStyle error:", e);
   }
 }
