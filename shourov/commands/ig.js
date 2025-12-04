@@ -1,1 +1,91 @@
-function _0xcf7d(_0x4f66ac,_0x2e55f3){const _0x2ce0a3=_0x2ce0();return _0xcf7d=function(_0xcf7d5a,_0x46b67f){_0xcf7d5a=_0xcf7d5a-0x187;let _0x27d85b=_0x2ce0a3[_0xcf7d5a];return _0x27d85b;},_0xcf7d(_0x4f66ac,_0x2e55f3);}function _0x2ce0(){const _0x40f974=['909xaMTRI','run','❝\x20Life\x20Is\x20Beautiful\x20If\x20You\x20Don’t\x20Fall\x20In\x20Love\x20❞\x0a♡︎\x20_জীবন\x20সুন্দর\x20যদি\x20কারো\x20মায়ায়\x20না\x20পড়ো\x20🙂💔','https://i.imgur.com/vnVjD6L.jpeg','unlinkSync','327177yuAbNP','https://i.imgur.com/xUNknmi.jpeg','https://i.imgur.com/wzXgnwq.jpeg','❝\x20হঠাৎ\x20করে\x20দূরে\x20সরে\x20যাবো\x20একদিন,\x20তখন\x20খুঁজে\x20পাবে…\x20❞','pipe','25MvWsVO','threadID','❝\x20হঠাৎ\x20একদিন\x20দেখা\x20হবে\x20°কিন্তু°\x20কথা\x20হবে\x20না\x20🖤\x20❞','https://i.imgur.com/e1X4FL9.jpeg','https://i.imgur.com/CPK9lur.jpeg','🌸\x20কোনো\x20এক\x20মায়াবতীর\x20জন্য\x20আজও\x20ভিতরটা\x20পুড়ে\x20︵😌🤍🪽','Send\x20random\x20caption\x20with\x20styled\x20image','createWriteStream','90XWSCvp','user','19628MbjNpm','nodemodule','35AoWDaz','config','❝\x20তুমি\x20গল্প\x20হয়েও\x20গল্প\x20না,\x20তুমি\x20সত্যি\x20হয়েও\x20কল্পনা\x20❞','exports','❝\x20ভাঙা\x20মন\x20আর\x20ভাঙা\x20বিশ্বাস\x20কোনোদিন\x20জোড়া\x20লাগে\x20না…\x20❞','❝\x20কোনো\x20এক\x20মায়াবতীর\x20জন্য\x20আজও\x20ভিতরটা\x20পুড়ে…\x20🤍🪽\x20❞','1226988buqjWC','❝\x20সে\x20বলেছিলো\x20কোনোদিন\x20সেরে\x20যাবে\x20না…\x20তাহলে\x20চলে\x20গেছে\x20কেন?\x20❞','❝\x20সৌন্দর্য\x20শুধু\x20চোখকে\x20আকর্ষণ\x20করে,\x20কিন্তু\x20ব্যক্তিত্ব\x20হৃদয়\x20কেড়ে\x20নেয়!\x20❞','fs-extra','floor','https://i.imgur.com/3MrSsoV.jpeg','https://i.imgur.com/5BtyeEH.jpeg','╔═══『\x20','request','171256ULOEgA','createReadStream','❝\x20আমি\x20তোমাকে\x20ভালোবাসতাম…\x20কিন্তু\x20তুমি\x20তো\x20বুঝোনি\x20❞','10yIUTxK','https://i.imgur.com/aWntUvL.jpeg','❝\x20মানুষের\x20মস্তিষ্কই\x20হলো\x20একটা\x20কবরস্থান,\x20যেখানে\x20হাজারো\x20স্বপ্নের\x20মৃত্যু\x20ঘটে..\x20💔\x20❞','https://i.imgur.com/GggjGf9.jpeg','❝\x20জীবনটা\x20তখনই\x20সুন্দর\x20ছিল,\x20যখন\x20ভাবতাম\x20চাঁদটা\x20আমার...\x20❞','/cache/5.jpg','https://i.imgur.com/JuA7M0t.jpeg','1.0.0','close','\x20』═══╗\x0a\x0a⚜️\x20𝐁𝐎𝐓\x20𝐎𝐖𝐍𝐄𝐑:\x20𝐊𝐈𝐍𝐆\x20𝐒𝐇𝐎𝐔𝐑𝐎𝐕\x20⚜️','https://i.imgur.com/XOeAkn1.jpeg','244124OzUJPj','random','5000809TsBwpY'];_0x2ce0=function(){return _0x40f974;};return _0x2ce0();}const _0x4f9c39=_0xcf7d;(function(_0x370377,_0x23c52c){const _0x462246=_0xcf7d,_0x108f2e=_0x370377();while(!![]){try{const _0x1cd572=parseInt(_0x462246(0x195))/0x1+parseInt(_0x462246(0x1aa))/0x2*(-parseInt(_0x462246(0x198))/0x3)+-parseInt(_0x462246(0x1ac))/0x4*(-parseInt(_0x462246(0x1a2))/0x5)+parseInt(_0x462246(0x1b4))/0x6+parseInt(_0x462246(0x1ae))/0x7*(parseInt(_0x462246(0x187))/0x8)+parseInt(_0x462246(0x19d))/0x9*(parseInt(_0x462246(0x18a))/0xa)+-parseInt(_0x462246(0x197))/0xb;if(_0x1cd572===_0x23c52c)break;else _0x108f2e['push'](_0x108f2e['shift']());}catch(_0x524923){_0x108f2e['push'](_0x108f2e['shift']());}}}(_0x2ce0,0x24343),module['exports'][_0x4f9c39(0x1af)]={'name':''+global[_0x4f9c39(0x1af)]['PREFIX'],'version':_0x4f9c39(0x191),'permission':0x0,'credits':'King_Shourov','description':_0x4f9c39(0x1a8),'prefix':!![],'category':_0x4f9c39(0x1ab),'usages':'/','cooldowns':0x5,'dependencies':{}},module[_0x4f9c39(0x1b1)][_0x4f9c39(0x199)]=async({api:_0x43963a,event:_0x585f66})=>{const _0x4bda71=_0x4f9c39,_0x56814a=global['nodemodule']['axios'],_0x162455=global[_0x4bda71(0x1ad)][_0x4bda71(0x1bc)],_0xb2562=global['nodemodule'][_0x4bda71(0x1b7)],_0x3b6acc=[_0x4bda71(0x189),_0x4bda71(0x1a0),_0x4bda71(0x1b2),'❝\x20প্রয়োজন\x20ছাড়া\x20কেউ\x20খোঁজ\x20নেয়\x20না…\x20চেনা\x20মানুষ\x20গুলো\x20অচেনা\x20হয়ে\x20যায়\x20রোজ\x20❞',_0x4bda71(0x1b0),_0x4bda71(0x1b5),'❝\x20পরিস্থিতির\x20কারণে\x20চুপ\x20হয়ে\x20গেছি…\x20নাহলে\x20হাসি\x20খুশি\x20তো\x20আমিও\x20কম\x20ছিলাম\x20না!\x20❞',_0x4bda71(0x1b3),_0x4bda71(0x18e),_0x4bda71(0x19a),_0x4bda71(0x1a7),_0x4bda71(0x1b6),_0x4bda71(0x18c),_0x4bda71(0x1a4),'❝\x20যাকে\x20তুমি\x20যত\x20বেশি\x20চাইবে,\x20সে\x20তোমাকে\x20তত\x20বেশি\x20ইগনোর\x20করবে…\x20এটাই\x20বাস্তব\x20🙂\x20❞'],_0x54dea6=[_0x4bda71(0x1a5),'https://i.imgur.com/TG3rIiJ.jpeg',_0x4bda71(0x18d),_0x4bda71(0x1b9),'https://i.imgur.com/1w4Zec2.jpeg',_0x4bda71(0x1ba),_0x4bda71(0x19e),_0x4bda71(0x19f),_0x4bda71(0x18b),_0x4bda71(0x194),_0x4bda71(0x190),_0x4bda71(0x1a6),'https://i.imgur.com/Te7k6sV.jpeg',_0x4bda71(0x19b)],_0x2db536=_0x3b6acc[Math[_0x4bda71(0x1b8)](Math[_0x4bda71(0x196)]()*_0x3b6acc['length'])],_0x139db3=_0x54dea6[Math[_0x4bda71(0x1b8)](Math[_0x4bda71(0x196)]()*_0x54dea6['length'])],_0x38c842=__dirname+_0x4bda71(0x18f),_0x11618e=_0x4bda71(0x1bb)+_0x2db536+_0x4bda71(0x193),_0x264ecb=()=>_0x43963a['sendMessage']({'body':_0x11618e,'attachment':_0xb2562[_0x4bda71(0x188)](_0x38c842)},_0x585f66[_0x4bda71(0x1a3)],()=>_0xb2562[_0x4bda71(0x19c)](_0x38c842));return _0x162455(encodeURI(_0x139db3))[_0x4bda71(0x1a1)](_0xb2562[_0x4bda71(0x1a9)](_0x38c842))['on'](_0x4bda71(0x192),_0x264ecb);});
+// commands/caption.js
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
+const request = require("request");
+
+module.exports.config = {
+  name: "caption",
+  version: "1.0.0",
+  permission: 0,
+  credits: "shourov (cleaned)",
+  description: "Send random caption + image when user sends '/'",
+  prefix: true,
+  category: "user",
+  usages: "/",
+  cooldowns: 5
+};
+
+const CAPTIONS = [
+  "❝ Life Is Beautiful If You Don’t Fall In Love ❞\n♡︎ _জীবন সুন্দর যদি কারো মায়ায় না পড়ো 🙂💔",
+  "❝ হঠাৎ করে দূরে সরে যাবো একদিন, তখন খুঁজে পাবে… ❞",
+  "❝ হঠাৎ একদিন দেখা হবে °কিন্তু° কথা হবে না 🖤 ❞",
+  "🌸 কোনো এক মায়াবতীর জন্য আজও ভিতরটা পুড়ে ︵😌🤍🪽",
+  "❝ তুমি গল্প হলেও গল্প না, তুমি সত্যি হলেও কল্পনা ❞",
+  "❝ ভাঙা মন আর ভাঙা বিশ্বাস কোনোদিন জোড়া লাগে না… ❞",
+  "❝ সে বলেছিলো কোনোদিন সেরে যাবে না… তাহলে চলে গেছে কেন? ❞",
+  "❝ আমি তোমাকে ভালোবাসতাম… কিন্তু তুমি তো বুঝোনি ❞",
+  "❝ মানুষের মস্তিষ্কই হলো একটা কবরস্থান, যেখানে হাজারো স্বপ্নের মৃত্যু ঘটে.. 💔 ❞",
+  "❝ জীবনটা তখনই সুন্দর ছিল, যখন ভাবতাম চাঁদটা আমার... ❞",
+  "❝ প্রয়োজন ছাড়া কেউ খোঁজ নেয় না… চেনা মানুষগুলো অচেনা হয়ে যায় রোজ ❞",
+  "❝ যে যত বেশি চাও সে তত বেশি ইগনোর করবে… এটাই বাস্তব 🙂 ❞"
+];
+
+const IMAGES = [
+  "https://i.imgur.com/vnVjD6L.jpeg",
+  "https://i.imgur.com/xUNknmi.jpeg",
+  "https://i.imgur.com/wzXgnwq.jpeg",
+  "https://i.imgur.com/e1X4FL9.jpeg",
+  "https://i.imgur.com/CPK9lur.jpeg",
+  "https://i.imgur.com/3MrSsoV.jpeg",
+  "https://i.imgur.com/5BtyeEH.jpeg",
+  "https://i.imgur.com/aWntUvL.jpeg",
+  "https://i.imgur.com/GggjGf9.jpeg",
+  "https://i.imgur.com/JuA7M0t.jpeg",
+  "https://i.imgur.com/XOeAkn1.jpeg",
+  "https://i.imgur.com/Te7k6sV.jpeg",
+  "https://i.imgur.com/TG3rIiJ.jpeg",
+  "https://i.imgur.com/1w4Zec2.jpeg"
+];
+
+module.exports.run = async function({ api, event }) {
+  try {
+    // Only trigger when user sends exactly the prefix slash "/" (or change to your desired trigger)
+    const text = (event.body || "").trim();
+    const trigger = global.config && global.config.PREFIX ? String(global.config.PREFIX) : "/";
+    // If you only want "/" specifically regardless of configured prefix, replace the condition with: if (text !== "/") return;
+    if (text !== trigger && text !== "/") return;
+
+    // pick random caption and image
+    const caption = CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)];
+    const imageUrl = IMAGES[Math.floor(Math.random() * IMAGES.length)];
+
+    // build message (styled + owner credit)
+    const ownerLine = "\n\n⚜️ 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑: 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 ⚜️";
+    const messageBody = `${caption}${ownerLine}`;
+
+    // download image to cache then send
+    const cacheDir = path.join(__dirname, "cache");
+    await fs.ensureDir(cacheDir);
+    const filePath = path.join(cacheDir, `caption_${Date.now()}.jpg`);
+
+    await new Promise((resolve, reject) => {
+      request(encodeURI(imageUrl))
+        .pipe(fs.createWriteStream(filePath))
+        .on("close", resolve)
+        .on("error", reject);
+    });
+
+    await api.sendMessage({
+      body: messageBody,
+      attachment: fs.createReadStream(filePath)
+    }, event.threadID, () => {
+      // cleanup
+      try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+    }, event.messageID);
+
+  } catch (err) {
+    console.error("caption command error:", err && (err.stack || err));
+    try { await api.sendMessage("⚠️ কিছু একটা ভুল হয়েছে, পরে আবার চেষ্টা করুন.", event.threadID, event.messageID); } catch (e) {}
+  }
+};
