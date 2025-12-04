@@ -6,13 +6,13 @@ const request = require("request");
 
 module.exports.config = {
   name: "caption",
-  version: "1.0.0",
+  version: "1.0.1",
   permission: 0,
-  credits: "shourov (cleaned)",
-  description: "Send random caption + image when user sends '/'",
+  credits: "shourov (fixed)",
+  description: "Send random caption + image when user sends '/' or uses the command",
   prefix: true,
   category: "user",
-  usages: "/",
+  usages: "/  OR  /caption",
   cooldowns: 5
 };
 
@@ -48,23 +48,13 @@ const IMAGES = [
   "https://i.imgur.com/1w4Zec2.jpeg"
 ];
 
-module.exports.run = async function({ api, event }) {
+async function sendCaption(api, threadID, messageID) {
   try {
-    // Only trigger when user sends exactly the prefix slash "/" (or change to your desired trigger)
-    const text = (event.body || "").trim();
-    const trigger = global.config && global.config.PREFIX ? String(global.config.PREFIX) : "/";
-    // If you only want "/" specifically regardless of configured prefix, replace the condition with: if (text !== "/") return;
-    if (text !== trigger && text !== "/") return;
-
-    // pick random caption and image
     const caption = CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)];
     const imageUrl = IMAGES[Math.floor(Math.random() * IMAGES.length)];
-
-    // build message (styled + owner credit)
-    const ownerLine = "\n\n⚜️ 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑: 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 ⚜️";
+    const ownerLine = "\n\n⚜️ 𝐁𝐎𝐓 𝐎𝐖𝐍𝐄𝐑: 𝐊𝐈𝐍𝐆 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 ⚜️";
     const messageBody = `${caption}${ownerLine}`;
 
-    // download image to cache then send
     const cacheDir = path.join(__dirname, "cache");
     await fs.ensureDir(cacheDir);
     const filePath = path.join(cacheDir, `caption_${Date.now()}.jpg`);
@@ -79,13 +69,46 @@ module.exports.run = async function({ api, event }) {
     await api.sendMessage({
       body: messageBody,
       attachment: fs.createReadStream(filePath)
-    }, event.threadID, () => {
-      // cleanup
+    }, threadID, () => {
       try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
-    }, event.messageID);
+    }, messageID);
 
   } catch (err) {
-    console.error("caption command error:", err && (err.stack || err));
-    try { await api.sendMessage("⚠️ কিছু একটা ভুল হয়েছে, পরে আবার চেষ্টা করুন.", event.threadID, event.messageID); } catch (e) {}
+    console.error("caption send error:", err && (err.stack || err));
+    try { await api.sendMessage("⚠️ কিছু একটা ভুল হয়েছে, পরে আবার চেষ্টা করুন.", threadID, messageID); } catch (e) {}
+  }
+}
+
+/**
+ * run: called when user invokes command like /caption (prefix+name)
+ */
+module.exports.run = async function({ api, event }) {
+  // simply call sendCaption
+  return sendCaption(api, event.threadID, event.messageID);
+};
+
+/**
+ * handleEvent: listens to ALL messages — we use this to catch single "/" input.
+ * This will respond when user sends exactly "/" (or the configured global prefix if you want).
+ */
+module.exports.handleEvent = async function({ event, api, Threads }) {
+  try {
+    const body = (event.body || "").trim();
+    if (!body) return;
+
+    // decide trigger(s): accept "/" OR global config prefix alone
+    const globalPrefix = (global.config && global.config.PREFIX) ? String(global.config.PREFIX) : "/";
+    const triggers = ["/", globalPrefix];
+
+    // if prefix is multiple chars (e.g. "awto"), you may not want to trigger on that — keep "/" always
+    if (!triggers.includes(body)) return;
+
+    // Prevent reacting to bot's own messages
+    if (String(event.senderID) === String(api.getCurrentUserID && api.getCurrentUserID())) return;
+
+    // send caption
+    await sendCaption(api, event.threadID, event.messageID);
+  } catch (err) {
+    console.error("caption handleEvent error:", err && (err.stack || err));
   }
 };
