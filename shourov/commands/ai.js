@@ -1,90 +1,124 @@
-// commands/ai.js
 const axios = require("axios");
 
 module.exports.config = {
-  name: "ai",
-  version: "1.0.2",
+  name: "bot",
+  version: "2.2.0",
   permission: 0,
-  credits: "shourov",
-  description: "Send a query to remote GPT-like API and return the reply",
-  prefix: true,
-  category: "user",
-  usages: "ai <query>",
-  cooldowns: 5,
-  dependencies: {}
+  credits: "IMRAN",
+  description: "Chat with a Simsimi-like bot (reply + trigger words support)",
+  prefix: false,
+  premium: false,
+  category: "Example",
+  usages: "[your message]",
+  cooldowns: 0
 };
 
-module.exports.name = module.exports.config.name;
+// Cute/funny replies
+const cuteReplies = [
+  "I love you 💝",
+  "এ বেডা তোগো GC এর C E O বাপ্পি কই😌",
+  "তোর বাড়ি কি উগান্ডা এখানে হুম",
+  "Bot না জানু,বল 😌",
+  "বলো জানু 🌚",
+  "তোর কি চোখে পড়ে না আমি ইমরান বস এর সাথে ব্যাস্ত আসি😒",
+  "𝙏𝙢𝙧 𝙣𝙖𝙣𝙞 𝙧 𝐨𝐢 𝐭𝐚  😑🥺",
+  "amr Jan lagbe,Tumi ki single aso?",
+  "𝙏𝙪𝙢𝙖𝙧 BF 𝙣𝙖𝙞 ,𝙩𝙖𝙮 𝙖𝙢𝙠 𝙙𝙖𝙠𝙨𝙤?😂😂😂",
+  "babu khuda lagse🥺", "Hop beda😾,Boss বল boss😼", "আমাকে ডাকলে ,আমি কিন্তূ কিস করে দেবো😘", "🐒🐒🐒",
+  "bye", "naw message daw m.me/Imran.Ahmed099", "mb ney bye", "meww", "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏",
+  "𝗜 𝗹𝗼𝘃𝗲 𝘆𝗼𝘂__😘😘", "𝗜 𝗵𝗮𝘁𝗲 𝘆𝗼𝘂__😏😏", "গোসল করে আসো যাও😑😩", "অ্যাসলামওয়ালিকুম", "কেমন আসো",
+  "বলেন sir__😌", "বলেন ম্যাডাম__😌", "আমি অন্যের জিনিসের সাথে কথা বলি না__😏ওকে", "🙂🙂🙂", "এটায় দেখার বাকি সিলো_🙂🙂🙂",
+  "𝗕𝗼𝘁 𝗯𝗼𝗹𝗹𝗮 𝗽𝗮𝗽 𝗵𝗼𝗶𝗯𝗼,,😒😒", "𝗧𝗮𝗿𝗽𝗼𝗿 𝗯𝗼𝗹𝗼_🙂", "𝗕𝗲𝘀𝗵𝗶 𝗱𝗮𝗸𝗹𝗲 𝗮𝗺𝗺𝘂 𝗯𝗼𝗸𝗮 𝗱𝗲𝗯𝗮 𝘁𝗼__🥺",
+  "𝗕𝗼𝘁 না জানু, বল 😌", "বেশি Bot Bot করলে leave নিবো কিন্তু 😒😒", "__বেশি বেবি বললে কামুর দিমু 🤭🤭", 
+  "𝙏𝙪𝙢𝙖𝙧 𝙜𝙛 𝙣𝙖𝙞, 𝙩𝙖𝙮 𝙖𝙢𝙠 𝙙𝙖𝙠𝙨𝙤? 😂😂😂", "bolo baby😒", "তোর কথা তোর বাড়ি কেউ শুনে না ,তো আমি কোনো শুনবো ?🤔😂",
+  "আমি তো অন্ধ কিছু দেখি না🐸 😎", "আম গাছে আম নাই ঢিল কেন মারো, তোমার সাথে প্রেম নাই বেবি কেন ডাকো 😒🫣", "𝗼𝗶𝗶 ঘুমানোর আগে.! তোমার মনটা কথায় রেখে ঘুমাও.!🤔_নাহ মানে চুরি করতাম 😞😘",
+  "𝗕𝗼𝘁 না বলে 𝗕𝗼𝘄 বলো 😘", "দূরে যা, তোর কোনো কাজ নাই, শুধু 𝗕𝗼𝘁 𝗕𝗼𝘁 করিস  😉😋🤣", "এই এই তোর পরীক্ষা কবে? শুধু 𝗕𝗼𝘁 𝗕𝗼𝘁 করিস 😾", 
+  "তোরা যে হারে 𝗕𝗼𝘁 ডাকছিস আমি তো সত্যি বাচ্চা হয়ে যাবো_☹😑", "আজব তো__😒", "আমাকে ডেকো না,আমি ব্যাস্ত আসি🙆🏻‍♀️", "𝗕𝗼𝘁 বললে চাকরি থাকবে না", 
+  "𝗕𝗼𝘁 𝗕𝗼𝘁 না করে আমার বস ইমরান এর লগে প্রেম করতে পারো😑?", "আমার সোনার বাংলা, তারপরে লাইন কি? 🙈", "🍺 এই নাও জুস খাও..!𝗕𝗼𝘁 বলতে বলতে হাপায় গেছো না 🥲",
+  "হটাৎ আমাকে মনে পড়লো 🙄", "𝗕𝗼𝘁 বলে অসম্মান করচ্ছিছ,😰😿", "আমি তোমার সিনিয়র আপু ওকে 😼সম্মান দেও🙁", "খাওয়া দাওয়া করসো 🙄", 
+  "এত কাছেও এসো না,প্রেম এ পরে যাবো তো 🙈", "আরে আমি মজা করার mood এ নাই😒", "𝗛𝗲𝘆 𝗛𝗮𝗻𝗱𝘀𝗼𝗺𝗲 বলো 😁😁", "আরে Bolo আমার জান, কেমন আসো? 😚",
+  "একটা BF খুঁজে দাও 😿", "ফ্রেন্ড রিকোয়েস্ট দিলে ৫ টাকা দিবো 😗", "oi mama ar dakis na pilis 😿", "🐤🐤", "__ভালো হয়ে  যাও 😑😒",
+  "এমবি কিনে দাও না_🥺🥺", "ওই মামা_আর ডাকিস না প্লিজ", "৩২ তারিখ আমার বিয়ে 🐤", "হা বলো😒,কি করতে পারি😐😑?", "বলো ফুলটুশি_😘",
+  "amr JaNu lagbe,Tumi ki single aso?", "আমাকে না দেকে একটু পড়তেও বসতে তো পারো 🥺🥺", "তোর বিয়ে হয় নি 𝗕𝗼𝘁 হইলো কিভাবে,,🙄", 
+  "আজ একটা ফোন নাই বলে রিপ্লাই দিতে পারলাম না_🙄", "চৌধুরী সাহেব আমি গরিব হতে পারি😾🤭 -কিন্তু বড়লোক না🥹 😫", "আমি অন্যের জিনিসের সাথে কথা বলি না__😏ওকে",
+  "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏", "ভুলে জাও আমাকে 😞😞", "দেখা হলে কাঠগোলাপ দিও..🤗", "শুনবো না😼 তুমি আমাকে প্রেম করাই দাও নি🥺 পচা তুমি🥺",
+  "আগে একটা গান বলো, ☹ নাহলে কথা বলবো না 🥺", "বলো কি করতে পারি তোমার জন্য 😚", "কথা দেও আমাকে পটাবা...!! 😌", 
+  "বার বার Disturb করেছিস কোনো 😾, আমার জানু এর সাথে ব্যাস্ত আসি 😋", "আমাকে না দেকে একটু পড়তে বসতেও তো পারো 🥺🥺", 
+  "বার বার ডাকলে মাথা গরম হয় কিন্তু 😑😒", "ওই তুমি single না?🫵🤨 😑😒", "বলো জানু 😒", "Meow🐤", "আর কত বার ডাকবা ,শুনছি তো 🤷🏻‍♀️", 
+  "কি হলো, মিস টিস করচ্ছো নাকি 🤣", "Bolo Babu, তুমি কি আমাকে ভালোবাসো? 🙈", "আজকে আমার মন ভালো নেই 🙉"
+];
+module.exports.run = async ({ api, event, args }) => {
+  const { threadID, messageID, senderID } = event;
+  const query = args.join(" ");
 
-module.exports.run = async function ({ api, event, args, Users }) {
-  const threadID = event.threadID;
-  const messageID = event.messageID;
-  const senderID = event.senderID;
+  if (!query) {
+    const reply = cuteReplies[Math.floor(Math.random() * cuteReplies.length)];
+    return api.getUserInfo(senderID, (err, result) => {
+      if (err) return console.error(err);
 
-  // Validate input
-  const prompt = (args || []).join(" ").trim();
-  if (!prompt) return api.sendMessage("❗ Please provide a query. Usage: /ai <your question>", threadID, messageID);
+      const userName = result[senderID].name;
+
+      api.sendMessage({
+        body: `${userName}, ${reply}`,
+        mentions: [{ tag: userName, id: senderID }]
+      }, threadID, (err, info) => {
+        if (err) return;
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID
+        });
+      }, messageID);
+    });
+  }
 
   try {
-    // try to get sender display name (best-effort)
-    let senderName = senderID;
+    const response = await axios.get(`https://www.noobs-api.rf.gd/dipto/baby?text=${encodeURIComponent(query)}&senderID=100075122837809&font=1`);
+    const reply = response.data.reply || "I didn't get that. Try asking something else!";
+
+    api.sendMessage(reply, threadID, (err, info) => {
+      if (err) return;
+      global.client.handleReply.push({
+        name: this.config.name,
+        messageID: info.messageID,
+        author: senderID
+      });
+    }, messageID);
+  } catch (error) {
+    console.error("API Error:", error.message);
+    api.sendMessage("Something went wrong while contacting the bot service.", threadID, messageID);
+  }
+};
+
+module.exports.handleReply = async ({ api, event }) => {
+  const { threadID, messageID, senderID, body } = event;
+
+  try {
+    const response = await axios.get(`https://www.noobs-api.rf.gd/dipto/baby?text=${encodeURIComponent(body)}&senderID=100075122837809&font=1`);
+    const reply = response.data.reply || "I didn't get that. Try asking something else!";
+
+    api.sendMessage(reply, threadID, (err, info) => {
+      if (err) return;
+      global.client.handleReply.push({
+        name: this.config.name,
+        messageID: info.messageID,
+        author: senderID
+      });
+    }, messageID);
+  } catch (error) {
+    console.error("API Error:", error.message);
+    api.sendMessage("Something went wrong while contacting the bot service.", threadID, messageID);
+  }
+};
+
+module.exports.handleReaction = async ({ api, event }) => {
+  const { reaction, messageReply } = event;
+
+  if (reaction === '😡') {
     try {
-      if (Users && typeof Users.getNameUser === "function") {
-        senderName = await Users.getNameUser(senderID) || senderID;
-      }
-    } catch (e) { /* ignore */ }
-
-    // Try multiple known locations for api.json (graceful)
-    let apiBase = null;
-    const candidates = [
-      "https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourov/main/api.json",
-      "https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourovbot/main/api.json",
-      "https://raw.githubusercontent.com/MOHAMMAD-SHOUROV/shourovbot/master/api.json"
-    ];
-
-    for (const c of candidates) {
-      try {
-        const res = await axios.get(c, { timeout: 7000 });
-        if (res && res.data) {
-          // Try common keys that may hold the base URL
-          apiBase = res.data.api || res.data.base || res.data.url || res.data.endpoint || null;
-          if (apiBase) break;
-        }
-      } catch (e) {
-        // ignore this candidate and try next
-      }
+      await api.unsendMessage(messageReply.messageID);
+    } catch (err) {
+      console.error("Failed to unsend message:", err.message);
     }
-
-    if (!apiBase) {
-      // No remote base found — return useful message so admin can fix repo/api.json
-      return api.sendMessage("❗ AI service is currently unavailable (api.json not found or missing 'api' entry). Please check your remote api.json.", threadID, messageID);
-    }
-
-    // Build request URL
-    const url = `${apiBase.replace(/\/+$/, "")}/shourov/gpt3?prompt=${encodeURIComponent(prompt)}`;
-
-    // Call remote GPT-like endpoint
-    const resp = await axios.get(url, { timeout: 20000 }).catch(err => {
-      throw new Error("Remote AI endpoint request failed: " + (err && err.message));
-    });
-
-    // Parse response flexibly
-    let aiResponse = null;
-    if (resp && resp.data) {
-      if (typeof resp.data === "string") aiResponse = resp.data;
-      else aiResponse = resp.data.response || resp.data.result || resp.data.text || resp.data.reply || resp.data.data || JSON.stringify(resp.data);
-    }
-
-    if (!aiResponse) aiResponse = "I couldn't process that request at the moment.";
-
-    // Prepare output (truncate if too long)
-    const MAX_LEN = 1900;
-    const out = (typeof aiResponse === "string") ? aiResponse : JSON.stringify(aiResponse, null, 2);
-    const body = out.length > MAX_LEN ? out.slice(0, MAX_LEN - 3) + "..." : out;
-
-    return api.sendMessage(`💬 ${senderName}, here's the AI response:\n\n${body}`, threadID, messageID);
-  } catch (err) {
-    console.error("ai command error:", err && (err.stack || err));
-    return api.sendMessage("❗ An error occurred while contacting the AI service. Try again later.", threadID, messageID);
   }
 };
