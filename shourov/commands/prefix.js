@@ -1,48 +1,49 @@
 module.exports.config = {
-  name: "prefix",
-  version: "1.0.1",
-  permission: 0,
-  credits: "shourov",
-  prefix: true,
-  description: "Show bot prefix and owner",
-  category: "system",
-  usages: "",
-  cooldowns: 5,
+    name: "prefix",
+    version: "2.0.0",
+    permission: 0,
+    credits: "shourov (improved)",
+    prefix: false,
+    description: "Show bot prefix & owner info",
+    category: "system",
+    usages: "/prefix",
+    cooldowns: 3
 };
 
-module.exports.handleEvent = async ({ event, api, Threads }) => {
-  try {
-    const { threadID, messageID } = event;
-    const body = (event.body || "").trim();
-    if (!body) return;
+module.exports.handleEvent = async ({ api, event, Threads }) => {
+    const body = event.body?.toLowerCase() || "";
+    const threadID = event.threadID;
 
-    // safe get thread data + prefix
-    let threadSetting = {};
-    try {
-      const tData = (Threads && typeof Threads.getData === "function") ? await Threads.getData(threadID) : null;
-      threadSetting = (tData && tData.threadInfo) ? tData.threadInfo : (tData && tData.data ? tData.data : (tData || {}));
-    } catch (e) {
-      threadSetting = {};
-    }
-    const prefix = (threadSetting && threadSetting.PREFIX) ? threadSetting.PREFIX : (global.config && global.config.PREFIX ? global.config.PREFIX : "/");
+    // Commands that will trigger prefix response without prefix
+    const triggers = ["prefix", "mpre", "mprefix", "command mark", "what is prefix", "bot prefix"];
 
-    // owner name: try common config keys, fallback to "shourov"
-    const ownerName = (global.config && (global.config.OWNER || global.config.ownerName || global.config.BOT_OWNER)) || "shourov";
+    if (!triggers.includes(body)) return;
 
-    // triggers (case-insensitive)
-    const triggers = [
-      "mpre","mprefix","prefix", "command mark",
-      "what is the prefix of the bot?","prefix"
-    ].map(t => t.toLowerCase());
+    const threadSetting = global.data.threadData.get(threadID) || {};
+    const prefix = threadSetting.PREFIX || global.config.PREFIX || "/";
 
-    if (triggers.includes(body.toLowerCase())) {
-      return api.sendMessage(`🔰 Bot prefix: ${prefix}\n👤 Bot owner: ${ownerName}`, threadID, messageID);
-    }
-  } catch (err) {
-    console.error("prefix handleEvent error:", err && (err.stack || err));
-  }
+    return api.sendMessage(
+        `✨ 𝗕𝗼𝘁 𝗣𝗿𝗲𝗳𝗶𝘅 : ${prefix}\n` +
+        `👑 𝗢𝘄𝗻𝗲𝗿 : 𝗔𝗹𝗜𝗛𝗦𝗔𝗡 𝗦𝗛𝗢𝗨𝗥𝗢𝗩\n` +
+        `📌 Type '${prefix}help' to see commands list.`,
+        threadID
+    );
 };
 
-module.exports.run = async ({ event, api }) => {
-  return api.sendMessage("This command is handled via messages (no-prefix). Send 'prefix' to see the bot prefix.", event.threadID);
+module.exports.run = async ({ api, event, Threads }) => {
+    const threadID = event.threadID;
+
+    const threadSetting = global.data.threadData.get(threadID) || {};
+    const prefix = threadSetting.PREFIX || global.config.PREFIX || "/";
+
+    return api.sendMessage(
+        `🌐 𝗕𝗼𝘁 𝗣𝗿𝗲𝗳𝗶𝘅 𝗜𝗻𝗳𝗼\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `🔹 𝗣𝗿𝗲𝗳𝗶𝘅 : ${prefix}\n` +
+        `🔹 𝗕𝗼𝘁 𝗢𝘄𝗻𝗲𝗿 : 𝗔𝗹𝗜𝗛𝗦𝗔𝗡 𝗦𝗛𝗢𝗨𝗥𝗢𝗩\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `💡 Example: ${prefix}help`,
+        threadID,
+        event.messageID
+    );
 };
