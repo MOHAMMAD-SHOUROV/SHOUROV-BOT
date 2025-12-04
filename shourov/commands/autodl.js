@@ -5,7 +5,7 @@ const https = require("https");
 
 module.exports.config = {
   name: "auto",
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
   credits: "Mahabub",
   description: "Auto video downloader",
@@ -14,18 +14,32 @@ module.exports.config = {
   cooldowns: 5
 };
 
-// 🔥 Auto video detection system
-module.exports.handleEvent = async ({ api, event }) => {
+// ===============================
+// 🔥 handleEvent (auto detect link)
+// ===============================
+module.exports.handleEvent = async function ({ api, event, args }) {
   try {
-    const content = event.body ? event.body.trim() : '';
-    if (!content.startsWith("https://")) return; // শুধু লিংক detect করবে
+    let { body, threadID, messageID } = event;
+    if (!body || typeof body !== "string") return;
 
-    const videoLink = content;
-    const threadID = event.threadID;
-    const messageID = event.messageID;
+    body = body.trim();
+    if (!body.startsWith("https://")) return;   // শুধু https লিংক নেবে
 
-    api.setMessageReaction("🔍", messageID, () => {}, true);
+    // *** WAIT, CHECK BAN / APPROVAL / ADMIN RULES ***
+    const { PREFIX, ADMINBOT, OPERATOR, approval } = global.config;
+    const { APPROVED } = global.approved;
 
+    // auto cmd always will run without prefix BUT still must respect approval rules
+    if (approval && !APPROVED.includes(threadID) && !OPERATOR.includes(event.senderID) && !ADMINBOT.includes(event.senderID)) {
+      return; // silently ignore for unapproved threads
+    }
+
+    // ==========================
+    // 🔍 Detect video platform
+    // ==========================
+    api.setMessageReaction("⏳", messageID, () => {}, true);
+
+    const videoLink = body;
     const isFacebook = videoLink.includes("facebook.com");
 
     const headers = isFacebook
@@ -38,36 +52,43 @@ module.exports.handleEvent = async ({ api, event }) => {
 
     const httpsAgent = isFacebook ? new https.Agent({ family: 4 }) : undefined;
 
-    // 🔗 Get API base URL dynamically
-    const jsonRes = await axios.get(
+    // ==========================
+    // 📡 Fetch API URL dynamically
+    // ==========================
+    const json = await axios.get(
       "https://raw.githubusercontent.com/MR-MAHABUB-004/MAHABUB-BOT-STORAGE/main/APIURL.json"
     );
-    const apiBaseURL = jsonRes.data.Alldl;
+    const apiURL = json.data.Alldl;
 
-    // 📡 Call API
-    const response = await axios.get(
-      `${apiBaseURL}${encodeURIComponent(videoLink)}`,
+    // ==========================
+    // 🌐 Request video info
+    // ==========================
+    const data = await axios.get(
+      `${apiURL}${encodeURIComponent(videoLink)}`,
       { headers, httpsAgent }
     );
 
-    const { platform, title, hd, sd } = response.data;
+    const { platform, title, hd, sd } = data.data;
     const downloadURL = hd || sd;
 
     if (!downloadURL) {
       api.setMessageReaction("⚠️", messageID, () => {}, true);
-      return api.sendMessage("❌ Could not fetch video link from the URL.", threadID, messageID);
+      return api.sendMessage(`❌ No download link found for:\n${videoLink}`, threadID, messageID);
     }
 
+    // ==========================
+    // 📥 Download video file
+    // ==========================
     const filePath = __dirname + "/cache/auto.mp4";
 
-    // 📥 Download the file
     request({ url: downloadURL, headers })
       .pipe(fs.createWriteStream(filePath))
       .on("close", async () => {
         api.setMessageReaction("✔️", messageID, () => {}, true);
+
         await api.sendMessage(
           {
-            body: `✅ 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱!\n\n📌 Platform: ${platform || "Unknown"}\n🎬 Title: ${title || "No Title"}\n📥 Quality: ${hd ? "HD" : "SD"}`,
+            body: `🎥 𝗔𝘂𝘁𝗼-𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗿\n\n📌 Platform: ${platform || "Unknown"}\n🎬 Title: ${title || "No Title"}\n📥 Quality: ${hd ? "HD" : "SD"}`,
             attachment: fs.createReadStream(filePath)
           },
           threadID,
@@ -75,18 +96,25 @@ module.exports.handleEvent = async ({ api, event }) => {
         );
       })
       .on("error", (err) => {
-        console.error("File Write Error:", err);
         api.setMessageReaction("❌", messageID, () => {}, true);
-        api.sendMessage("❌ Error fetching video file.", threadID, messageID);
+        api.sendMessage("❌ Error downloading video.", threadID, messageID);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       });
+
   } catch (err) {
-    console.error("Error:", err.response?.data || err.message || err);
     api.setMessageReaction("❌", event.messageID, () => {}, true);
+    console.log("Auto Error:", err.response?.data || err.message || err);
   }
 };
 
-// 🧠 Manual command trigger (optional)
-module.exports.run = async ({ api, event }) => {
-  api.sendMessage("📥 Send a video link (https://) to auto-download 🎥", event.threadID, event.messageID);
+
+// ===============================
+// 🧠 Manual command trigger
+// ===============================
+module.exports.run = async function ({ api, event }) {
+  return api.sendMessage(
+    "📥 Just send a video link (https://) in chat and I will auto download it 🎥",
+    event.threadID,
+    event.messageID
+  );
 };
