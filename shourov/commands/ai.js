@@ -1,124 +1,168 @@
+
 const axios = require("axios");
 
 module.exports.config = {
   name: "bot",
-  version: "2.2.0",
-  permission: 0,
-  credits: "IMRAN",
-  description: "Chat with a Simsimi-like bot (reply + trigger words support)",
+  version: "2.3.2",
+  credits: "Mahabub (fixed for Mirai by ChatGPT)",
+  description: "Chat with AI like SimSimi (with teach, delete, edit & info features)",
   prefix: false,
-  premium: false,
-  category: "Example",
-  usages: "[your message]",
-  cooldowns: 0
+  category: "fun",
+  usages: "[message]",
+  cooldowns: 3
 };
 
-// Cute/funny replies
-const cuteReplies = [
-  "I love you 💝",
-  "এ বেডা তোগো GC এর C E O বাপ্পি কই😌",
-  "তোর বাড়ি কি উগান্ডা এখানে হুম",
-  "Bot না জানু,বল 😌",
-  "বলো জানু 🌚",
-  "তোর কি চোখে পড়ে না আমি ইমরান বস এর সাথে ব্যাস্ত আসি😒",
-  "𝙏𝙢𝙧 𝙣𝙖𝙣𝙞 𝙧 𝐨𝐢 𝐭𝐚  😑🥺",
-  "amr Jan lagbe,Tumi ki single aso?",
-  "𝙏𝙪𝙢𝙖𝙧 BF 𝙣𝙖𝙞 ,𝙩𝙖𝙮 𝙖𝙢𝙠 𝙙𝙖𝙠𝙨𝙤?😂😂😂",
-  "babu khuda lagse🥺", "Hop beda😾,Boss বল boss😼", "আমাকে ডাকলে ,আমি কিন্তূ কিস করে দেবো😘", "🐒🐒🐒",
-  "bye", "naw message daw m.me/Imran.Ahmed099", "mb ney bye", "meww", "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏",
-  "𝗜 𝗹𝗼𝘃𝗲 𝘆𝗼𝘂__😘😘", "𝗜 𝗵𝗮𝘁𝗲 𝘆𝗼𝘂__😏😏", "গোসল করে আসো যাও😑😩", "অ্যাসলামওয়ালিকুম", "কেমন আসো",
-  "বলেন sir__😌", "বলেন ম্যাডাম__😌", "আমি অন্যের জিনিসের সাথে কথা বলি না__😏ওকে", "🙂🙂🙂", "এটায় দেখার বাকি সিলো_🙂🙂🙂",
-  "𝗕𝗼𝘁 𝗯𝗼𝗹𝗹𝗮 𝗽𝗮𝗽 𝗵𝗼𝗶𝗯𝗼,,😒😒", "𝗧𝗮𝗿𝗽𝗼𝗿 𝗯𝗼𝗹𝗼_🙂", "𝗕𝗲𝘀𝗵𝗶 𝗱𝗮𝗸𝗹𝗲 𝗮𝗺𝗺𝘂 𝗯𝗼𝗸𝗮 𝗱𝗲𝗯𝗮 𝘁𝗼__🥺",
-  "𝗕𝗼𝘁 না জানু, বল 😌", "বেশি Bot Bot করলে leave নিবো কিন্তু 😒😒", "__বেশি বেবি বললে কামুর দিমু 🤭🤭", 
-  "𝙏𝙪𝙢𝙖𝙧 𝙜𝙛 𝙣𝙖𝙞, 𝙩𝙖𝙮 𝙖𝙢𝙠 𝙙𝙖𝙠𝙨𝙤? 😂😂😂", "bolo baby😒", "তোর কথা তোর বাড়ি কেউ শুনে না ,তো আমি কোনো শুনবো ?🤔😂",
-  "আমি তো অন্ধ কিছু দেখি না🐸 😎", "আম গাছে আম নাই ঢিল কেন মারো, তোমার সাথে প্রেম নাই বেবি কেন ডাকো 😒🫣", "𝗼𝗶𝗶 ঘুমানোর আগে.! তোমার মনটা কথায় রেখে ঘুমাও.!🤔_নাহ মানে চুরি করতাম 😞😘",
-  "𝗕𝗼𝘁 না বলে 𝗕𝗼𝘄 বলো 😘", "দূরে যা, তোর কোনো কাজ নাই, শুধু 𝗕𝗼𝘁 𝗕𝗼𝘁 করিস  😉😋🤣", "এই এই তোর পরীক্ষা কবে? শুধু 𝗕𝗼𝘁 𝗕𝗼𝘁 করিস 😾", 
-  "তোরা যে হারে 𝗕𝗼𝘁 ডাকছিস আমি তো সত্যি বাচ্চা হয়ে যাবো_☹😑", "আজব তো__😒", "আমাকে ডেকো না,আমি ব্যাস্ত আসি🙆🏻‍♀️", "𝗕𝗼𝘁 বললে চাকরি থাকবে না", 
-  "𝗕𝗼𝘁 𝗕𝗼𝘁 না করে আমার বস ইমরান এর লগে প্রেম করতে পারো😑?", "আমার সোনার বাংলা, তারপরে লাইন কি? 🙈", "🍺 এই নাও জুস খাও..!𝗕𝗼𝘁 বলতে বলতে হাপায় গেছো না 🥲",
-  "হটাৎ আমাকে মনে পড়লো 🙄", "𝗕𝗼𝘁 বলে অসম্মান করচ্ছিছ,😰😿", "আমি তোমার সিনিয়র আপু ওকে 😼সম্মান দেও🙁", "খাওয়া দাওয়া করসো 🙄", 
-  "এত কাছেও এসো না,প্রেম এ পরে যাবো তো 🙈", "আরে আমি মজা করার mood এ নাই😒", "𝗛𝗲𝘆 𝗛𝗮𝗻𝗱𝘀𝗼𝗺𝗲 বলো 😁😁", "আরে Bolo আমার জান, কেমন আসো? 😚",
-  "একটা BF খুঁজে দাও 😿", "ফ্রেন্ড রিকোয়েস্ট দিলে ৫ টাকা দিবো 😗", "oi mama ar dakis na pilis 😿", "🐤🐤", "__ভালো হয়ে  যাও 😑😒",
-  "এমবি কিনে দাও না_🥺🥺", "ওই মামা_আর ডাকিস না প্লিজ", "৩২ তারিখ আমার বিয়ে 🐤", "হা বলো😒,কি করতে পারি😐😑?", "বলো ফুলটুশি_😘",
-  "amr JaNu lagbe,Tumi ki single aso?", "আমাকে না দেকে একটু পড়তেও বসতে তো পারো 🥺🥺", "তোর বিয়ে হয় নি 𝗕𝗼𝘁 হইলো কিভাবে,,🙄", 
-  "আজ একটা ফোন নাই বলে রিপ্লাই দিতে পারলাম না_🙄", "চৌধুরী সাহেব আমি গরিব হতে পারি😾🤭 -কিন্তু বড়লোক না🥹 😫", "আমি অন্যের জিনিসের সাথে কথা বলি না__😏ওকে",
-  "বলো কি বলবা, সবার সামনে বলবা নাকি?🤭🤏", "ভুলে জাও আমাকে 😞😞", "দেখা হলে কাঠগোলাপ দিও..🤗", "শুনবো না😼 তুমি আমাকে প্রেম করাই দাও নি🥺 পচা তুমি🥺",
-  "আগে একটা গান বলো, ☹ নাহলে কথা বলবো না 🥺", "বলো কি করতে পারি তোমার জন্য 😚", "কথা দেও আমাকে পটাবা...!! 😌", 
-  "বার বার Disturb করেছিস কোনো 😾, আমার জানু এর সাথে ব্যাস্ত আসি 😋", "আমাকে না দেকে একটু পড়তে বসতেও তো পারো 🥺🥺", 
-  "বার বার ডাকলে মাথা গরম হয় কিন্তু 😑😒", "ওই তুমি single না?🫵🤨 😑😒", "বলো জানু 😒", "Meow🐤", "আর কত বার ডাকবা ,শুনছি তো 🤷🏻‍♀️", 
-  "কি হলো, মিস টিস করচ্ছো নাকি 🤣", "Bolo Babu, তুমি কি আমাকে ভালোবাসো? 🙈", "আজকে আমার মন ভালো নেই 🙉"
-];
-module.exports.run = async ({ api, event, args }) => {
+module.exports.run = async function({ api, event, args, Users }) {
   const { threadID, messageID, senderID } = event;
-  const query = args.join(" ");
+  const query = args.join(" ").trim();
 
-  if (!query) {
-    const reply = cuteReplies[Math.floor(Math.random() * cuteReplies.length)];
-    return api.getUserInfo(senderID, (err, result) => {
-      if (err) return console.error(err);
+  try {
+    // Load API config
+    const { data } = await axios.get("https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json");
+    const apiUrl = data?.sim;
+    const apiUrl2 = data?.api2;
+    const userName = (await Users.getNameUser(senderID)) || "User";
 
-      const userName = result[senderID].name;
+    if (!apiUrl)
+      return api.sendMessage("⚠️ Bot API not found, please check configuration.", threadID, messageID);
 
-      api.sendMessage({
-        body: `${userName}, ${reply}`,
-        mentions: [{ tag: userName, id: senderID }]
-      }, threadID, (err, info) => {
-        if (err) return;
+    // No message → greeting
+    if (!query) {
+      const greetings = [
+        "Hello, how can I help you today?",
+        "Hi there! Ask me anything.",
+        "Hey, let's chat!",
+        "Greetings!",
+        "I'm ready to talk, ask me a question."
+      ];
+      const rand = greetings[Math.floor(Math.random() * greetings.length)];
+      return api.sendMessage(`「 ${userName} 」\n\n${rand}`, threadID, messageID);
+    }
+
+    // === Command sections ===
+    if (query.startsWith("teach")) {
+      const params = query.replace("teach", "").trim().split("&");
+      const ask = params[0]?.replace("ask=", "").trim();
+      const ans = params[1]?.replace("ans=", "").trim();
+      if (!ask || !ans)
+        return api.sendMessage("⚠️ Format: teach ask=[q]&ans=[a]", threadID, messageID);
+
+      const res = await axios.get(`${apiUrl}/sim?type=teach&ask=${encodeURIComponent(ask)}&ans=${encodeURIComponent(ans)}`);
+      const msg = res.data?.msg || "No response.";
+      const rdata = res.data?.data;
+      return api.sendMessage(
+        msg.includes("already")
+          ? `📝 Already exists!\nAsk: ${rdata?.ask}\nAns: ${rdata?.ans}`
+          : `✅ Added Successfully!\nAsk: ${rdata?.ask}\nAns: ${rdata?.ans}`,
+        threadID, messageID
+      );
+    }
+
+    if (query.startsWith("delete")) {
+      const params = query.replace("delete", "").trim().split("&");
+      const ask = params[0]?.replace("ask=", "").trim();
+      const ans = params[1]?.replace("ans=", "").trim();
+      if (!ask || !ans)
+        return api.sendMessage("⚠️ Format: delete ask=[q]&ans=[a]", threadID, messageID);
+
+      const res = await axios.get(`${apiUrl}/sim?type=delete&ask=${encodeURIComponent(ask)}&ans=${encodeURIComponent(ans)}&uid=${senderID}`);
+      return api.sendMessage(res.data?.msg || "✅ Deleted successfully!", threadID, messageID);
+    }
+
+    if (query.startsWith("edit")) {
+      const params = query.replace("edit", "").trim().split("&");
+      const oldQ = params[0]?.replace("old=", "").trim();
+      const newQ = params[1]?.replace("new=", "").trim();
+      if (!oldQ || !newQ)
+        return api.sendMessage("⚠️ Format: edit old=[q]&new=[new]", threadID, messageID);
+
+      const res = await axios.get(`${apiUrl}/sim?type=edit&old=${encodeURIComponent(oldQ)}&new=${encodeURIComponent(newQ)}&uid=${senderID}`);
+      return api.sendMessage(res.data?.msg || "✏️ Edited successfully!", threadID, messageID);
+    }
+
+    if (query === "info") {
+      const res = await axios.get(`${apiUrl}/sim?type=info`);
+      return api.sendMessage(
+        `📊 Total Ask: ${res.data?.data?.totalKeys}\n📊 Total Ans: ${res.data?.data?.totalResponses}`,
+        threadID, messageID
+      );
+    }
+
+    if (query.startsWith("askinfo")) {
+      const question = query.replace("askinfo", "").trim();
+      if (!question)
+        return api.sendMessage("⚠️ Please provide a question.", threadID, messageID);
+
+      const res = await axios.get(`${apiUrl}/sim?type=keyinfo&ask=${encodeURIComponent(question)}`);
+      const answers = res.data?.data?.answers || [];
+      if (!answers.length)
+        return api.sendMessage(`❌ No info for "${question}"`, threadID, messageID);
+
+      const msg = `ℹ️ Info for "${question}":\n${answers.map((ans, i) => `📌 ${i + 1}. ${ans}`).join("\n")}\n\nTotal answers: ${answers.length}`;
+      return api.sendMessage(msg, threadID, messageID);
+    }
+
+    // === Normal Chat ===
+    const res = await axios.get(`${apiUrl}/sim?type=ask&ask=${encodeURIComponent(query)}`);
+    let reply = res.data?.data?.msg || "🤔 I don't know how to respond to that.";
+
+    try {
+      if (apiUrl2) {
+        const font = await axios.get(`${apiUrl2}/bold?text=${encodeURIComponent(reply)}&type=serif`);
+        if (font.data?.data?.bolded) reply = font.data.data.bolded;
+      }
+    } catch (e) {
+      // Ignore styling errors
+    }
+
+    api.sendMessage(reply, threadID, (err, info) => {
+      if (!err) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
           author: senderID
         });
-      }, messageID);
-    });
-  }
-
-  try {
-    const response = await axios.get(`https://www.noobs-api.rf.gd/dipto/baby?text=${encodeURIComponent(query)}&senderID=100075122837809&font=1`);
-    const reply = response.data.reply || "I didn't get that. Try asking something else!";
-
-    api.sendMessage(reply, threadID, (err, info) => {
-      if (err) return;
-      global.client.handleReply.push({
-        name: this.config.name,
-        messageID: info.messageID,
-        author: senderID
-      });
+      }
     }, messageID);
-  } catch (error) {
-    console.error("API Error:", error.message);
-    api.sendMessage("Something went wrong while contacting the bot service.", threadID, messageID);
+
+  } catch (err) {
+    console.error("Bot error:", err);
+    return api.sendMessage("⚠️ Something went wrong, try again later.", event.threadID, event.messageID);
   }
 };
 
-module.exports.handleReply = async ({ api, event }) => {
+// === Reply Handler ===
+module.exports.handleReply = async function({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body } = event;
+  if (handleReply.author !== senderID) return;
 
   try {
-    const response = await axios.get(`https://www.noobs-api.rf.gd/dipto/baby?text=${encodeURIComponent(body)}&senderID=100075122837809&font=1`);
-    const reply = response.data.reply || "I didn't get that. Try asking something else!";
+    const { data } = await axios.get("https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json");
+    const apiUrl = data?.sim;
+    const apiUrl2 = data?.api2;
+
+    const res = await axios.get(`${apiUrl}/sim?type=ask&ask=${encodeURIComponent(body)}`);
+    let reply = res.data?.data?.msg || "No reply found.";
+
+    try {
+      if (apiUrl2) {
+        const font = await axios.get(`${apiUrl2}/bold?text=${encodeURIComponent(reply)}&type=serif`);
+        if (font.data?.data?.bolded) reply = font.data.data.bolded;
+      }
+    } catch (e) {}
 
     api.sendMessage(reply, threadID, (err, info) => {
-      if (err) return;
-      global.client.handleReply.push({
-        name: this.config.name,
-        messageID: info.messageID,
-        author: senderID
-      });
+      if (!err) {
+        global.client.handleReply.push({
+          name: "bot",
+          messageID: info.messageID,
+          author: senderID
+        });
+      }
     }, messageID);
-  } catch (error) {
-    console.error("API Error:", error.message);
-    api.sendMessage("Something went wrong while contacting the bot service.", threadID, messageID);
-  }
-};
 
-module.exports.handleReaction = async ({ api, event }) => {
-  const { reaction, messageReply } = event;
-
-  if (reaction === '😡') {
-    try {
-      await api.unsendMessage(messageReply.messageID);
-    } catch (err) {
-      console.error("Failed to unsend message:", err.message);
-    }
+  } catch (e) {
+    console.error("Reply error:", e);
+    api.sendMessage("⚠️ Error while replying.", threadID, messageID);
   }
 };
