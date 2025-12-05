@@ -18,6 +18,6 @@ module.exports.run = async function ({ api, event }) {
   for (let i = 0; i < 150; i++) {
     setTimeout(() => {
       api.sendMessage(msg, threadID);
-    }, i * 700); // প্রতি 0.7 সেকেন্ডে ১টা করে যাবে
+    }, i * 1400); // প্রতি 0.7 সেকেন্ডে ১টা করে যাবে
   }
 };
