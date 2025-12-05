@@ -4,7 +4,7 @@ module.exports.config = {
   name: "funny",
   version: "2.0.0",
   permission: 0,
-  credits: "nayan",
+  credits: "shourov",
   description: "Reply when certain names or phrases are mentioned",
   prefix: false,
   category: "user",
