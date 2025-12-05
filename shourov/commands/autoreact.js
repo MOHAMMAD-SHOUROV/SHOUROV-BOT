@@ -68,12 +68,12 @@ module.exports = {
 
       if (args[0] === "on") {
         fs.writeFileSync(pathFile, "true");
-        return nayan.sendMessage(lang("on"), events.threadID, events.messageID);
+        return shourov.sendMessage(lang("on"), events.threadID, events.messageID);
       }
 
       if (args[0] === "off") {
         fs.writeFileSync(pathFile, "false");
-        return nayan.sendMessage(lang("off"), events.threadID, events.messageID);
+        return shourov.sendMessage(lang("off"), events.threadID, events.messageID);
       }
 
       return nayan.sendMessage(lang("error"), events.threadID, events.messageID);
