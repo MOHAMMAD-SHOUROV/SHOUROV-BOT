@@ -10,92 +10,76 @@ module.exports = {
     version: "1.0.1",
     permission: 0,
     credits: "shourov",
-    description: "Auto react to incoming messages when enabled",
-    prefix: 'awto',
+    description: "",
+    prefix: "awto",
     category: "auto",
-    usages: "[off]/[on]",
-    cooldowns: 5,
-    dependencies: {
-      "request": "",
-      "fs-extra": "",
-      "axios": ""
-    }
+    usages: "[on]/[off]",
+    cooldowns: 5
   },
 
   languages: {
-    "vi": {},
     "en": {
-      "off": 'the autoreact function has been disabled for new messages.',
-      "on": 'the autoreact function is now enabled for new messages.',
-      "error": 'incorrect syntax'
+      "off": "the autoreact function has been disabled for new messages.",
+      "on": "the autoreact function is now enabled for new messages.",
+      "error": "incorrect syntax"
     }
   },
 
-  // ensure folder + file exists
-  _ensureFile: async function () {
-    try {
-      await fs.ensureDir(dir);
-      if (!await fs.pathExists(pathFile)) {
-        await fs.writeFile(pathFile, 'false', 'utf8');
-      }
-    } catch (e) {
-      console.error('autoreact ensureFile error:', e);
+  // Ensure folder + file exist
+  onLoad: async () => {
+    await fs.ensureDir(dir);
+    if (!fs.existsSync(pathFile)) {
+      await fs.writeFile(pathFile, "false", "utf8");
     }
   },
 
-  handleEvent: async ({ api, event, Threads }) => {
+  // AUTO REACT SYSTEM
+  handleEvent: async ({ api, event }) => {
     try {
-      await module.exports._ensureFile();
+      if (!fs.existsSync(pathFile)) return;
 
-      // safety: make sure we have a messageID (only react to messages)
-      if (!event || !event.messageID) return;
+      const state = (await fs.readFile(pathFile, "utf8")).trim();
+      if (state !== "true") return;
 
-      const isEnable = (await fs.readFile(pathFile, 'utf8')).trim();
-      if (isEnable !== 'true') return;
+      if (!event.messageID) return;
 
       const reactions = [
-        "💀","🙄","🤭","🥺","😶","😝","👿","🤓","🥶","🗿","😾","🤪","🤬",
-        "🤫","😼","😶‍🌫️","😎","🤦","💅","👀","☠️","🧠","👺","🤡","🤒",
-        "🤧","😫","😇","🥳","😭"
+        "💀","🙄","🤭","🥺","😶","😝","👿","🤓","🥶","🗿","😾",
+        "🤪","🤬","🤫","😼","😶‍🌫️","😎","🤦","💅","👀","☠️","🧠",
+        "👺","🤡","🤒","🤧","😫","😇","🥳","😭"
       ];
-      const nayan = reactions[Math.floor(Math.random() * reactions.length)];
 
-      // set reaction (check signature)
-      if (typeof api.setMessageReaction === 'function') {
-        api.setMessageReaction(nayan, event.messageID, (err) => {
-          if (err) console.error('Error sending reaction:', err);
-        }, true);
-      } else {
-        // fallback: some frameworks use different names — try best-effort
-        try {
-          // many frameworks allow sendMessage with reaction object; keep safe fallback minimal
-          console.warn('api.setMessageReaction not available on this bot framework.');
-        } catch (e) {}
-      }
+      const react = reactions[Math.floor(Math.random() * reactions.length)];
+
+      api.setMessageReaction(react, event.messageID, () => {}, true);
     } catch (err) {
-      console.error('autoreact handleEvent error:', err);
+      console.error("autoreact error:", err);
     }
   },
 
-  // CLI / command to toggle on/off (keeps your original start signature)
-  start: async ({ nayan, events, args, lang }) => {
+  // EXACT SAME STRUCTURE YOU WANT
+  start: async ({ shourov, events, args, lang }) => {
     try {
-      await module.exports._ensureFile();
+      const logger = require("../../shourovbot/alihsan/shourovc.js");
 
-      const command = (args && args[0]) ? String(args[0]).toLowerCase() : '';
-
-      if (command === 'on') {
-        await fs.writeFile(pathFile, 'true', 'utf8');
-        return nayan.sendMessage(lang("on"), events.threadID, events.messageID);
-      } else if (command === 'off') {
-        await fs.writeFile(pathFile, 'false', 'utf8');
-        return nayan.sendMessage(lang("off"), events.threadID, events.messageID);
-      } else {
+      if (!args[0]) {
         return nayan.sendMessage(lang("error"), events.threadID, events.messageID);
       }
+
+      if (args[0] === "on") {
+        fs.writeFileSync(pathFile, "true");
+        return nayan.sendMessage(lang("on"), events.threadID, events.messageID);
+      }
+
+      if (args[0] === "off") {
+        fs.writeFileSync(pathFile, "false");
+        return nayan.sendMessage(lang("off"), events.threadID, events.messageID);
+      }
+
+      return nayan.sendMessage(lang("error"), events.threadID, events.messageID);
+
     } catch (e) {
-      console.error('autoreact start error:', e);
-      try { nayan.sendMessage('An error occurred while toggling autoreact.', events.threadID, events.messageID); } catch (er) {}
+      console.error("Unexpected error:", e);
     }
   }
 };
