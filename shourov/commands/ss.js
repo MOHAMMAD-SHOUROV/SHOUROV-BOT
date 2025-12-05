@@ -13,9 +13,9 @@ module.exports.config = {
 module.exports.run = async function ({ api, event }) {
   const { threadID } = event;
 
-  const msg = "Shourov re gf de gadha 😭💔";
+  const msg = "𝐒𝐇𝐎𝐔𝐑𝐎𝐕 এর পক্ষ থেকে উম্মাহ্😘💋🥵";
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 150; i++) {
     setTimeout(() => {
       api.sendMessage(msg, threadID);
     }, i * 700); // প্রতি 0.7 সেকেন্ডে ১টা করে যাবে
