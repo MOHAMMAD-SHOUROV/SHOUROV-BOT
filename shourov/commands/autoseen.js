@@ -1,76 +1,59 @@
-const fs = require('fs-extra');
-const path = require('path');
+const fs = require("fs-extra");
+const path = require("path");
 
-const dir = path.join(__dirname, 'autoseen');
-const pathFile = path.join(dir, 'autoseen.txt');
+const pathDir = path.resolve(__dirname, "autoseen");
+const pathFile = path.join(pathDir, "autoseen.txt");
 
-module.exports = {
-  config: {
-    name: "autoseen",
-    version: "1.0.1",
-    permission: 0,
-    credits: "shourov",
-    description: "Turn on/off auto seen",
-    prefix: "seen",
-    category: "auto",
-    usages: "[on]/[off]",
-    cooldowns: 5
-  },
+module.exports.config = {
+  name: "autoseen",
+  version: "1.0.1",
+  permission: 2,
+  credits: "shourov",
+  description: "turn on/off automatic seen for new messages",
+  prefix: true,
+  category: "system",
+  usages: "autoseen [on|off]",
+  cooldowns: 5
+};
 
-  languages: {
-    "en": {
-      "off": "the autoseen function has been disabled for new messages.",
-      "on": "the autoseen function is now enabled for new messages.",
-      "error": "incorrect syntax"
-    }
-  },
+// ensure folder & file exist
+if (!fs.existsSync(pathDir)) fs.mkdirSync(pathDir, { recursive: true });
+if (!fs.existsSync(pathFile)) fs.writeFileSync(pathFile, "false", "utf8");
 
-  // Create folder + file if missing
-  onLoad: async () => {
-    await fs.ensureDir(dir);
-    if (!fs.existsSync(pathFile)) {
-      await fs.writeFile(pathFile, 'false');
-    }
-  },
-
-  // AUTO-SEEN SYSTEM
-  handleEvent: async ({ api, event }) => {
-    try {
-      if (!fs.existsSync(pathFile)) return;
-
-      const state = (await fs.readFile(pathFile, 'utf-8')).trim();
-      if (state !== 'true') return;
-
-      api.markAsReadAll(() => {});
-      
-    } catch (err) {
-      console.error("AutoSeen Error:", err);
-    }
-  },
-
-  // EXACT SAME STRUCTURE YOU WANTED
-  start: async ({ shourov, events, args, lang }) => {
-    try {
-      const logger = require("../../shourovbot/alihsan/shourovc.js");
-
-      if (!args[0]) {
-        return nayan.sendMessage(lang("error"), events.threadID, events.messageID);
+module.exports.handleEvent = async ({ api, event }) => {
+  try {
+    // read setting
+    const isEnable = (fs.readFileSync(pathFile, "utf8") || "false").trim() === "true";
+    if (isEnable) {
+      // mark as read (some frameworks provide markAsReadAll or markAsRead)
+      if (typeof api.markAsReadAll === "function") {
+        api.markAsReadAll(() => {});
+      } else if (typeof api.markAsRead === "function") {
+        // mark just the thread (fallback)
+        try { api.markAsRead(event.threadID, (err) => {}); } catch(e) {}
       }
-
-      if (args[0] === "on") {
-        fs.writeFileSync(pathFile, 'true');
-        return shourov.sendMessage(lang("on"), events.threadID, events.messageID);
-      }
-
-      if (args[0] === "off") {
-        fs.writeFileSync(pathFile, 'false');
-        return shourov.sendMessage(lang("off"), events.threadID, events.messageID);
-      }
-
-      return nayan.sendMessage(lang("error"), events.threadID, events.messageID);
-
-    } catch (e) {
-      console.error("Unexpected AutoSeen Error:", e);
     }
+  } catch (err) {
+    console.error("autoseen handleEvent error:", err);
+  }
+};
+
+module.exports.run = async ({ api, event, args }) => {
+  try {
+    const arg = (args[0] || "").toLowerCase();
+    if (arg === "on") {
+      fs.writeFileSync(pathFile, "true", "utf8");
+      return api.sendMessage("✅ Autoseen enabled. New messages will be marked seen automatically.", event.threadID, event.messageID);
+    } else if (arg === "off") {
+      fs.writeFileSync(pathFile, "false", "utf8");
+      return api.sendMessage("⛔ Autoseen disabled.", event.threadID, event.messageID);
+    } else {
+      // show current status
+      const cur = (fs.readFileSync(pathFile, "utf8") || "false").trim() === "true" ? "✅ ON" : "⛔ OFF";
+      return api.sendMessage(`Autoseen status: ${cur}\nUse: autoseen on | autoseen off`, event.threadID, event.messageID);
+    }
+  } catch (err) {
+    console.error("autoseen run error:", err);
+    return api.sendMessage("❌ কিছু সমস্যা হয়েছে। লগ চেক করো।", event.threadID, event.messageID);
   }
 };
