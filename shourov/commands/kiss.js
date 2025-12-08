@@ -1,17 +1,25 @@
-const axios = require("axios");
-const fs = require("fs-extra");
+// commands/kisss.js
 const path = require("path");
-const jimp = require("jimp");
+
+// try to prefer global.nodemodule (if your loader uses that)
+function tryRequire(name) {
+  try { if (global.nodemodule && global.nodemodule[name]) return global.nodemodule[name]; } catch (e) {}
+  try { return require(name); } catch (e) { return null; }
+}
+
+const axios = tryRequire("axios") || require("axios");
+const fs = tryRequire("fs-extra") || tryRequire("fs") || require("fs");
+const jimp = tryRequire("jimp") || require("jimp");
 
 module.exports.config = {
-  name: "kisss",
-  version: "1.0.0",
+  name: "kiss",
+  version: "1.0.1",
   permission: 0,
-  credits: "Md Shourov Islam",
+  credits: "Md Shourov Islam (adapted)",
   description: "Create a kissing image with tagged user",
   prefix: true,
   category: "kiss",
-  usages: "user",
+  usages: "user (reply or mention)",
   cooldowns: 5,
   dependencies: {
     "axios": "",
@@ -22,113 +30,125 @@ module.exports.config = {
 };
 
 module.exports.onLoad = async () => {
-  const dirMaterial = path.resolve(__dirname, "cache");
-  const imgPath = path.resolve(dirMaterial, "IMG-20250615-WA0013.jpg");
+  try {
+    const dirMaterial = path.resolve(__dirname, "cache");
+    const imgPath = path.resolve(dirMaterial, "IMG-20250615-WA0013.jpg");
 
-  if (!fs.existsSync(dirMaterial)) await fs.mkdirp(dirMaterial);
+    if (!fs.existsSync(dirMaterial)) await fs.mkdirp(dirMaterial);
 
-  if (!fs.existsSync(imgPath)) {
-    try {
-      const res = await axios.get("https://i.imgur.com/BtSlsSS.jpg", { responseType: "arraybuffer", timeout: 20000 });
-      fs.writeFileSync(imgPath, Buffer.from(res.data, "binary"));
-    } catch (err) {
-      console.error("onLoad: failed to download base image:", err.message || err);
+    // bse image url (you can change to your own)
+    const baseUrl = "https://i.imgur.com/BtSlsSS.jpg";
+
+    if (!fs.existsSync(imgPath)) {
+      try {
+        const res = await axios.get(baseUrl, { responseType: "arraybuffer", timeout: 20000 });
+        fs.writeFileSync(imgPath, Buffer.from(res.data, "binary"));
+        console.log("[kisss] base image downloaded.");
+      } catch (err) {
+        console.warn("[kisss] onLoad: failed to download base image:", err && err.message);
+      }
     }
+  } catch (e) {
+    console.error("[kisss] onLoad unexpected error:", e && e.stack);
   }
 };
 
-async function circle(imagePath) {
+async function makeCircleBuffer(imagePath) {
   const image = await jimp.read(imagePath);
-  image.circle(); // jimp circle (makes circular mask)
-  return await image.getBufferAsync("image/png");
+  image.circle();
+  return await image.getBufferAsync(jimp.MIME_PNG);
 }
 
 async function makeImage({ one, two }) {
   const __root = path.resolve(__dirname, "cache");
   const basePath = path.join(__root, "IMG-20250615-WA0013.jpg");
-  const outPath = path.join(__root, `kiss_${one}_${two}.png`);
+  const outPath = path.join(__root, `kiss_${one}_${two}_${Date.now()}.png`);
   const avatarOnePath = path.join(__root, `avt_${one}.png`);
   const avatarTwoPath = path.join(__root, `avt_${two}.png`);
 
-  // ensure base exists
-  if (!fs.existsSync(basePath)) throw new Error("Base image not found, onLoad may have failed.");
+  if (!fs.existsSync(basePath)) throw new Error("Base image not found (onLoad may have failed).");
 
-  // download avatars (binary)
+  // download avatars
   try {
-    const res1 = await axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 });
-    fs.writeFileSync(avatarOnePath, Buffer.from(res1.data, "binary"));
-
-    const res2 = await axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 });
-    fs.writeFileSync(avatarTwoPath, Buffer.from(res2.data, "binary"));
+    const [r1, r2] = await Promise.all([
+      axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 }),
+      axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 })
+    ]);
+    fs.writeFileSync(avatarOnePath, Buffer.from(r1.data, "binary"));
+    fs.writeFileSync(avatarTwoPath, Buffer.from(r2.data, "binary"));
   } catch (err) {
-    // cleanup partials
-    if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath);
-    if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath);
-    throw new Error("Failed downloading avatar(s): " + (err.message || err));
+    // cleanup partial
+    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
+    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
+    throw new Error("Failed to download avatar(s): " + (err.message || err));
   }
 
-  // create circular avatars and compose
   try {
-    const hon_img = await jimp.read(basePath);
+    const baseImg = await jimp.read(basePath);
+    const c1buf = await makeCircleBuffer(avatarOnePath);
+    const c2buf = await makeCircleBuffer(avatarTwoPath);
+    const c1 = await jimp.read(c1buf);
+    const c2 = await jimp.read(c2buf);
 
-    const circleBuf1 = await circle(avatarOnePath);
-    const circleBuf2 = await circle(avatarTwoPath);
+    // you can tweak positions/sizes here to fit your base image
+    baseImg.resize(700, jimp.AUTO)
+      .composite(c1.resize(200, 200), 390, 23)  // sender
+      .composite(c2.resize(180, 180), 140, 80); // mentioned
 
-    const circleOne = await jimp.read(circleBuf1);
-    const circleTwo = await jimp.read(circleBuf2);
+    await baseImg.writeAsync(outPath);
 
-    // resize base and composite avatars (positions can be adjusted)
-    hon_img.resize(700, 440)
-      .composite(circleOne.resize(200, 200), 390, 23)
-      .composite(circleTwo.resize(180, 180), 140, 80);
-
-    const raw = await hon_img.getBufferAsync("image/png");
-    fs.writeFileSync(outPath, raw);
-
-    // cleanup avatar files
-    if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath);
-    if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath);
+    // cleanup avatars
+    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
+    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
 
     return outPath;
   } catch (err) {
-    // cleanup and rethrow
-    if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath);
-    if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath);
-    if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+    // cleanup on error
+    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
+    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
+    try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch(e){}
     throw err;
   }
 }
 
 module.exports.run = async function ({ event, api }) {
-  const { threadID, messageID, senderID, mentions } = event || {};
-  if (!mentions || Object.keys(mentions).length === 0) {
-    return api.sendMessage("⚠️ দয়া করে একটি ইউজারকে ট্যাগ করুন!", threadID, messageID);
-  }
-
-  const mentionId = Object.keys(mentions)[0];
-
-  // Extract a readable tag/name safely
-  let tagName = mentions[mentionId];
-  if (typeof tagName === "object" && tagName !== null) {
-    // sometimes mention value is object like { id: '...', name: 'Name' } depending on framework
-    tagName = tagName.name || tagName.tag || String(mentionId);
-  }
-  if (typeof tagName !== "string") tagName = String(mentionId);
-
+  const { threadID, messageID, senderID } = event;
   try {
+    // allow reply or mention
+    let targetId = null;
+    if (event.type === "message_reply" && event.messageReply && event.messageReply.senderID) {
+      targetId = event.messageReply.senderID;
+    } else if (event.mentions && Object.keys(event.mentions).length > 0) {
+      targetId = Object.keys(event.mentions)[0];
+    } else {
+      return api.sendMessage("⚠️ দয়া করে একটি ইউজারকে ট্যাগ করুন বা তার মেসেজে রেপ্লাই করুন!", threadID, messageID);
+    }
+
+    // determine mention name (framework dependent)
+    let mentionName = null;
+    if (event.mentions && event.mentions[targetId]) {
+      const v = event.mentions[targetId];
+      // sometimes value is "Name" or object { id:..., name:... }
+      mentionName = (typeof v === "object" && v !== null) ? (v.name || String(targetId)) : String(v);
+    } else {
+      mentionName = String(targetId);
+    }
+
     await fs.ensureDir(path.join(__dirname, "cache"));
-    const imagePath = await makeImage({ one: senderID, two: mentionId });
+    const outImage = await makeImage({ one: senderID, two: targetId });
 
     await api.sendMessage({
-      body: `💋 ${tagName} তোমার জন্য এক চুমু!`,
-      mentions: [{ tag: tagName, id: mentionId }],
-      attachment: fs.createReadStream(imagePath)
-    }, threadID, () => {
-      // cleanup generated image
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+      body: `💋 ${mentionName} — তোমার জন্য চুম্বন!`,
+      mentions: [{ tag: mentionName, id: targetId }],
+      attachment: fs.createReadStream(outImage)
+    }, threadID, (err) => {
+      // cleanup
+      try { if (fs.existsSync(outImage)) fs.unlinkSync(outImage); } catch(e){}
+      if (err) console.error("[kisss] sendMessage error:", err);
     }, messageID);
+
   } catch (err) {
-    console.error("kisss error:", err);
+    console.error("[kisss] error:", err && (err.stack || err));
     return api.sendMessage("কিছু ত্রুটি ঘটেছে — আবার চেষ্টা করুন।", threadID, messageID);
   }
 };
