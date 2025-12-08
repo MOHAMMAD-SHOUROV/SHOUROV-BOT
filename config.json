@@ -1,5 +1,7 @@
 {
   "author": "ALIHSAN SHOUROV",
+  "ownerId": "100071971474157",
+
   "autoRestart": true,
   "accpetPending": false,
   "developermode": false,
@@ -9,11 +11,11 @@
   "saveState": true,
   "banMsg": false,
   "adminOnlyMsg": false,
-  "botName": "SHOUROV-BOT",
-  "prefix": "/",
+
+  "BOTNAME": "SHOUROV-BOT",
+  "PREFIX": "/",
   "react": "☠️",
 
-  "ownerId": "100071971474157",
   "admins": ["100071971474157"],
   "operators": ["100071971474157"],
 
