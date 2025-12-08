@@ -1,69 +1,96 @@
+const fs = global.nodemodule["fs-extra"];
+const path = require("path");
+const axios = global.nodemodule["axios"];
+
 module.exports.config = {
   name: "uid",
   aliases: ["getuid"],
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
-  credits: "shourov (fixed)",
+  credits: "shourov",
   prefix: true,
   description: "Get user id / profile link / profile picture",
   category: "without prefix",
   cooldowns: 5
 };
 
-module.exports.run = async function({ event, api, args, Users }) {
-  const fs = global.nodemodule["fs-extra"];
-  const request = global.nodemodule["request"];
-  const axios = global.nodemodule["axios"];
+module.exports.run = async function({ event, api, args }) {
+  const { threadID, messageID } = event;
+  // prepare cache directory and file
+  const cacheDir = path.resolve(__dirname, "cache");
+  fs.ensureDirSync(cacheDir);
 
-  try {
-    const { threadID, messageID } = event;
+  // helper: download picture and send
+  async function sendProfile(uidToSend) {
+    const cachePath = path.join(cacheDir, `uid_profile_${uidToSend}.jpg`);
+    const graphUrl = `https://graph.facebook.com/${uidToSend}/picture?height=1500&width=1500`;
 
-    // helper: download avatar and send message
-    async function sendProfile(uidToSend) {
-      const cachePath = __dirname + "/cache/uid_profile.png";
-      // ensure cache dir exists
-      fs.ensureDirSync(__dirname + "/cache");
-
-      const graphUrl = `https://graph.facebook.com/${uidToSend}/picture?height=1500&width=1500&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-
-      await new Promise((resolve, reject) => {
-        try {
-          request(encodeURI(graphUrl))
-            .pipe(fs.createWriteStream(cachePath))
-            .on("close", resolve)
-            .on("error", reject);
-        } catch (e) {
-          return reject(e);
-        }
+    let wroteFile = false;
+    try {
+      // fetch image as arraybuffer
+      const resp = await axios.get(encodeURI(graphUrl), {
+        responseType: "arraybuffer",
+        timeout: 15000,
+        maxRedirects: 5
       });
 
-      const body = `=== [ 𝗨𝗜𝗗 𝗨𝗦𝗘𝗥 ] ====\n━━━━━━━━━━━━━━━━━━\n[ ▶️]➜ 𝗜𝗗: ${uidToSend}\n[ ▶️]➜ 𝗜𝗕: m.me/${uidToSend}\n[ ▶️]➜ 𝗟𝗶𝗻𝗸𝗳𝗯: https://www.facebook.com/profile.php?id=${uidToSend}\n━━━━━━━━━━━━━━━━━━`;
+      const contentType = (resp.headers && resp.headers["content-type"]) || "";
+      // ensure we got an image
+      if (!contentType.startsWith("image/")) {
+        throw new Error("Graph returned non-image content.");
+      }
 
-      // send and cleanup
-      await api.sendMessage({ body, attachment: fs.createReadStream(cachePath) }, threadID, () => {
-        try { fs.unlinkSync(cachePath); } catch (e) {}
-      }, messageID);
+      fs.writeFileSync(cachePath, Buffer.from(resp.data));
+      wroteFile = true;
+
+      const body = [
+        "=== [ 𝗨𝗜𝗗 𝗨𝗦𝗘𝗥 ] ====",
+        "━━━━━━━━━━━━━━━━━━",
+        `[ ▶️]➜ 𝗜𝗗: ${uidToSend}`,
+        `[ ▶️]➜ 𝗜𝗕: m.me/${uidToSend}`,
+        `[ ▶️]➜ 𝗟𝗶𝗻𝗸𝗳𝗯: https://www.facebook.com/profile.php?id=${uidToSend}`,
+        "━━━━━━━━━━━━━━━━━━"
+      ].join("\n");
+
+      await api.sendMessage({ body, attachment: fs.createReadStream(cachePath) }, threadID, () => {}, messageID);
+    } finally {
+      // cleanup: best effort
+      try {
+        if (wroteFile && fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+      } catch (e) {
+        console.warn("Failed to cleanup cache file:", e && e.message);
+      }
     }
+  }
 
-    // 1) If replied to a message -> target is the replied user's id
+  try {
+    // 1) replied message -> target is replied user
     if (event.type === "message_reply" && event.messageReply && event.messageReply.senderID) {
-      const targetId = event.messageReply.senderID;
-      return await sendProfile(targetId);
+      return await sendProfile(event.messageReply.senderID);
     }
 
-    // 2) If no args -> show sender's id
+    // 2) no args -> sender's id
     if (!args || args.length === 0) {
-      const myId = event.senderID;
-      return await sendProfile(myId);
+      return await sendProfile(event.senderID);
     }
 
-    // 3) If arg provided
     const input = args.join(" ").trim();
 
-    // If it's a Facebook profile URL -> try api.getUID if available, else fallback to axios (graph)
-    if (input.includes(".com/")) {
+    // 3) if mention(s) exist -> first mention
+    if (event.mentions && Object.keys(event.mentions).length > 0) {
+      const mentionIds = Object.keys(event.mentions);
+      return await sendProfile(mentionIds[0]);
+    }
+
+    // 4) if input looks like numeric id
+    if (/^\d+$/.test(input)) {
+      return await sendProfile(input);
+    }
+
+    // 5) if input contains a .com/ assume Facebook profile link
+    if (input.includes(".com/") || input.includes("facebook.com") || input.includes("fb.com")) {
       let resolved = null;
-      // prefer api.getUID if exists
+      // prefer api.getUID if present
       if (typeof api.getUID === "function") {
         try {
           resolved = await api.getUID(input);
@@ -71,48 +98,45 @@ module.exports.run = async function({ event, api, args, Users }) {
           resolved = null;
         }
       }
-      // fallback: try to fetch username/profile id from graph (best-effort)
+
+      // fallback: parse URL and try to query Graph
       if (!resolved) {
         try {
-          // Try extracting username from URL and query graph for id
-          // Examples: https://www.facebook.com/username  or https://fb.com/profile.php?id=123
-          const url = new URL(input);
-          const pathname = url.pathname.replace(/^\/+|\/+$/g, "");
-          // if profile.php?id= then take id
-          const searchParams = url.searchParams;
-          if (searchParams.has("id")) {
-            resolved = searchParams.get("id");
-          } else if (pathname) {
-            // attempt graph call by username
-            const r = await axios.get(`https://graph.facebook.com/${pathname}`).catch(() => null);
-            if (r && r.data && r.data.id) resolved = r.data.id;
+          const url = new URL(input.startsWith("http") ? input : `https://${input}`);
+          // check for profile.php?id=
+          const idFromQuery = url.searchParams.get("id");
+          if (idFromQuery && /^\d+$/.test(idFromQuery)) {
+            resolved = idFromQuery;
+          } else {
+            // path may be username or profile.php
+            let pathname = url.pathname.replace(/^\/+|\/+$/g, ""); // remove slashes
+            if (pathname) {
+              // try Graph on pathname (username)
+              const r = await axios.get(`https://graph.facebook.com/${pathname}`, { timeout: 10000 }).catch(() => null);
+              if (r && r.data && r.data.id) resolved = r.data.id;
+            }
           }
         } catch (e) {
           resolved = null;
         }
       }
 
-      if (!resolved) return api.sendMessage("Unable to resolve UID from that URL.", threadID, messageID);
+      if (!resolved) {
+        return api.sendMessage("Unable to resolve UID from that URL.", threadID, messageID);
+      }
       return await sendProfile(resolved);
     }
 
-    // 4) If mentions (like @name) were used -> pick first mention id
-    if (Object.keys(event.mentions || {}).length > 0) {
-      const mentionIds = Object.keys(event.mentions);
-      const first = mentionIds[0];
-      return await sendProfile(first);
-    }
-
-    // 5) If numeric id provided directly
-    if (/^\d+$/.test(input)) {
-      return await sendProfile(input);
-    }
-
-    // If none matched, inform user
-    return api.sendMessage("Usage:\n- reply to a user's message with this command\n- or send `uid` to get your id\n- or: uid <facebook_link> OR uid <UID> OR reply to a mention", threadID, messageID);
-
+    // fallback: help message
+    return api.sendMessage(
+      "Usage:\n- reply to a user's message with this command\n- or send `uid` to get your id\n- or: uid <facebook_link> OR uid <UID> OR reply to a mention",
+      threadID,
+      messageID
+    );
   } catch (err) {
     console.error("UID command error:", err && (err.stack || err));
-    try { return api.sendMessage("An error occurred while fetching UID. Try again.", event.threadID, event.messageID); } catch (e) {}
+    try {
+      return api.sendMessage("An error occurred while fetching UID. Try again.", threadID, messageID);
+    } catch (e) { /* ignore send error */ }
   }
 };
