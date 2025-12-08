@@ -1,6 +1,6 @@
 module.exports.config = {
   name: "rankup",
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
   credits: "(fixed by shourov)",
   description: "Rank up notification (level up)",
@@ -15,91 +15,122 @@ module.exports.config = {
 
 module.exports.handleEvent = async function({ api, event, Currencies, Users, getText }) {
   try {
-    var { threadID, senderID } = event;
-    const { createReadStream, existsSync, mkdirSync } = global.nodemodule["fs-extra"];
-
+    let { threadID, senderID } = event;
     threadID = String(threadID);
     senderID = String(senderID);
 
-    const thread = (global.data && global.data.threadData && global.data.threadData.get(threadID)) ? global.data.threadData.get(threadID) : {};
+    // safe access to fs-extra & path
+    const fs = global.nodemodule && global.nodemodule["fs-extra"] ? global.nodemodule["fs-extra"] : require("fs-extra");
+    const path = require("path");
+    const { createReadStream, existsSync, mkdirSync } = fs;
 
-    // get exp safely
+    // get thread data from global storage if present
+    const threadDataMap = (global.data && global.data.threadData) ? global.data.threadData : null;
+    const thread = threadDataMap && threadDataMap.get(threadID) ? threadDataMap.get(threadID) : {};
+
+    // get user exp safely
     let userData = {};
     try {
-      userData = await Currencies.getData(senderID) || {};
+      if (Currencies && typeof Currencies.getData === "function") {
+        userData = (await Currencies.getData(senderID)) || {};
+      } else {
+        userData = {};
+      }
     } catch (e) {
       userData = {};
+      console.warn("[rankup] Currencies.getData failed:", e && e.message ? e.message : e);
     }
+
     let exp = parseInt(userData.exp) || 0;
-    exp += 1;
+    exp += 1; // increment exp for this event (per original behavior)
 
-    if (isNaN(exp)) return;
-
-    // if thread has disabled rankup
-    if (typeof thread["rankup"] !== "undefined" && !thread["rankup"]) {
-      await Currencies.setData(senderID, { exp });
+    if (isNaN(exp)) {
       return;
     }
 
-    // level calculation
-    const curLevel = Math.floor((Math.sqrt(1 + (4 * exp / 3)) - 1) / 2);
-    const level = Math.floor((Math.sqrt(1 + (4 * (exp + 1) / 3)) - 1) / 2);
+    // if thread has disabled rankup -> just persist exp and return
+    if (typeof thread["rankup"] !== "undefined" && !thread["rankup"]) {
+      try {
+        if (Currencies && typeof Currencies.setData === "function") await Currencies.setData(senderID, { exp });
+      } catch (e) {
+        console.warn("[rankup] persist exp failed:", e && e.message ? e.message : e);
+      }
+      return;
+    }
 
+    // level formula (kept as original)
+    const curLevel = Math.floor((Math.sqrt(1 + (4 * (exp - 1) / 3)) - 1) / 2); // previous level (using exp-1)
+    const level = Math.floor((Math.sqrt(1 + (4 * exp / 3)) - 1) / 2); // new level
+
+    // only notify when level increased and level !== 1 (preserve original condition)
     if (level > curLevel && level !== 1) {
-      const name = global.data.userName.get(senderID) || (Users && typeof Users.getNameUser === "function" ? await Users.getNameUser(senderID) : senderID);
-      let message = (typeof thread.customRankup === "undefined") ? (typeof getText === "function" ? getText("levelup") : "Congrats {name}, you reached level {level}") : thread.customRankup;
-      
-      message = message
+      // resolve name safely
+      let name = senderID;
+      try {
+        if (global.data && global.data.userName && global.data.userName.get(senderID)) {
+          name = global.data.userName.get(senderID);
+        } else if (Users && typeof Users.getNameUser === "function") {
+          name = await Users.getNameUser(senderID);
+        }
+      } catch (e) {
+        console.warn("[rankup] get name failed:", e && e.message ? e.message : e);
+      }
+
+      // message template (thread.customRankup overrides)
+      let messageTemplate = (typeof thread.customRankup === "undefined")
+        ? (typeof getText === "function" ? getText("levelup") : "Congrats {name}, you reached level {level}")
+        : thread.customRankup;
+
+      const message = messageTemplate
         .replace(/\{name\}/g, name)
         .replace(/\{level\}/g, level);
 
-      // Ensure folder exists (create only if not exists)
-      const dirPath = __dirname + "/shourov/";
-      if (!existsSync(dirPath)) {
-        try { mkdirSync(dirPath, { recursive: true }); } catch (e) { /* ignore */ }
+      // prepare optional gif attachment if present
+      const assetsDir = path.join(__dirname, "shourov");
+      if (!existsSync(assetsDir)) {
+        try { mkdirSync(assetsDir, { recursive: true }); } catch (e) { /* ignore */ }
       }
 
-      const gifPath = __dirname + "/shourov/flamingtext_com-2724546145.gif";
-      let arrayContent;
+      const gifPath = path.join(assetsDir, "flamingtext_com-2724546145.gif");
 
-      if (existsSync(gifPath)) {
-        arrayContent = { body: message, attachment: createReadStream(gifPath), mentions: [{ tag: name, id: senderID }] };
-      } else {
-        arrayContent = { body: message, mentions: [{ tag: name, id: senderID }] };
-      }
+      const mentions = [{ tag: name, id: senderID }];
+      const sendPayload = existsSync(gifPath)
+        ? { body: message, attachment: createReadStream(gifPath), mentions }
+        : { body: message, mentions };
 
-      // Safe access for configModule and autoUnsend
-      const moduleName = this.config.name;
+      // check config module for autoUnsend
+      const moduleName = this.config && this.config.name ? this.config.name : "rankup";
       const cfgModule = (global.configModule && global.configModule[moduleName]) ? global.configModule[moduleName] : {};
       const autoUnsend = !!cfgModule.autoUnsend;
-      const unsendAfter = parseInt(cfgModule.unsendMessageAfter) || 10; // default 10s if set
+      const unsendAfter = parseInt(cfgModule.unsendMessageAfter) || 10; // seconds
 
-      api.sendMessage(arrayContent, threadID, async function (error, info) {
-        if (error) {
-          console.error(`[rankup] sendMessage error:`, error);
+      // send message
+      api.sendMessage(sendPayload, threadID, async (err, info) => {
+        if (err) {
+          console.error("[rankup] sendMessage error:", err && (err.stack || err));
           return;
         }
-        try {
-          if (autoUnsend) {
-            await new Promise(resolve => setTimeout(resolve, unsendAfter * 1000));
-            if (info && info.messageID && typeof api.unsendMessage === "function") {
-              await api.unsendMessage(info.messageID);
-            }
+        // attempt auto unsend if enabled
+        if (autoUnsend && info && info.messageID && typeof api.unsendMessage === "function") {
+          try {
+            await new Promise(r => setTimeout(r, unsendAfter * 1000));
+            await api.unsendMessage(info.messageID);
+          } catch (e) {
+            console.warn("[rankup] auto-unsend failed:", e && e.message ? e.message : e);
           }
-        } catch (e) {
-          console.warn("[rankup] unsend error:", e && e.message ? e.message : e);
         }
       });
     }
 
-    // persist exp
+    // persist updated exp
     try {
-      await Currencies.setData(senderID, { exp });
+      if (Currencies && typeof Currencies.setData === "function") {
+        await Currencies.setData(senderID, { exp });
+      }
     } catch (e) {
-      console.warn("[rankup] failed to persist exp:", e && e.message ? e.message : e);
+      console.warn("[rankup] persist exp failed:", e && e.message ? e.message : e);
     }
 
-    return;
   } catch (err) {
     console.error("[rankup] handleEvent error:", err && (err.stack || err));
   }
@@ -123,17 +154,15 @@ module.exports.languages = {
 module.exports.run = async function({ api, event, Threads, getText }) {
   try {
     const { threadID, messageID } = event;
-    let data = (await Threads.getData(threadID)).data || {};
-    
-    if (typeof data["rankup"] === "undefined" || !data["rankup"]) {
-      data["rankup"] = true;
-    } else {
-      data["rankup"] = false;
-    }
-    
-    await Threads.setData(threadID, { data });
-    global.data.threadData.set(threadID, data);
-    return api.sendMessage(`${(data["rankup"]) ? getText("on") : getText("off")} ${getText("successText")}`, threadID, messageID);
+    const threadData = (await Threads.getData(threadID)).data || {};
+
+    // toggle
+    threadData["rankup"] = !(threadData["rankup"]);
+
+    await Threads.setData(threadID, { data: threadData });
+    if (global.data && global.data.threadData) global.data.threadData.set(threadID, threadData);
+
+    return api.sendMessage(`${threadData["rankup"] ? getText("on") : getText("off")} ${getText("successText")}`, threadID, messageID);
   } catch (e) {
     console.error("[rankup] run error:", e && (e.stack || e));
     try { return api.sendMessage("An error occurred when toggling rankup.", event.threadID); } catch (err) {}
