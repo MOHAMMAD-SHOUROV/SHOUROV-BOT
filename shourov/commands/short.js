@@ -18,7 +18,7 @@ module.exports.config = {
 
 const path = require("path");
 
-// helper to require from global.nodemodule if loader uses that
+// try to load from global.nodemodule (if your loader uses that), else fallback to require
 function tryRequire(name) {
   try {
     if (global.nodemodule && global.nodemodule[name]) return global.nodemodule[name];
@@ -31,14 +31,14 @@ function tryRequire(name) {
 }
 
 const fs = tryRequire("fs-extra") || tryRequire("fs") || require("fs");
-const request = tryRequire("request"); // may be null if not installed
+const request = tryRequire("request");
 const axios = tryRequire("axios");
 
 const CACHE_DIR = path.join(__dirname, "cache");
 
 async function ensureCacheDir() {
   try {
-    if (fs && fs.ensureDirSync) fs.ensureDirSync(CACHE_DIR);
+    if (fs && typeof fs.ensureDirSync === "function") fs.ensureDirSync(CACHE_DIR);
     else if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
   } catch (e) {
     console.warn("[short] ensure cache error:", e && e.message);
@@ -52,7 +52,7 @@ module.exports.run = async ({ api, event, args }) => {
     const titles = ["Short Video _𝐒𝐡𝐨𝐮𝐫𝐨𝐯"];
     const title = titles[Math.floor(Math.random() * titles.length)];
 
-    // list of playable direct video URLs (Google Drive "uc?export=download" style or direct)
+    // direct downloadable links (use export=download for drive)
     const links = [
       "https://drive.google.com/uc?id=17Siy3m5zeLkokRoCyWwczk6zu526JUPF&export=download",
       "https://drive.google.com/uc?id=174zQRjLL0SaJVFD5liEuKm5aR6HtSe_o&export=download",
@@ -83,14 +83,13 @@ module.exports.run = async ({ api, event, args }) => {
       "https://drive.google.com/uc?id=193SEBLlHPDXrzdM10HZ3vptPfblD3NMw&export=download"
     ];
 
-    // pick a link
     const link = links[Math.floor(Math.random() * links.length)];
     if (!link) return api.sendMessage("❌ No video link available.", event.threadID);
 
     const filename = `short_${Date.now()}.mp4`;
     const filepath = path.join(CACHE_DIR, filename);
 
-    // download: prefer request streaming if available
+    // download with request stream if available
     if (request) {
       await new Promise((resolve, reject) => {
         try {
@@ -110,26 +109,23 @@ module.exports.run = async ({ api, event, args }) => {
         }
       });
     } else if (axios) {
-      // fallback: axios download buffer
+      // fallback to axios buffer
       const resp = await axios.get(link, { responseType: "arraybuffer", timeout: 30000 });
       fs.writeFileSync(filepath, Buffer.from(resp.data, "binary"));
     } else {
-      return api.sendMessage("❌ Missing 'request' and 'axios' modules. Install at least one (npm i request axios).", event.threadID);
+      return api.sendMessage("❌ Missing required modules. Install 'request' or 'axios'.", event.threadID);
     }
 
-    // send the file
-    try {
-      await api.sendMessage({ body: `「 ${title} 」`, attachment: fs.createReadStream(filepath) }, event.threadID, (err) => {
-        if (err) console.error("[short] sendMessage error:", err && err.message);
-        // try to delete file after send (best-effort)
+    // send the file and cleanup
+    api.sendMessage({ body: `「 ${title} 」`, attachment: fs.createReadStream(filepath) }, event.threadID, (err) => {
+      if (err) {
+        console.error("[short] sendMessage error:", err && err.stack);
         try { fs.unlinkSync(filepath); } catch (e) {}
-      });
-    } catch (e) {
-      console.error("[short] send failed:", e && e.stack);
-      try { fs.unlinkSync(filepath); } catch (err) {}
-      return api.sendMessage("❌ Failed to send the video.", event.threadID);
-    }
-
+        return;
+      }
+      // best-effort cleanup
+      try { fs.unlinkSync(filepath); } catch (e) { /* ignore */ }
+    });
   } catch (err) {
     console.error("[short] unexpected error:", err && (err.stack || err));
     return api.sendMessage("❌ An error occurred while processing your request.", event.threadID);
