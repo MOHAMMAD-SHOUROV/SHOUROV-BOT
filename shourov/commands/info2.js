@@ -1,106 +1,62 @@
-// commands/info.js
 module.exports.config = {
-  name: "info",
-  version: "1.0.1",
-  permission: 0,
-  credits: "(fixed by shourov)",
-  prefix: true,
-  description: "Show bot owner info with image",
-  category: "prefix",
-  usages: "info",
-  cooldowns: 5,
-  dependencies: {
-    "request": "",
-    "fs-extra": "",
-    "axios": ""
-  }
+    name: "info",
+    version: "1.0.1",
+    permission: 0,
+    credits: "Shourov",
+    prefix: true,
+    description: "Show owner information",
+    category: "user",
+    usages: "/info",
+    cooldowns: 5
 };
 
-module.exports.run = async function({ api, event, args, Users, Threads }) {
-  const axios = global.nodemodule["axios"];
-  const request = global.nodemodule["request"];
-  const fs = global.nodemodule["fs-extra"];
-  const moment = require("moment-timezone");
+module.exports.run = async function({ api, event }) {
 
-  try {
-    const { threadID, messageID, senderID } = event;
+    const fs = global.nodemodule["fs-extra"];
+    const request = global.nodemodule["request"];
 
-    // uptime
-    const up = process.uptime();
-    const hours = Math.floor(up / 3600);
-    const minutes = Math.floor((up % 3600) / 60);
-    const seconds = Math.floor(up % 60);
-    const uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
+    const imgPath = __dirname + "/cache/info_owner.png";
 
-    // owner info (get from global.config if available)
-    const ownerName = (global.config && global.config.BOT_OWNER_NAME) ? global.config.BOT_OWNER_NAME : "Alihsan Shourov";
-    const ownerContact = (global.config && global.config.BOT_OWNER_CONTACT) ? global.config.BOT_OWNER_CONTACT : "wa.me/+8801709281334";
-    const ownerFacebook = (global.config && global.config.BOT_OWNER_FB) ? global.config.BOT_OWNER_FB : "https://www.facebook.com/shourov.sm24";
-    const ownerEmail = (global.config && global.config.BOT_OWNER_EMAIL) ? global.config.BOT_OWNER_EMAIL : "shourovislam5430@gmail.com";
+    // Download Owner Profile Picture
+    const avatarURL =
+      "https://graph.facebook.com/100071971474157/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
 
-    // date/time in Asia/Dhaka
-    const nowDhaka = moment.tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss");
+    request(encodeURI(avatarURL))
+      .pipe(fs.createWriteStream(imgPath))
+      .on("close", () => {
+        const infoMessage = `
+╔════•| ✦ |•════╗
+   🔥 𝐎𝐖𝐍𝐄𝐑 𝐈𝐍𝐅𝐎  
+╚════•| ✦ |•════╝
 
-    // local cache path
-    const cacheDir = __dirname + "/cache";
-    const imgPath = cacheDir + "/info_image.jpg";
+👑 𝐍𝐚𝐦𝐞 : 𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕
+📘 𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤 : AlIHSAN SHOUROV
+🕌 𝐑𝐞𝐥𝐢𝐠𝐢𝐨𝐧 : Islam
 
-    // ensure cache dir exists
-    fs.ensureDirSync(cacheDir);
+🏡 𝐇𝐨𝐦𝐞𝐭𝐨𝐰𝐧 : Debiganj, Panchagarh
+📍 𝐂𝐮𝐫𝐫𝐞𝐧𝐭 : Debiganj, Panchagarh
 
-    // remote image (fallback if failed)
-    const imageUrl = "https://i.postimg.cc/Yq2H9kTC/Whats-App-Image-2025-11-12-at-12-07-50-bc11358f.jpg";
+🚹 𝐆𝐞𝐧𝐝𝐞𝐫 : Male
+🎂 𝐀𝐠𝐞 : 18+
+❤️ 𝐑𝐞𝐥𝐚𝐭𝐢𝐨𝐧𝐬𝐡𝐢𝐩 : Single
 
-    // download image stream -> file
-    await new Promise((resolve, reject) => {
-      try {
-        request(encodeURI(imageUrl))
-          .pipe(fs.createWriteStream(imgPath))
-          .on("close", resolve)
-          .on("error", reject);
-      } catch (e) {
-        return reject(e);
-      }
-    });
+🎓 𝐎𝐜𝐜𝐮𝐩𝐚𝐭𝐢𝐨𝐧 : Student
 
-    // message body (styled)
-    const body = `--------------------------------------------
-𝐍𝐚𝐦𝐞       :  ${ownerName}
-𝐅𝐚𝐜𝐞𝐛𝐨𝐨𝐤 :  ${ownerFacebook}
-𝐑𝐞𝐥𝐢𝐠𝐢𝐨𝐧   :  Islam
-𝐏𝐞𝐫𝐦𝐚𝐧𝐞𝐧𝐭 𝐀𝐝𝐝𝐫𝐞𝐬𝐬:  Debiganj, Panchagarh
-𝐂𝐮𝐫𝐫𝐞𝐧𝐭 𝐀𝐝𝐝𝐫𝐞𝐬𝐬:  Debiganj, Panchagarh
+✉️ 𝐆𝐦𝐚𝐢𝐥 : shourovislam5430@gmail.com
+📞 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 : wa.me/+8801709281334
+📨 𝐓𝐞𝐥𝐞𝐠𝐫𝐚𝐦 : t.me/shourov_ss
 
-𝐆𝐞𝐧𝐝𝐞𝐫     :  Male
-𝐀𝐠𝐞       :  18+
-𝐑𝐞𝐥𝐚𝐭𝐢𝐨𝐧𝐬𝐡𝐢𝐩 :  Single
-𝐖𝐨𝐫𝐤      :  Student
+🌐 𝐅𝐁 𝐋𝐢𝐧𝐤 :
+https://www.facebook.com/shourov.sm24
+`;
 
-𝐄𝐦𝐚𝐢𝐥     :  ${ownerEmail}
-𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩  :  ${ownerContact}
-𝐁𝐨𝐭 𝐎𝐰𝐧𝐞𝐫 :  ${ownerName}
-
-⏱️ Bot uptime : ${uptimeStr}
-🕒 Time (Dhaka) : ${nowDhaka}
---------------------------------------------`;
-
-    // send with attachment; safely unlink after sending
-    return api.sendMessage({
-      body,
-      attachment: fs.createReadStream(imgPath)
-    }, threadID, (err, info) => {
-      // attempt to remove file, ignore errors
-      try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch (e) {}
-      if (err) {
-        console.error("[info] sendMessage error:", err);
-        return api.sendMessage("An error occurred while sending the info.", threadID, messageID);
-      }
-    }, messageID);
-
-  } catch (error) {
-    console.error("[info command] error:", error);
-    try {
-      return api.sendMessage("❗ An unexpected error occurred while executing the info command.", event.threadID, event.messageID);
-    } catch (e) {}
-  }
+        api.sendMessage(
+          {
+            body: infoMessage,
+            attachment: fs.createReadStream(imgPath)
+          },
+          event.threadID,
+          () => fs.unlinkSync(imgPath)
+        );
+      });
 };
