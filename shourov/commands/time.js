@@ -1,31 +1,36 @@
 module.exports.config = {
   name: "time",
-  version: "1.0.1",
-  permssion: 0,
+  version: "1.0.2",
+  permission: 0,
   prefix: true,
-  credits: "Md Shourov Islam",
-  description: "Exact time & date (KING_SHOUROV STYLE)",
+  credits: "Md Shourov Islam (optimized)",
+  description: "Exact time & date (KING_SHOUROV_STYLE)",
   category: "Time and Date",
   usages: "time",
   cooldowns: 0
 };
 
 module.exports.run = async function ({ api, event, Users }) {
-
   const moment = require("moment-timezone");
 
-  // Time Zone Based Time
-  const timeNow = moment.tz("Asia/Dhaka").format("hh:mm:ss A");
-  const dateNow = moment.tz("Asia/Dhaka").format("DD/MM/YYYY");
-  const dayNow = moment.tz("Asia/Dhaka").format("dddd");
+  try {
+    // Time Zone Based Time
+    const timeNow = moment.tz("Asia/Dhaka").format("hh:mm:ss A");
+    const dateNow = moment.tz("Asia/Dhaka").format("DD/MM/YYYY");
+    const dayNow  = moment.tz("Asia/Dhaka").format("dddd");
 
-  // User Name
-  let username = await Users.getNameUser(event.senderID);
+    // Safe Username Fetch
+    let username = event.senderID;
+    try {
+      if (Users && typeof Users.getNameUser === "function") {
+        username = await Users.getNameUser(event.senderID);
+      }
+    } catch {}
 
-  // Response Text (Custom SHOUROV Style)
-  const message = 
+    // SHOUROV Styled Reply
+    const msg =
 `╔════•| ✦ |•════╗
-     ⏳ 𝙏𝙄𝙈𝙀 & 𝘿𝘼𝙏𝙀  
+      ⏳ 𝙏𝙄𝙈𝙀 & 𝘿𝘼𝙏𝙀  
 ╚════•| ✦ |•════╝
 
 👤 𝐇𝐞𝐥𝐥𝐨, ${username} 💛
@@ -33,8 +38,12 @@ module.exports.run = async function ({ api, event, Users }) {
 📅 𝐃𝐚𝐭𝐞: ${dateNow}
 📆 𝐃𝐚𝐲: ${dayNow}
 
-✨ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲:  𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕👑
-`;
+✨ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲: 𝐀𝐋𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 👑`;
 
-  return api.sendMessage(message, event.threadID, event.messageID);
-}
+    return api.sendMessage(msg, event.threadID, event.messageID);
+
+  } catch (err) {
+    console.error("TIME CMD ERROR:", err);
+    return api.sendMessage("⚠️ Time module error: " + (err.message || err), event.threadID, event.messageID);
+  }
+};
