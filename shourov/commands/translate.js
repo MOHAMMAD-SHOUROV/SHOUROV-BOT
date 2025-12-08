@@ -1,82 +1,110 @@
+const axios = require("axios");
+
 module.exports.config = {
   name: "translate",
-  version: "1.0.2",
+  version: "1.0.3",
   permission: 0,
   credits: "shourov",
   description: "text translation",
   prefix: false,
   category: "without prefix",
-  usages: `translate fr hello, how are you?`,
-  cooldowns: 5,
-  dependencies: {
-    "request": ""
-  }
+  usages: `translate fr hello, how are you?\ntranslate to fr hello\ntranslate reply (detects target from first arg)`,
+  cooldowns: 5
 };
 
-module.exports.run = async ({ api, event, args }) => {
-  const request = global.nodemodule["request"];
+function parseArgsForLang(args) {
+  // Accept formats:
+  // 1) fr hello world
+  // 2) to fr hello world
+  // 3) fr: hello world
+  // 4) translate en: hello
+  if (!args || args.length === 0) return { lang: null, content: "" };
 
-  // target language (مثلاً: "fr"), বাকি টেক্সট হল content
-  const targetLanguage = (args[0] || "").toString().trim();
-  const content = args.slice(1).join(" ").trim();
+  // join so we can parse "fr: hello" easily
+  const joined = args.join(" ").trim();
 
-  // যদি reply থেকে ট্রান্সলেট নিতে চান
-  let translateThis;
-  if (event.type === "message_reply") {
-    if (event.messageReply && event.messageReply.body && event.messageReply.body.length > 0) {
-      translateThis = event.messageReply.body;
-    } else {
-      return api.sendMessage("Please reply to a text message to translate it.", event.threadID, event.messageID);
-    }
-  } else {
-    // যদি রি-প্লাই না, তাহলে args থেকে নেন
-    if (!content || content.length === 0) {
-      return global.utils.throwError(this.config.name, event.threadID, event.messageID);
-    }
-    translateThis = content;
+  // pattern like "to fr ...", "to: fr ..." or "fr: ..." or "fr ..."
+  const mToPrefix = joined.match(/^(?:to\s*:?\s*)?([a-zA-Z\-]{2,7})\s*[:\-]?\s+(.*)$/i);
+  if (mToPrefix) {
+    return { lang: mToPrefix[1].toLowerCase(), content: mToPrefix[2].trim() };
   }
 
-  // লক্ষ্যবস্তু ভাষা যদি না দেওয়া হয়, ডিফল্টে global.config.language বা "en" নেব
-  const lang = targetLanguage || (global.config && global.config.language) || "en";
+  // fallback: maybe first token is language code and rest is content
+  const first = args[0].toLowerCase();
+  if (/^[a-zA-Z\-]{2,7}$/.test(first) && args.length > 1) {
+    return { lang: first, content: args.slice(1).join(" ").trim() };
+  }
 
-  // urlencode the query text safely
-  const encoded = encodeURIComponent(translateThis);
+  // no explicit lang found
+  return { lang: null, content: joined };
+}
 
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(lang)}&dt=t&q=${encoded}`;
-
-  return request({ url, method: "GET", timeout: 15000 }, (err, response, body) => {
-    if (err) {
-      console.error("Translate request error:", err);
-      return api.sendMessage("An error occurred while contacting translation service.", event.threadID, event.messageID);
+module.exports.run = async ({ api, event, args }) => {
+  try {
+    // If replying to a message, we prefer that text as content
+    let replyText = null;
+    if (event.type === "message_reply" && event.messageReply) {
+      // prefer body, but if attachment text exists you could expand
+      replyText = event.messageReply.body || "";
     }
 
-    let retrieve;
-    try {
-      retrieve = JSON.parse(body);
-    } catch (e) {
-      console.error("Translate parse error:", e, body && body.toString ? body.toString().slice(0,300) : body);
-      return api.sendMessage("Couldn't parse translation response.", event.threadID, event.messageID);
+    // Parse args for language + content
+    const parsed = parseArgsForLang(args);
+    let targetLang = parsed.lang;
+    let content = parsed.content;
+
+    // If the user replied to a message and didn't pass content, use the replied text
+    if (replyText && (!content || content.length === 0)) {
+      content = replyText;
     }
 
-    // validate structure
-    if (!Array.isArray(retrieve) || !Array.isArray(retrieve[0])) {
+    // If no content yet, nothing to translate
+    if (!content || content.trim().length === 0) {
+      return api.sendMessage("Please provide text to translate (or reply to a text message). Example: translate fr Hello!", event.threadID, event.messageID);
+    }
+
+    // If no target language specified, fallback to bot language config or "en"
+    if (!targetLang) {
+      targetLang = (global.config && global.config.language) ? global.config.language : "en";
+    }
+
+    // sanitize and encode
+    const encoded = encodeURIComponent(content);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encoded}`;
+
+    // call via axios
+    const resp = await axios.get(url, { timeout: 15000 });
+    if (!resp || !resp.data) {
+      return api.sendMessage("No response from translation service.", event.threadID, event.messageID);
+    }
+
+    const data = resp.data;
+
+    // Validate structure and build translated text
+    if (!Array.isArray(data) || !Array.isArray(data[0])) {
+      // sometimes Google returns a string error or other format
       return api.sendMessage("Unexpected translation response format.", event.threadID, event.messageID);
     }
 
-    // build translated text
-    let text = "";
-    retrieve[0].forEach(item => {
-      if (item && item[0]) text += item[0];
-    });
-
-    // determine source language safely
-    let fromLang = "auto";
-    if (typeof retrieve[2] === "string" && retrieve[2].length > 0) {
-      fromLang = retrieve[2];
-    } else if (retrieve[8] && Array.isArray(retrieve[8]) && retrieve[8][0] && retrieve[8][0][0]) {
-      fromLang = retrieve[8][0][0];
+    let translated = "";
+    for (const chunk of data[0]) {
+      if (Array.isArray(chunk) && chunk[0]) translated += chunk[0];
+      else if (typeof chunk === "string") translated += chunk;
     }
+    translated = translated.trim();
 
-    return api.sendMessage(`translation : ${text}\ntranslated from ${fromLang} to ${lang}`, event.threadID, event.messageID);
-  });
+    // Determine source language (best-effort)
+    let fromLang = "auto";
+    if (typeof data[2] === "string" && data[2].length > 0) fromLang = data[2];
+    else if (Array.isArray(data[8]) && Array.isArray(data[8][0]) && data[8][0][0]) fromLang = data[8][0][0];
+
+    // Build result message
+    const reply = `Translated (${fromLang} → ${targetLang}):\n${translated}`;
+
+    return api.sendMessage(reply, event.threadID, event.messageID);
+  } catch (err) {
+    console.error("Translate error:", err && (err.stack || err));
+    // friendly error message
+    return api.sendMessage("An error occurred while translating. Please try again.", event.threadID, event.messageID);
+  }
 };
