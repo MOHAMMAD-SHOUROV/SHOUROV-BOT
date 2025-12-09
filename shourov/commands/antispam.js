@@ -1,4 +1,135 @@
-// commands/antispam.js
+const num = 3;   // spam গণনা: যদি ব্যবহারকারী এই many times কমান্ড স্প্যাম করে তাহলে ban করবে
+const timee = 10; // উপরের সংখ্যা timee সেকেন্ডের মধ্যে হলে ban হবে
+
+module.exports.config = {
+  name: "antispam",
+  version: "1.0.1",
+  permission: 0,
+  credits: "shourov",
+  description: "automatically ban spammer",
+  prefix: true,
+  category: "system",
+  usages: "none",
+  cooldowns: 0,
+};
+
+module.exports.languages = {
+  "vi": {},
+  "en": {}
+}
+
+module.exports.run = async function ({ api, event }) {
+  return api.sendMessage(`Auto-ban: if you spam ${num} times within ${timee}s, you will be banned.`, event.threadID, event.messageID);
+};
+
+module.exports.handleEvent = async function ({ Users, Threads, api, event }) {
+  try {
+    const { senderID, threadID } = event;
+
+    // Ensure thread data retrieval safe
+    let datathread = {};
+    try {
+      datathread = (await Threads.getData(threadID)).threadInfo || {};
+    } catch (e) {
+      datathread = {};
+    }
+
+    // init structures
+    if (!global.client.autoban) global.client.autoban = {};
+    if (!global.data) global.data = {};
+    if (!global.data.userBanned) global.data.userBanned = new Map();
+
+    // skip if message is from bot
+    if (String(senderID) === String(global.data.botID || global.config.BOTID || "")) return;
+
+    // keep user record
+    if (!global.client.autoban[senderID]) {
+      global.client.autoban[senderID] = {
+        timeStart: Date.now(),
+        number: 0
+      };
+    }
+
+    // get prefix for this thread
+    const threadSetting = global.data.threadData ? (global.data.threadData.get(threadID) || {}) : {};
+    const prefix = threadSetting.PREFIX || global.config.PREFIX || "";
+
+    // only count when message begins with prefix (i.e., command spam)
+    if (!event.body || prefix === "" || event.body.indexOf(prefix) !== 0) return;
+
+    // reset counter if time window passed
+    if ((global.client.autoban[senderID].timeStart + (timee * 1000)) <= Date.now()) {
+      global.client.autoban[senderID] = {
+        timeStart: Date.now(),
+        number: 0
+      };
+      return;
+    } else {
+      global.client.autoban[senderID].number++;
+      // if exceed limit -> ban
+      if (global.client.autoban[senderID].number >= num) {
+
+        // don't ban admins/operators/bot owner
+        try {
+          const adminList = global.config.ADMINBOT || [];
+          const operators = global.config.OPERATOR || [];
+          if (adminList.includes(senderID.toString()) || operators.includes(senderID.toString())) {
+            // reset counter and ignore
+            global.client.autoban[senderID] = { timeStart: Date.now(), number: 0 };
+            return;
+          }
+        } catch (e) { /* ignore */ }
+
+        // check if already banned
+        let dataUser = await Users.getData(senderID) || {};
+        let data = dataUser.data || {};
+        if (data && data.banned == true) {
+          // already banned - reset counter
+          global.client.autoban[senderID] = { timeStart: Date.now(), number: 0 };
+          return;
+        }
+
+        // prepare ban data
+        const moment = require("moment-timezone");
+        const timeDate = moment.tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss");
+        data.banned = true;
+        data.reason = `spam bot ${num} times/${timee}s`;
+        data.dateAdded = timeDate;
+        await Users.setData(senderID, { data });
+        global.data.userBanned.set(senderID, { reason: data.reason, dateAdded: data.dateAdded });
+
+        // reset counter for this user
+        global.client.autoban[senderID] = {
+          timeStart: Date.now(),
+          number: 0
+        };
+
+        // notify group and admins
+        const nameUser = dataUser.name || senderID;
+        const groupName = datathread.threadName || "Unknown";
+        const notifyMsg = `🔒 Spam-ban executed\n\nName: ${nameUser}\nUser ID: ${senderID}\nReason: ${data.reason}\nGroup: ${groupName}\nGroup ID: ${threadID}\nTime: ${timeDate}`;
+
+        // send message to group (mentioning user id to show info)
+        try {
+          await api.sendMessage(`User ${nameUser} (${senderID}) has been banned for spamming commands (${num}/${timee}s).\nReport sent to admins.`, threadID);
+        } catch (e) { /* ignore errors sending to group */ }
+
+        // notify admins from config.ADMINBOT
+        try {
+          const adminIDs = global.config.ADMINBOT || [];
+          for (const ad of adminIDs) {
+            try {
+              await api.sendMessage(notifyMsg, ad);
+            } catch (e) { /* ignore per-admin send failure */ }
+          }
+        } catch (e) { /* ignore */ }
+
+      }
+    }
+  } catch (err) {
+    console.error("antispam handleEvent error:", err);
+  }
+};// commands/antispam.js
 const numDefault = 3; // default number of times spam triggers ban
 const timeDefault = 10; // default time window in seconds
 
