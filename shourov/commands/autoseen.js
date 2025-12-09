@@ -1,59 +1,61 @@
-const fs = require("fs-extra");
-const path = require("path");
+const fs = require('fs-extra');
 
-const pathDir = path.resolve(__dirname, "autoseen");
-const pathFile = path.join(pathDir, "autoseen.txt");
+const dirPath = __dirname + '/autoseen';
+const pathFile = dirPath + '/autoseen.txt';
 
 module.exports.config = {
   name: "autoseen",
-  version: "1.0.1",
+  version: "1.0.0",
   permission: 2,
   credits: "shourov",
-  description: "turn on/off automatic seen for new messages",
+  description: "turn on/off auto read messages",
   prefix: true,
   category: "system",
-  usages: "autoseen [on|off]",
-  cooldowns: 5
+  usages: "on/off",
+  cooldowns: 5,
 };
 
-// ensure folder & file exist
-if (!fs.existsSync(pathDir)) fs.mkdirSync(pathDir, { recursive: true });
-if (!fs.existsSync(pathFile)) fs.writeFileSync(pathFile, "false", "utf8");
+// AUTO CREATE FOLDER & FILE
+if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath);
+if (!fs.existsSync(pathFile)) fs.writeFileSync(pathFile, "false");
 
 module.exports.handleEvent = async ({ api, event }) => {
   try {
-    // read setting
-    const isEnable = (fs.readFileSync(pathFile, "utf8") || "false").trim() === "true";
-    if (isEnable) {
-      // mark as read (some frameworks provide markAsReadAll or markAsRead)
-      if (typeof api.markAsReadAll === "function") {
-        api.markAsReadAll(() => {});
-      } else if (typeof api.markAsRead === "function") {
-        // mark just the thread (fallback)
-        try { api.markAsRead(event.threadID, (err) => {}); } catch(e) {}
-      }
+    const status = fs.readFileSync(pathFile, "utf-8");
+
+    if (status === "true") {
+      api.markAsReadAll(() => {});
     }
-  } catch (err) {
-    console.error("autoseen handleEvent error:", err);
+
+  } catch (e) {
+    console.log("[AutoSeen Error] " + e);
   }
 };
 
 module.exports.run = async ({ api, event, args }) => {
+
   try {
-    const arg = (args[0] || "").toLowerCase();
-    if (arg === "on") {
-      fs.writeFileSync(pathFile, "true", "utf8");
-      return api.sendMessage("✅ Autoseen enabled. New messages will be marked seen automatically.", event.threadID, event.messageID);
-    } else if (arg === "off") {
-      fs.writeFileSync(pathFile, "false", "utf8");
-      return api.sendMessage("⛔ Autoseen disabled.", event.threadID, event.messageID);
-    } else {
-      // show current status
-      const cur = (fs.readFileSync(pathFile, "utf8") || "false").trim() === "true" ? "✅ ON" : "⛔ OFF";
-      return api.sendMessage(`Autoseen status: ${cur}\nUse: autoseen on | autoseen off`, event.threadID, event.messageID);
+    const logger = global.utils.logger || console.log;
+
+    if (!args[0])
+      return api.sendMessage("❗ Use: autoseen on/off", event.threadID, event.messageID);
+
+    if (args[0].toLowerCase() === "on") {
+      fs.writeFileSync(pathFile, "true");
+      return api.sendMessage("✅ AutoSeen enabled successfully.", event.threadID, event.messageID);
     }
+
+    else if (args[0].toLowerCase() === "off") {
+      fs.writeFileSync(pathFile, "false");
+      return api.sendMessage("❌ AutoSeen disabled successfully.", event.threadID, event.messageID);
+    }
+
+    else {
+      return api.sendMessage("⚠️ Wrong usage! Use: autoseen on/off", event.threadID, event.messageID);
+    }
+
   } catch (err) {
-    console.error("autoseen run error:", err);
-    return api.sendMessage("❌ কিছু সমস্যা হয়েছে। লগ চেক করো।", event.threadID, event.messageID);
+    console.log(err);
+    api.sendMessage("⚠️ Unexpected error occurred!", event.threadID, event.messageID);
   }
 };
