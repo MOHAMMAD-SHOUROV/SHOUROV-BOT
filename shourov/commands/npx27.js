@@ -18,7 +18,7 @@ module.exports = {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      const text = body.toLowerCase();
+      const text = String(body).toLowerCase();
       const triggers = ["👻", "😈"];
 
       // check if any trigger exists in the message (emojis unaffected by toLowerCase)
@@ -50,12 +50,12 @@ module.exports = {
           }, messageID);
 
         } catch (err) {
-          console.error("ভিডিও লোড এ এরর:", err.message || err);
+          console.error("ভিডিও লোড এ এরর:", err && (err.stack || err));
           api.sendMessage("ভিডিও লোড করতে সমস্যা হয়েছে!", threadID, messageID);
         }
       }
     } catch (error) {
-      console.error("Shourov6 handleEvent error:", error);
+      console.error("npx27 handleEvent error:", error && (error.stack || error));
     }
   },
 
@@ -63,3 +63,4 @@ module.exports = {
     console.log("[npx27] Module loaded.");
   }
 };
+```0
