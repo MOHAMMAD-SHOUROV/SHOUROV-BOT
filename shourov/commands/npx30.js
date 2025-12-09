@@ -17,7 +17,7 @@ module.exports = {
     const { threadID, messageID, body } = event;
     if (!body) return;
 
-    const text = body.toLowerCase();
+    const text = String(body).toLowerCase();
 
     // trigger when message contains prince or princess emoji (or words)
     const triggered = text.includes("🤴") || text.includes("👸") || text.includes("prince") || text.includes("princess");
@@ -32,7 +32,7 @@ module.exports = {
       });
 
       const msg = {
-        body: "𝐊𝐢𝐧𝐠_𝐒𝐡𝐨𝐮𝐫𝐨𝐯 👑",
+        body: "𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 👑",
         attachment: res.data
       };
 
@@ -50,9 +50,13 @@ module.exports = {
       });
 
     } catch (err) {
-      console.error("Video load error:", err.message || err);
+      console.error("Video load error:", err && (err.stack || err));
       // fallback text if the video can't be loaded
-      api.sendMessage("❌ ভিডিও লোড করতে সমস্যা হয়েছে! পরে আবার চেষ্টা করুন।", threadID, messageID);
+      try {
+        api.sendMessage("❌ ভিডিও লোড করতে সমস্যা হয়েছে! পরে আবার চেষ্টা করুন।", threadID, messageID);
+      } catch (e) {
+        console.error("Fallback send failed:", e);
+      }
     }
   },
 
