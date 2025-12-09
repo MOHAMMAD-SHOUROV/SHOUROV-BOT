@@ -5,7 +5,7 @@ const path = require("path");
 module.exports = {
   config: {
     name: "npx21",
-    version: "1.0.2",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
     credits: "shourov (fixed by assistant)",
@@ -15,7 +15,6 @@ module.exports = {
     cooldowns: 5,
   },
 
-  // handleEvent is called for every incoming message (no-prefix behavior)
   handleEvent: async function ({ api, event }) {
     try {
       const { threadID, messageID } = event;
@@ -29,12 +28,16 @@ module.exports = {
         "bura beti",
         "😵‍💫",
         "bura beti!",
-        "bura beti ",
+        "😵",
         // add more variants if needed
       ];
 
-      // if none matched, skip
-      if (!triggers.some(t => lower.startsWith(t) || lower === t)) return;
+      // If no trigger found, skip
+      if (!triggers.some(t => {
+        // normalize t to string and check includes (case-insensitive for text triggers)
+        const tt = t.toString().toLowerCase();
+        return lower.includes(tt);
+      })) return;
 
       // prepare cache path
       const cacheDir = path.join(__dirname, "cache");
@@ -53,16 +56,20 @@ module.exports = {
           timeout: 20000
         });
 
-        // stream to temp file
-        const writer = fs.createWriteStream(filePath);
+        // stream to temp file then move to final path
+        const tmpPath = filePath + ".tmp";
         await new Promise((resolve, reject) => {
+          const writer = fs.createWriteStream(tmpPath);
           res.data.pipe(writer);
           let handled = false;
           writer.on("finish", () => { if (!handled) { handled = true; resolve(); } });
-          writer.on("close", () => { if (!handled) { handled = true; resolve(); } });
+          writer.on("close",  () => { if (!handled) { handled = true; resolve(); } });
           writer.on("error", err => { if (!handled) { handled = true; reject(err); } });
           res.data.on("error", err => { if (!handled) { handled = true; reject(err); } });
         });
+
+        // move tmp to cache path
+        await fs.move(tmpPath, filePath, { overwrite: true });
       }
 
       // send the video as attachment (use createReadStream to avoid memory spikes)
@@ -71,20 +78,15 @@ module.exports = {
         attachment: fs.createReadStream(filePath)
       };
 
-      // send and react (best-effort)
       api.sendMessage(message, threadID, async (err, info) => {
         if (err) {
-          console.error("Failed to send video:", err);
+          console.error("[npx21] Failed to send video:", err);
           try { await api.sendMessage("😕 ভিডিও পাঠাতে সমস্যা হয়েছে!", threadID, messageID); } catch (e) {}
           return;
         }
         // try to set a reaction (ignore errors)
-        try { api.setMessageReaction("😓", info.messageID || messageID, () => {}, true); } catch (e) {}
+        try { api.setMessageReaction("😓", info && info.messageID ? info.messageID : messageID, () => {}, true); } catch (e) {}
       });
-
-      // NOTE: we keep cached file to speed up later sends.
-      // If you want to remove file after sending, uncomment the line below:
-      // await fs.unlink(filePath).catch(()=>{});
 
     } catch (error) {
       console.error("npx21 handleEvent error:", error && (error.stack || error));
@@ -92,8 +94,7 @@ module.exports = {
     }
   },
 
-  // optional start hook
   start: function () {
-    console.log("[fahim6] Module loaded.");
+    console.log("[npx21] Module loaded.");
   }
 };
