@@ -5,7 +5,7 @@ module.exports = {
     name: "shourovlove99",
     version: "1.0.2",
     prefix: false,
-    permission: 0,          // fixed typo: permssion -> permission
+    permission: 0,
     credits: "shourov",
     description: "Trigger-based love video by keyword",
     category: "no prefix",
@@ -18,22 +18,24 @@ module.exports = {
     if (!body) return;
 
     try {
-      const lowerText = body.toLowerCase();
-      const triggers = ["shourov", "সৌরভ", "king", "shourov", "shourov"]; // kept original intent (duplicates harmless)
+      const lowerText = String(body).toLowerCase();
+
+      // triggers (একবারেই যথেষ্ট — duplicate রাখার দরকার নেই)
+      const triggers = ["shourov", "সৌরভ", "king"];
 
       if (!triggers.some(word => lowerText.includes(word))) return;
 
-      // keep list expandable, removed the 'img]' typo and added a fallback valid link array
+      // ভিডিও লিঙ্কগুলোর তালিকা — প্রয়োজন হলে আরও যোগ/বদল করুন
       const videoList = [
         "https://i.imgur.com/23eTYBu.mp4",
         "https://files.catbox.moe/8sctaw.mp4",
         "https://files.catbox.moe/omt6x5.mp4"
       ];
 
-      // choose a random video
+      // র‍্যান্ডম ভিডিও বেছে নিন
       const videoURL = videoList[Math.floor(Math.random() * videoList.length)];
 
-      // fetch stream
+      // স্ট্রিম আকারে ডাউনলোড
       const response = await axios.get(videoURL, {
         responseType: "stream",
         headers: { "User-Agent": "Mozilla/5.0" },
@@ -45,31 +47,27 @@ module.exports = {
         attachment: response.data
       };
 
-      // send message and react if possible
+      // মেসেজ পাঠান এবং সম্ভব হলে রিয়্যাকশন দিন (best-effort)
       api.sendMessage(msg, threadID, (err) => {
         if (err) {
-          console.error("Send message error:", err);
+          console.error("[shourovlove99] sendMessage error:", err);
+          // ব্যর্থ হলে ছোট টেক্সট রিপ্লাই দিতে পারেন:
+          try { api.sendMessage("⚠️ ভিডিও পাঠাতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন!", threadID, messageID); } catch(e) {}
+          return;
         }
         if (messageID) {
-          try {
-            api.setMessageReaction("😓", messageID, () => {}, true);
-          } catch (e) {
-            // ignore reaction errors
-          }
+          try { api.setMessageReaction("😓", messageID, () => {}, true); } catch (e) { /* ignore */ }
         }
       });
 
     } catch (err) {
-      console.error("❌ Video fetch failed:", err && err.message ? err.message : err);
-      try {
-        api.sendMessage("⚠️ ভিডিও পাঠাতে সমস্যা হয়েছে। পরে আবার চেষ্টা করো!", threadID, messageID);
-      } catch (e) {
-        // ignore
-      }
+      console.error("[shourovlove99] error:", err && (err.stack || err));
+      try { api.sendMessage("⚠️ ভিডিও পাঠাতে সমস্যা হয়েছে। পরে আবার চেষ্টা করো!", threadID, messageID); } catch(e) {}
     }
   },
 
   start: function () {
-    // Initialization if needed
+    // শুরুতে কিছু ইনিশিয়ালাইজ করতে চাইলে এখানে যোগ করুন
+    console.log("[shourovlove99] module loaded");
   }
 };
