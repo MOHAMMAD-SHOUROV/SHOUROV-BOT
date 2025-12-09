@@ -1,69 +1,76 @@
+// commands/shourov13.js
 const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
 
-let cachedStream = null; // ক্যাশ করা স্ট্রিম / ডাউনলোড
+const CACHE_DIR = path.join(__dirname, "cache");
+const FILE_PATH = path.join(CACHE_DIR, "shourov13.mp4");
+const VIDEO_URL = "https://files.catbox.moe/7cf5c9.mp4"; // আপনার ভিডিও লিঙ্ক
 
 module.exports = {
   config: {
     name: "shourov13",
-    version: "1.0.2",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
-    credits: "nayan",
-    description: "Sad reacts video",
+    credits: "nayan (fixed by ChatGPT)",
+    description: "Sad reacts video (no prefix)",
     category: "no prefix",
-    usages: "😭 or 🤧",
+    usages: "😭 or 🤧 or 3",
     cooldowns: 5,
   },
 
   handleEvent: async function({ api, event }) {
-    const { threadID, messageID, body } = event;
+    const { body, threadID, messageID } = event;
     if (!body) return;
 
-    // 그대로 রাখো (emoji-র জন্য toLowerCase ঐচ্ছিক — emoji-তে বদল আসে না)
     const text = body.toString();
-
-    // ট্রিগারগুলো — তুমি চাইলে এখানে আরও যোগ করতে পারবে
     const triggers = ["😭", "🤧", "3"];
 
-    // যদি কোনো ট্রিগার পাওয়া যায়
+    // ট্রিগার মিলছে কি?
     if (!triggers.some(t => text.includes(t))) return;
 
     try {
-      // ক্যাশ ব্যবহার — যদি আগে লোড করা না থাকে তাহলে লোড করো
-      if (!cachedStream) {
-        const url = "https://files.catbox.moe/7cf5c9.mp4"; // তোমার মিডিয়া লিংক
-        const res = await axios.get(url, {
+      // cache folder create
+      await fs.ensureDir(CACHE_DIR);
+
+      // যদি ফাইল নাই বা empty → download
+      if (!await fs.pathExists(FILE_PATH) || (await fs.stat(FILE_PATH)).size === 0) {
+        const res = await axios.get(VIDEO_URL, {
           responseType: "stream",
           headers: { "User-Agent": "Mozilla/5.0" },
           timeout: 30000
         });
 
-        // আমরা response.data (stream) কে সরাসরি ক্যাশ করছি।
-        // কিছু environment-এ stream reuse না হলে তুমি ফাইল হিসেবে ডাউনলোড করে পাঠাতে পারো।
-        cachedStream = res.data;
+        const writer = fs.createWriteStream(FILE_PATH);
+        res.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+          writer.on("finish", resolve);
+          writer.on("error", reject);
+        });
       }
 
+      // প্রতিবার নতুন stream → perfect for fbchat API
       const msg = {
-        body: "𝐊𝐢𝐧𝐠_𝐒𝐡𝐨𝐮𝐫𝐨𝐯 ",
-        attachment: cachedStream
+        body: "𝐒𝐇𝐎𝐔𝐑𝐎𝐕_𝐁𝐎𝐓",
+        attachment: fs.createReadStream(FILE_PATH)
       };
 
-      // পাঠানোর পর info.messageID ব্যবহার করে reaction দাও
       api.sendMessage(msg, threadID, (err, info) => {
-        if (err) {
-          console.error("Send message error:", err);
-          return;
-        }
-        // reaction should target the message the bot sent (info.messageID)
+        if (err) return console.error("[shourov13] Send Error:", err);
+
+        // react to bot’s message (not to user)
         api.setMessageReaction("😂", info.messageID, () => {}, true);
-      }, messageID);
+      });
 
     } catch (err) {
-      console.error("❌ ভিডিও পাঠাতে সমস্যা:", err && err.message ? err.message : err);
-      // ব্যর্থ হলে fallback message পাঠাও
+      console.error("[shourov13] ERROR:", err.message || err);
       api.sendMessage("⚠️ ভিডিও পাঠানো যায়নি!", threadID, messageID);
     }
   },
 
-  start() {}
+  start() {
+    console.log("[shourov13] Loaded successfully!");
+  }
 };
