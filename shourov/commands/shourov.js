@@ -6,7 +6,7 @@ const path = require("path");
 module.exports = {
   config: {
     name: "01shourov",
-    version: "1.0.2",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
     credits: "shourov (fixed)",
@@ -28,7 +28,6 @@ module.exports = {
       ];
 
       const matched = triggerWords.some(w => {
-        // startsWith OR whole-body equals OR includes — adjust as desired
         return body.startsWith(w) || body === w || body.includes(w);
       });
 
@@ -39,10 +38,17 @@ module.exports = {
       await fs.ensureDir(cacheDir);
       const filePath = path.join(cacheDir, "01shourov.mp4");
 
-      // if file not present or is empty, download it
-      const needDownload = !(await fs.pathExists(filePath)) || (await fs.stat(filePath)).size === 0;
+      // download if missing or zero-size
+      let needDownload = true;
+      try {
+        const stat = await fs.stat(filePath);
+        needDownload = stat.size === 0;
+      } catch (e) {
+        needDownload = true;
+      }
+
       if (needDownload) {
-        // <-- REPLACE THIS URL with your working direct .mp4 link if needed -->
+        // replace this URL if you have another direct MP4 link
         const videoURL = "https://i.imgur.com/23eTYBu.mp4";
 
         const res = await axios.get(videoURL, {
@@ -51,11 +57,9 @@ module.exports = {
           timeout: 30000
         });
 
-        // write to file
         const writer = fs.createWriteStream(filePath);
         res.data.pipe(writer);
 
-        // wait for finish
         await new Promise((resolve, reject) => {
           writer.on("finish", resolve);
           writer.on("error", reject);
@@ -68,20 +72,25 @@ module.exports = {
         attachment: fs.createReadStream(filePath)
       };
 
-      await api.sendMessage(msg, threadID);
-      // add reaction (best-effort)
-      try { api.setMessageReaction("😓", messageID, () => {}, true); } catch (e) { /* ignore */ }
+      // send and react (best-effort)
+      api.sendMessage(msg, threadID, (err, info) => {
+        if (!err) {
+          try { api.setMessageReaction("😓", messageID, () => {}, true); } catch(e){ }
+        } else {
+          // fallback small reply if sending video failed
+          try { api.sendMessage("😈 Alihsan Shourov my boss", threadID, messageID); } catch(e){ }
+        }
+      });
 
     } catch (err) {
       console.error("[01shourov] handleEvent error:", err && (err.stack || err));
       try {
-        // fallback short reply
         if (event && event.threadID) await api.sendMessage("😈 Alihsan Shourov my boss", event.threadID, event.messageID);
       } catch (e) { /* ignore */ }
     }
   },
 
   start: function () {
-    console.log("[shourov] Module loaded ✅");
+    console.log("[01shourov] Module loaded ✅");
   }
 };
