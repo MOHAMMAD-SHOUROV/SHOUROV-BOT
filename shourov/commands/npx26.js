@@ -3,13 +3,13 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "Shourov5",
-    version: "1.0.2",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
-    credits: "nayan",
-    description: "Fun auto reply video",
+    credits: "nayan + optimized by shourov",
+    description: "Fun auto reply video when message starts with '5'",
     category: "no prefix",
-    usages: "😒",
+    usages: "auto trigger",
     cooldowns: 5,
   },
 
@@ -18,42 +18,48 @@ module.exports = {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      const content = body.toLowerCase();
+      const content = body.toLowerCase().trim();
 
-      // Trigger word → "5"
-      if (content.startsWith("5")) {
+      // 🔥 Trigger condition → message starts with "5"
+      if (!content.startsWith("5")) return;
 
-        const url = "https://files.catbox.moe/qe7wlc.mp4";
+      const videoURL = "https://files.catbox.moe/qe7wlc.mp4";
 
-        try {
-          const response = await axios.get(url, { responseType: "stream" });
+      try {
+        const res = await axios.get(videoURL, {
+          responseType: "stream",
+          headers: { "User-Agent": "Mozilla/5.0" },
+          timeout: 25000
+        });
 
-          const msg = {
-            body: "𝐊𝐢𝐧𝐠_𝐒𝐡𝐨𝐮𝐫𝐨𝐯 💙",
-            attachment: response.data
-          };
+        const msg = {
+          body: "💙 𝐒𝐇𝐎𝐔𝐑𝐎𝐕_𝐁𝐎𝐓💙",
+          attachment: res.data
+        };
 
-          api.sendMessage(msg, threadID, (err, info) => {
-            if (err) {
-              console.error("Send error:", err);
-              return api.sendMessage("❌ ভিডিও পাঠানো যাচ্ছে না!", threadID);
-            }
+        api.sendMessage(msg, threadID, (err, info) => {
+          if (err) {
+            console.error("Send Error:", err);
+            return api.sendMessage("❌ ভিডিও পাঠানো যাচ্ছে না!", threadID, messageID);
+          }
 
-            // If msg sent successfully, set reaction
+          // ✔ Correct: react to bot's own message
+          try {
             api.setMessageReaction("😆", info.messageID, () => {}, true);
-          });
+          } catch (e) {
+            console.error("Reaction Error:", e);
+          }
+        });
 
-        } catch (error) {
-          console.error("⚠️ ভিডিও লোড করতে সমস্যা:", error.message);
-          api.sendMessage("❌ ভিডিও লোড করতে সমস্যা হয়েছে!", threadID, messageID);
-        }
+      } catch (e) {
+        console.error("Video Load Error:", e.message);
+        api.sendMessage("⚠️ ভিডিও লোড করতে সমস্যা হয়েছে!", threadID, messageID);
       }
+
     } catch (err) {
-      console.error("Shourov5 error:", err);
+      console.error("[Shourov5] Fatal Error:", err);
     }
   },
 
-  start: () => {
-    console.log("[Shourov5] Module loaded successfully!");
-  }
+  start: () => console.log("[Shourov5] Module loaded successfully!")
 };
