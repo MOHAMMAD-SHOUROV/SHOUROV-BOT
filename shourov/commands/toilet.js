@@ -1,11 +1,11 @@
 // commands/toilet.js
 module.exports.config = {
   name: "toilet",
-  version: "1.0.2",
+  version: "1.0.3",
   permission: 0,
   prefix: true,
-  credits: "shourov (patched)",
-  description: "Make user sit on toilet (shows profile pic if possible)",
+  credits: "shourov (patched, improved avatar quality)",
+  description: "Make user sit on toilet (shows clearer profile pic)",
   category: "fun",
   usages: "@tag / self / reply-to-image",
   cooldowns: 5
@@ -19,8 +19,9 @@ module.exports.run = async ({ event, api, args }) => {
   const jimp = require("jimp");
 
   const { threadID, messageID, senderID } = event;
+  const cacheDir = path.join(__dirname, "cache");
+  await fs.ensureDir(cacheDir);
 
-  // small sleep helper
   const sleep = ms => new Promise(res => setTimeout(res, ms));
 
   async function downloadBuffer(url, opts = {}) {
@@ -34,9 +35,7 @@ module.exports.run = async ({ event, api, args }) => {
         return Buffer.from(res.data);
       } catch (e) {
         lastErr = e;
-        // backoff a bit
         await sleep(500 * (i + 1));
-        // if rate-limited, wait longer
         if (e.response && e.response.status === 429) {
           const ra = parseInt(e.response.headers["retry-after"]) || (2 ** i);
           await sleep(1000 * ra);
@@ -46,200 +45,204 @@ module.exports.run = async ({ event, api, args }) => {
     throw lastErr || new Error("downloadBuffer failed for " + url);
   }
 
-  // Try to get a better avatar URL using available APIs:
-  // 1) try api.getUserInfo (if available in this bot framework)
-  // 2) try graph.facebook.com/<id>/picture?redirect=false&width=512&height=512&access_token=APPTOKEN (if APP_TOKEN provided)
-  // 3) fallback to direct graph picture redirect (may be silhouette)
-  async function fetchAvatarBuffer(targetID) {
-    // 1) try framework getUserInfo -> some chats provide url/thumbSrc
+  // Try to fetch better avatar (same logic as before, but kept concise)
+  async function fetchAvatarBuffer(targetID, replyImagePath = null) {
+    if (replyImagePath && fs.existsSync(replyImagePath)) {
+      return fs.readFileSync(replyImagePath);
+    }
+
+    // try api.getUserInfo if available
     try {
       if (typeof api.getUserInfo === "function") {
         const info = await api.getUserInfo(targetID);
         if (info && info[targetID]) {
-          // common fields: profileUrl, thumbSrc, avatarUrl, smallProfilePhoto
           const candidate = info[targetID].thumbSrc || info[targetID].profileUrl || info[targetID].avatarUrl || info[targetID].smallProfilePhoto;
           if (candidate) {
-            try {
-              const buf = await downloadBuffer(candidate);
-              return { buffer: buf, source: "api.getUserInfo -> thumbSrc" };
-            } catch (err) {
-              // ignore and continue
-              console.warn("avatar: getUserInfo candidate failed:", err && err.message);
-            }
+            try { return await downloadBuffer(candidate, { maxTry: 3 }); } catch(e){ /* continue */ }
           }
         }
       }
-    } catch (e) {
-      // ignore, not fatal
-      console.warn("avatar: api.getUserInfo failed:", e && e.message);
-    }
+    } catch(e){ /* ignore */ }
 
-    // 2) try graph API with redirect=false to examine is_silhouette
-    // allow user to set APP_TOKEN in env: APP_TOKEN=appId|appSecret
-    const appToken = process.env.APP_TOKEN || process.env.APP_ACCESS_TOKEN || null;
+    // try graph redirect=false (requires optional APP_TOKEN in env)
     try {
-      let graphUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&redirect=false`;
+      let graphUrl = `https://graph.facebook.com/${targetID}/picture?width=1024&height=1024&redirect=false`;
+      const appToken = process.env.APP_TOKEN || process.env.APP_ACCESS_TOKEN || null;
       if (appToken) graphUrl += `&access_token=${encodeURIComponent(appToken)}`;
-      const res = await axios.get(graphUrl, { timeout: 10000 });
-      if (res && res.data && res.data.data && res.data.data.url) {
-        const isSil = !!res.data.data.is_silhouette;
-        const picUrl = res.data.data.url;
+      const resp = await axios.get(graphUrl, { timeout: 10000 }).catch(()=>null);
+      if (resp && resp.data && resp.data.data && resp.data.data.url) {
+        const isSil = !!resp.data.data.is_silhouette;
+        const picUrl = resp.data.data.url;
         if (!isSil && picUrl) {
-          try {
-            const buf = await downloadBuffer(picUrl);
-            return { buffer: buf, source: "graph redirect=false (non-silhouette)" };
-          } catch (err) {
-            console.warn("avatar: download from graph data.url failed:", err && err.message);
-          }
+          try { return await downloadBuffer(picUrl, { maxTry: 3, timeout: 15000 }); } catch(e){ /* continue */ }
         } else {
-          // silhouette -> real picture not available publically
-          console.warn("avatar: graph reports silhouette for user", targetID);
-          // still attempt direct redirect (may return same)
-          try {
-            const direct = `https://graph.facebook.com/${targetID}/picture?width=512&height=512`;
-            const b2 = await downloadBuffer(direct);
-            return { buffer: b2, source: "graph direct (silhouette likely)" };
-          } catch (err) {
-            console.warn("avatar: direct graph fallback failed:", err && err.message);
-          }
+          // still try direct (may return silhouette)
+          try { return await downloadBuffer(`https://graph.facebook.com/${targetID}/picture?width=1024&height=1024`, { maxTry: 2 }); } catch(e){ /* continue */ }
         }
       }
-    } catch (e) {
-      console.warn("avatar: graph redirect=false error:", e && (e.response && e.response.status) || e.message);
-    }
+    } catch(e){ /* ignore */ }
 
-    // 3) final attempt: direct Graph picture (may redirect to silhouette)
+    // fallback direct
     try {
-      const direct = `https://graph.facebook.com/${targetID}/picture?width=512&height=512`;
-      const b = await downloadBuffer(direct, { maxTry: 2 });
-      return { buffer: b, source: "graph direct final" };
+      return await downloadBuffer(`https://graph.facebook.com/${targetID}/picture?width=1024&height=1024`, { maxTry: 2 });
     } catch (e) {
-      console.warn("avatar: final direct graph failed:", e && e.message);
+      // final fallback: create neutral avatar
+      const tmp = new jimp(1024, 1024, "#777777");
+      return await tmp.getBufferAsync(jimp.MIME_PNG);
     }
-
-    // 4) nothing worked -> return null to indicate fallback required
-    return null;
   }
 
   try {
-    const cacheDir = path.join(__dirname, "cache");
-    await fs.ensureDir(cacheDir);
-    const outPath = path.join(cacheDir, `toilet_${Date.now()}.png`);
-
-    // determine target
+    // target id
     const mentions = event.mentions || {};
     const mentionIds = Object.keys(mentions);
     const targetID = mentionIds.length ? mentionIds[0] : senderID;
 
-    // background (small retry)
-    const bgURL = "https://i.imgur.com/Kn7KpAr.jpg";
-    let bgBuffer = null;
-    try {
-      bgBuffer = await downloadBuffer(bgURL, { maxTry: 3, timeout: 20000 });
-    } catch (e) {
-      console.warn("TOILET: bg download failed:", e && e.message);
-      // fallback bg with jimp
-      const bmp = new jimp(500, 670, "#f2f2f2");
-      bgBuffer = await bmp.getBufferAsync(jimp.MIME_PNG);
-    }
-
-    // check if user replied with an image; if so prefer that
+    // reply image support
     let replyImagePath = null;
     if (event.type === "message_reply" && event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length) {
       const att = event.messageReply.attachments[0];
-      if (att.url && (/\.(jpg|jpeg|png|gif)$/i.test(att.url) || (att.mimeType && att.mimeType.startsWith("image")))) {
+      if (att && att.url) {
         try {
-          replyImagePath = path.join(cacheDir, `reply_${Date.now()}.jpg`);
-          // simple download
-          const rb = await downloadBuffer(att.url, { maxTry: 3, timeout: 15000 });
-          fs.writeFileSync(replyImagePath, rb);
+          replyImagePath = path.join(cacheDir, `reply_img_${Date.now()}.jpg`);
+          const b = await downloadBuffer(att.url, { maxTry: 3, timeout: 15000 });
+          fs.writeFileSync(replyImagePath, b);
         } catch (e) {
-          console.warn("TOILET: reply image download failed:", e && e.message);
           replyImagePath = null;
         }
       }
     }
 
-    // avatar fetch
-    let avatarResult = null;
-    if (replyImagePath) {
-      avatarResult = { buffer: fs.readFileSync(replyImagePath), source: "replied-image" };
-    } else {
-      avatarResult = await fetchAvatarBuffer(targetID);
+    // background
+    const bgURL = "https://i.imgur.com/Kn7KpAr.jpg";
+    let bgBuffer = null;
+    try { bgBuffer = await downloadBuffer(bgURL, { maxTry: 3, timeout: 20000 }); }
+    catch (e) {
+      const fallbackBg = await jimp.create(500, 670, "#e9eef2");
+      bgBuffer = await fallbackBg.getBufferAsync(jimp.MIME_PNG);
     }
 
-    let avatarBuffer = null;
-    if (avatarResult && avatarResult.buffer) avatarBuffer = avatarResult.buffer;
-    else {
-      // fallback placeholder
-      const tmp = new jimp(512, 512, "#777777");
-      avatarBuffer = await tmp.getBufferAsync(jimp.MIME_PNG);
-      console.warn("TOILET: Using placeholder avatar for", targetID);
-    }
+    // avatar (higher resolution)
+    const rawAvatar = await fetchAvatarBuffer(targetID, replyImagePath);
 
-    // circle crop
-    const avatarImg = await jimp.read(avatarBuffer);
-    avatarImg.circle();
-    const circBuf = await avatarImg.getBufferAsync(jimp.MIME_PNG);
+    // Use jimp to process avatar at high resolution to avoid pixelation
+    // Steps:
+    // 1) read at 1024x1024 (or current size)
+    // 2) optionally enhance: increase contrast/brightness/sharpness
+    // 3) circle mask, then resize down to final size (this improves quality)
+    const avatarJ = await jimp.read(rawAvatar);
+    // ensure square
+    const side = Math.max(avatarJ.bitmap.width, avatarJ.bitmap.height, 512);
+    avatarJ.contain(side, side, jimp.HORIZONTAL_ALIGN_CENTER | jimp.VERTICAL_ALIGN_MIDDLE);
 
-    // canvas compose
-    const bgImg = await Canvas.loadImage(bgBuffer);
-    const avaImg = await Canvas.loadImage(circBuf);
+    // gentle enhancements
+    try {
+      avatarJ.contrast(0.05);       // small contrast boost
+      avatarJ.brightness(0.03);     // tiny brightness
+      // apply a small convolution to sharpen a bit (unsharp-like)
+      const sharpenKernel = [
+        0, -1, 0,
+        -1, 5, -1,
+        0, -1, 0
+      ];
+      avatarJ.convolute(sharpenKernel, 3, 3);
+    } catch(e){ /* some jimp versions may not support */ }
 
-    const canvas = Canvas.createCanvas(500, 670);
+    // make circle at high-res
+    avatarJ.circle();
+    // final avatar size to draw onto canvas (bigger than before to be clear)
+    const finalAvatarSize = 260; // increase to 260 for clarity
+    avatarJ.resize(finalAvatarSize, finalAvatarSize);
+
+    // create ring/border: place avatar onto larger canvas with white border and subtle shadow
+    const ringSize = finalAvatarSize + 32; // 16px border
+    const ringImage = new jimp(ringSize, ringSize, 0x00000000);
+    // draw blurred shadow behind
+    const shadow = new jimp(ringSize, ringSize, 0x00000000);
+    // draw a semi-transparent black circle for shadow then blur
+    const shadowCircle = new jimp(ringSize, ringSize, 0x00000000);
+    shadowCircle.circle();
+    shadowCircle.opacity(0.18);
+    shadowCircle.blur(8);
+    shadow.composite(shadowCircle, 0, 6); // slight offset downwards
+
+    // white border circle
+    const border = new jimp(ringSize, ringSize, 0xffffffff);
+    border.circle();
+    // mask border so center is transparent
+    const inner = new jimp(ringSize - 20, ringSize - 20, 0x00000000);
+    inner.circle();
+    border.composite(inner, 10, 10, { mode: jimp.BLEND_SOURCE_OVER });
+
+    // compose final ringImage: shadow -> border -> avatar centered
+    ringImage.composite(shadow, 0, 0);
+    ringImage.composite(border, 0, 0);
+    ringImage.composite(avatarJ, Math.floor((ringSize - finalAvatarSize) / 2), Math.floor((ringSize - finalAvatarSize) / 2));
+
+    // export ringImage buffer as PNG
+    const ringBuf = await ringImage.getBufferAsync(jimp.MIME_PNG);
+
+    // Canvas compose: background (500x670) + ring image placed over seat
+    const canvasW = 500;
+    const canvasH = 670;
+    const canvas = Canvas.createCanvas(canvasW, canvasH);
     const ctx = canvas.getContext("2d");
 
-    ctx.drawImage(bgImg, 0, 0, 500, 670);
-    // draw avatar in seat (coordinates same as earlier)
-    ctx.drawImage(avaImg, 135, 350, 205, 205);
+    // load images into Canvas
+    const bgImg = await Canvas.loadImage(bgBuffer);
+    const ringCanvasImg = await Canvas.loadImage(ringBuf);
 
-    // optional name under avatar (try get via api.getUserInfo)
+    // draw bg
+    ctx.drawImage(bgImg, 0, 0, canvasW, canvasH);
+
+    // coordinates tuned to look centered in toilet bowl
+    const ringX = 120; // tweak if necessary
+    const ringY = 330;
+
+    ctx.drawImage(ringCanvasImg, ringX, ringY, ringSize, ringSize);
+
+    // optional: draw name label under the ring (centered)
     let displayName = `User${String(targetID).slice(-4)}`;
     try {
       if (typeof api.getUserInfo === "function") {
         const info = await api.getUserInfo(targetID);
         if (info && info[targetID] && info[targetID].name) displayName = info[targetID].name;
       }
-    } catch (e) {
-      // ignore
-    }
-    ctx.font = "18px Sans";
-    ctx.fillStyle = "#ffffff";
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 3;
-    ctx.textAlign = "center";
-    const nameX = canvas.width / 2;
-    ctx.strokeText(displayName, nameX, 580);
-    ctx.fillText(displayName, nameX, 580);
+    } catch (e) {}
 
-    // write file
-    const finalBuf = canvas.toBuffer("image/png");
-    await fs.writeFile(outPath, finalBuf);
+    ctx.font = "18px Sans";
+    ctx.textAlign = "center";
+    // draw outlined text for readability
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "black";
+    ctx.fillStyle = "white";
+    ctx.strokeText(displayName, canvasW / 2, ringY + ringSize + 28);
+    ctx.fillText(displayName, canvasW / 2, ringY + ringSize + 28);
+
+    // save final
+    const outPath = path.join(cacheDir, `toilet_${Date.now()}.png`);
+    const buf = canvas.toBuffer("image/png");
+    await fs.writeFile(outPath, buf);
 
     // send
-    const msg = {
-      body: mentionIds.length ? `${displayName}, বসে গেছো 🚽` : `${displayName}, বসে গেছো 🚽`,
-      attachment: fs.createReadStream(outPath)
-    };
-
+    const bodyMsg = mentionIds.length ? `${displayName}, বসে গেছো 🚽` : `${displayName}, বসে গেছো 🚽`;
     try {
       await new Promise((resolve, reject) => {
-        api.sendMessage(msg, threadID, (err, info) => {
-          if (err) { console.error("TOILET send error:", err && (err.message || err)); return reject(err); }
+        api.sendMessage({ body: bodyMsg, attachment: fs.createReadStream(outPath) }, threadID, (err, info) => {
+          if (err) return reject(err);
           resolve(info);
         }, messageID);
       });
     } catch (e) {
-      console.warn("TOILET: primary send failed, trying simple send:", e && e.message);
-      try { api.sendMessage(msg, threadID, messageID); } catch (e2) { console.error("TOILET final send failed:", e2 && e2.message); }
+      try { api.sendMessage({ body: bodyMsg, attachment: fs.createReadStream(outPath) }, threadID, messageID); } catch(err2) { /* ignore */ }
     }
 
     // cleanup
-    try { if (fs.existsSync(outPath)) await fs.unlink(outPath); } catch (e) {}
-    try { if (replyImagePath && fs.existsSync(replyImagePath)) await fs.unlink(replyImagePath); } catch (e) {}
+    try { if (fs.existsSync(outPath)) await fs.unlink(outPath); } catch(e){/*ignore*/}
+    try { if (replyImagePath && fs.existsSync(replyImagePath)) await fs.unlink(replyImagePath); } catch(e){/*ignore*/}
 
   } catch (err) {
     console.error("TOILET ERROR:", err && (err.stack || err.message));
-    try { api.sendMessage("🔧 কিছু সমস্যা হয়েছে: " + (err.message || err), threadID, messageID); } catch (e) {}
+    try { api.sendMessage("🔧 কিছু সমস্যা হয়েছে: " + (err.message || err), threadID, messageID); } catch(e){/*ignore*/}
   }
 };
