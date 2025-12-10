@@ -1,123 +1,105 @@
 module.exports.config = {
   name: "toilet",
-  version: "2.0.0",
+  version: "3.0.0",
   permission: 0,
   prefix: true,
-  credits: "Shourov (Fixed by ChatGPT)",
-  description: "Make user sit in toilet — clear HD avatar",
+  credits: "Shourov + ChatGPT",
+  description: "Works even if user profile pic is private",
   category: "fun",
   cooldowns: 5
 };
 
 module.exports.run = async ({ event, api }) => {
+
   const fs = require("fs-extra");
   const path = require("path");
   const axios = require("axios");
   const Canvas = require("canvas");
   const Jimp = require("jimp");
 
-  const cacheDir = path.join(__dirname, "cache");
-  await fs.ensureDir(cacheDir);
+  const cache = path.join(__dirname, "cache");
+  fs.ensureDirSync(cache);
 
-  const target =
-    Object.keys(event.mentions || {})[0] || event.senderID;
+  const target = Object.keys(event.mentions || {})[0] || event.senderID;
+  const outPath = path.join(cache, `toilet_${Date.now()}.png`);
 
-  const outPath = path.join(cacheDir, `toilet_${Date.now()}.png`);
-
-  // -------------------------
-  // SAFE IMAGE DOWNLOAD
-  // -------------------------
-  async function fetchBuffer(url) {
-    try {
-      const res = await axios.get(url, { responseType: "arraybuffer" });
-      return Buffer.from(res.data);
-    } catch {
-      return null;
-    }
-  }
-
-  // -------------------------
-  // FETCH PROFILE PIC (WEBP FIX)
-  // -------------------------
+  // -----------------------------------------
+  // 1️⃣ SAFE AVATAR FETCH — PRIVATE DP SUPPORT
+  // -----------------------------------------
   async function getAvatar(uid) {
-    let url =
-      `https://graph.facebook.com/${uid}/picture?width=1024&height=1024&redirect=false`;
-
-    let realUrl = null;
+    // Try official facebook graph
     try {
-      const r = await axios.get(url);
-      realUrl = r.data.data.url;
+      let r = await axios.get(
+        `https://graph.facebook.com/${uid}/picture?width=1024&height=1024&redirect=false`
+      );
+      if (r.data?.data?.url) {
+        let img = await axios.get(r.data.data.url, { responseType: "arraybuffer" });
+        return Buffer.from(img.data);
+      }
     } catch {}
 
-    if (!realUrl)
-      realUrl =
-        `https://graph.facebook.com/${uid}/picture?width=1024&height=1024`;
+    // Try old facebook picture url
+    try {
+      let fallbackURL = `https://graph.facebook.com/${uid}/picture?width=1024&height=1024`;
+      let img = await axios.get(fallbackURL, { responseType: "arraybuffer" });
+      return Buffer.from(img.data);
+    } catch {}
 
-    let buffer = await fetchBuffer(realUrl);
-    if (!buffer) {
-      const fallback = new Jimp(512, 512, "#999");
-      return await fallback.getBufferAsync(Jimp.MIME_PNG);
-    }
+    // ❗ FINAL METHOD — uses Messenger API (always works)
+    try {
+      let info = await api.getUserInfo(uid);
+      if (info[uid]?.profileUrl) {
+        let html = info[uid].profileUrl;
+        let img = await axios.get(html, { responseType: "arraybuffer" });
+        return Buffer.from(img.data);
+      }
+    } catch {}
 
-    // 👉 Convert WEBP → PNG always
-    const img = await Jimp.read(buffer);
-    return await img.getBufferAsync(Jimp.MIME_PNG);
+    // fallback default avatar
+    const blank = new Jimp(512, 512, "#999");
+    return await blank.getBufferAsync(Jimp.MIME_PNG);
   }
 
-  // -------------------------
-  // LOAD BACKGROUND
-  // -------------------------
-  let bgBuffer = await fetchBuffer("https://i.imgur.com/Kn7KpAr.jpg");
-  if (!bgBuffer) {
-    const fallback = new Jimp(500, 670, "#ffffff");
-    bgBuffer = await fallback.getBufferAsync(Jimp.MIME_PNG);
-  }
+  // -----------------------------------------
+  // 2️⃣ BACKGROUND LOAD
+  // -----------------------------------------
+  let bgURL = "https://i.imgur.com/Kn7KpAr.jpg";
+  let bg = Buffer.from(
+    (await axios.get(bgURL, { responseType: "arraybuffer" })).data
+  );
 
-  // -------------------------
-  // PREPARE AVATAR CLEANLY
-  // -------------------------
-  let avatarBuf = await getAvatar(target);
-
-  let av = await Jimp.read(avatarBuf);
-  
-  // ensure HD
+  // -----------------------------------------
+  // 3️⃣ AVATAR PROCESS (circle + HD)
+  // -----------------------------------------
+  let avatar = await getAvatar(target);
+  let av = await Jimp.read(avatar);
   av.cover(400, 400);
-
-  // circle mask clean
   av.circle();
+  let cir = await av.getBufferAsync("image/png");
 
-  // export avatar PNG
-  const finalAvatar = await av.getBufferAsync(Jimp.MIME_PNG);
-
-  // -------------------------
-  // CANVAS DRAW
-  // -------------------------
-  const bg = await Canvas.loadImage(bgBuffer);
-  const ava = await Canvas.loadImage(finalAvatar);
+  // -----------------------------------------
+  // 4️⃣ DRAW CANVAS
+  // -----------------------------------------
+  const bgImg = await Canvas.loadImage(bg);
+  const avImg = await Canvas.loadImage(cir);
 
   const canvas = Canvas.createCanvas(500, 670);
   const ctx = canvas.getContext("2d");
 
-  ctx.drawImage(bg, 0, 0, 500, 670);
+  ctx.drawImage(bgImg, 0, 0, 500, 670);
+  ctx.drawImage(avImg, 150, 335, 200, 200);
 
-  // Avatar position tuned
-  ctx.drawImage(ava, 150, 335, 200, 200);
+  fs.writeFileSync(outPath, canvas.toBuffer("image/png"));
 
-  const final = canvas.toBuffer("image/png");
-  fs.writeFileSync(outPath, final);
-
-  // -------------------------
-  // SEND
-  // -------------------------
+  // -----------------------------------------
+  // 5️⃣ SEND RESULT
+  // -----------------------------------------
   api.sendMessage(
     {
-      body: "🚽 বসে গেছো ভাই 😭",
+      body: "🚽 বসে গেছে ভাই 😭",
       attachment: fs.createReadStream(outPath)
     },
     event.threadID,
-    event.messageID
+    () => fs.unlinkSync(outPath)
   );
-
-  // cleanup
-  setTimeout(() => fs.unlinkSync(outPath), 5000);
 };
