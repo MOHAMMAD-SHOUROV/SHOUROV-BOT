@@ -1,196 +1,245 @@
 // commands/toilet.js
 module.exports.config = {
   name: "toilet",
-  version: "3.1.0",
+  version: "1.0.2",
   permission: 0,
   prefix: true,
-  credits: "shourov + assistant",
-  description: "Make user sit on toilet (robust avatar fetch)",
+  credits: "shourov (patched)",
+  description: "Make user sit on toilet (shows profile pic if possible)",
   category: "fun",
-  usages: "@tag / self",
+  usages: "@tag / self / reply-to-image",
   cooldowns: 5
 };
 
-module.exports.run = async ({ event, api }) => {
+module.exports.run = async ({ event, api, args }) => {
   const fs = require("fs-extra");
   const path = require("path");
   const axios = require("axios");
   const Canvas = require("canvas");
-  const Jimp = require("jimp");
+  const jimp = require("jimp");
 
-  const cacheDir = path.join(__dirname, "cache");
-  await fs.ensureDir(cacheDir);
-  const outFile = path.join(cacheDir, `toilet_${Date.now()}.png`);
+  const { threadID, messageID, senderID } = event;
 
-  const targetId = Object.keys(event.mentions || {})[0] || event.senderID;
-  const threadID = event.threadID;
+  // small sleep helper
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-  // helper logger to console (visible in your runner)
-  const log = (...a) => console.log("[toilet]", ...a);
-
-  // try multiple methods to get avatar buffer
-  async function fetchAvatarBuffer(uid) {
-    // 1) Graph API with redirect=false
-    try {
-      log("trying graph redirect=false for", uid);
-      const r = await axios.get(`https://graph.facebook.com/${uid}/picture?width=1024&height=1024&redirect=false`, { timeout: 15000 });
-      if (r.data && r.data.data && r.data.data.url) {
-        log("got url via graph redirect:", r.data.data.url);
-        const img = await axios.get(r.data.data.url, { responseType: "arraybuffer", timeout: 15000 });
-        return Buffer.from(img.data);
-      }
-    } catch (e) { log("graph redirect failed:", e && e.message); }
-
-    // 2) Graph direct (may redirect)
-    try {
-      log("trying graph direct for", uid);
-      const r2 = await axios.get(`https://graph.facebook.com/${uid}/picture?width=1024&height=1024`, { responseType: "arraybuffer", timeout: 15000 });
-      if (r2 && r2.data) return Buffer.from(r2.data);
-    } catch (e) { log("graph direct failed:", e && e.message); }
-
-    // 3) Try api.getUserInfo (some libs provide it)
-    try {
-      log("trying api.getUserInfo for", uid);
-      if (typeof api.getUserInfo === "function") {
-        const info = await api.getUserInfo(uid);
-        if (info && info[uid] && info[uid].profileUrl) {
-          log("got profileUrl from api.getUserInfo:", info[uid].profileUrl);
-          const img = await axios.get(info[uid].profileUrl, { responseType: "arraybuffer", timeout: 15000 });
-          return Buffer.from(img.data);
+  async function downloadBuffer(url, opts = {}) {
+    const maxTry = opts.maxTry || 3;
+    const timeout = opts.timeout || 15000;
+    const ua = opts.userAgent || "Mozilla/5.0 (compatible; Bot/1.0)";
+    let lastErr = null;
+    for (let i = 0; i < maxTry; i++) {
+      try {
+        const res = await axios.get(url, { responseType: "arraybuffer", timeout, headers: { "User-Agent": ua, Accept: "*/*" } });
+        return Buffer.from(res.data);
+      } catch (e) {
+        lastErr = e;
+        // backoff a bit
+        await sleep(500 * (i + 1));
+        // if rate-limited, wait longer
+        if (e.response && e.response.status === 429) {
+          const ra = parseInt(e.response.headers["retry-after"]) || (2 ** i);
+          await sleep(1000 * ra);
         }
       }
-    } catch (e) { log("api.getUserInfo failed:", e && e.message); }
+    }
+    throw lastErr || new Error("downloadBuffer failed for " + url);
+  }
 
-    // 4) Try api.getThreadInfo and see participant profile pics (works in groups)
+  // Try to get a better avatar URL using available APIs:
+  // 1) try api.getUserInfo (if available in this bot framework)
+  // 2) try graph.facebook.com/<id>/picture?redirect=false&width=512&height=512&access_token=APPTOKEN (if APP_TOKEN provided)
+  // 3) fallback to direct graph picture redirect (may be silhouette)
+  async function fetchAvatarBuffer(targetID) {
+    // 1) try framework getUserInfo -> some chats provide url/thumbSrc
     try {
-      log("trying api.getThreadInfo for", threadID);
-      if (typeof api.getThreadInfo === "function") {
-        const tinfo = await api.getThreadInfo(threadID);
-        if (tinfo && tinfo.participantIDs && tinfo.participantIDs.includes(uid) && tinfo.userInfo) {
-          // userInfo sometimes contains url
-          const info = (tinfo.userInfo || []).find(u => String(u.id) == String(uid));
-          if (info && info.thumbSrc) {
-            log("got thumbSrc from threadInfo:", info.thumbSrc);
-            const img = await axios.get(info.thumbSrc, { responseType: "arraybuffer", timeout: 15000 });
-            return Buffer.from(img.data);
+      if (typeof api.getUserInfo === "function") {
+        const info = await api.getUserInfo(targetID);
+        if (info && info[targetID]) {
+          // common fields: profileUrl, thumbSrc, avatarUrl, smallProfilePhoto
+          const candidate = info[targetID].thumbSrc || info[targetID].profileUrl || info[targetID].avatarUrl || info[targetID].smallProfilePhoto;
+          if (candidate) {
+            try {
+              const buf = await downloadBuffer(candidate);
+              return { buffer: buf, source: "api.getUserInfo -> thumbSrc" };
+            } catch (err) {
+              // ignore and continue
+              console.warn("avatar: getUserInfo candidate failed:", err && err.message);
+            }
           }
         }
       }
-    } catch (e) { log("api.getThreadInfo failed:", e && e.message); }
+    } catch (e) {
+      // ignore, not fatal
+      console.warn("avatar: api.getUserInfo failed:", e && e.message);
+    }
 
-    // 5) If the command was used by replying to a message with an image, use that image
+    // 2) try graph API with redirect=false to examine is_silhouette
+    // allow user to set APP_TOKEN in env: APP_TOKEN=appId|appSecret
+    const appToken = process.env.APP_TOKEN || process.env.APP_ACCESS_TOKEN || null;
     try {
-      if (event.type === "message_reply" && event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length) {
-        const att = event.messageReply.attachments[0];
-        if (att.url) {
-          log("using replied-to attachment url:", att.url);
-          const img = await axios.get(encodeURI(att.url), { responseType: "arraybuffer", timeout: 15000 });
-          return Buffer.from(img.data);
+      let graphUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&redirect=false`;
+      if (appToken) graphUrl += `&access_token=${encodeURIComponent(appToken)}`;
+      const res = await axios.get(graphUrl, { timeout: 10000 });
+      if (res && res.data && res.data.data && res.data.data.url) {
+        const isSil = !!res.data.data.is_silhouette;
+        const picUrl = res.data.data.url;
+        if (!isSil && picUrl) {
+          try {
+            const buf = await downloadBuffer(picUrl);
+            return { buffer: buf, source: "graph redirect=false (non-silhouette)" };
+          } catch (err) {
+            console.warn("avatar: download from graph data.url failed:", err && err.message);
+          }
+        } else {
+          // silhouette -> real picture not available publically
+          console.warn("avatar: graph reports silhouette for user", targetID);
+          // still attempt direct redirect (may return same)
+          try {
+            const direct = `https://graph.facebook.com/${targetID}/picture?width=512&height=512`;
+            const b2 = await downloadBuffer(direct);
+            return { buffer: b2, source: "graph direct (silhouette likely)" };
+          } catch (err) {
+            console.warn("avatar: direct graph fallback failed:", err && err.message);
+          }
         }
       }
-    } catch (e) { log("reply attachment fetch failed:", e && e.message); }
-
-    // 6) As final fallback, generate a placeholder avatar (initials)
-    log("generating placeholder avatar for", uid);
-    try {
-      const canvas = Canvas.createCanvas(512, 512);
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#666";
-      ctx.fillRect(0, 0, 512, 512);
-      // try get name for initials
-      let name = "";
-      try {
-        if (typeof api.getUserInfo === "function") {
-          const info = await api.getUserInfo(uid);
-          name = info && info[uid] && (info[uid].name || "") || "";
-        }
-      } catch (e) {}
-      const initials = (name || "U").split(" ").filter(Boolean).map(x => x[0]).slice(0,2).join("").toUpperCase();
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 180px Sans";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(initials, 256, 256);
-      return canvas.toBuffer();
     } catch (e) {
-      log("placeholder generation failed:", e && e.message);
-      // last-last fallback: small gray PNG via jimp
-      const j = new Jimp(512,512, "#888");
-      return await j.getBufferAsync(Jimp.MIME_PNG);
+      console.warn("avatar: graph redirect=false error:", e && (e.response && e.response.status) || e.message);
     }
-  } // end fetchAvatarBuffer
+
+    // 3) final attempt: direct Graph picture (may redirect to silhouette)
+    try {
+      const direct = `https://graph.facebook.com/${targetID}/picture?width=512&height=512`;
+      const b = await downloadBuffer(direct, { maxTry: 2 });
+      return { buffer: b, source: "graph direct final" };
+    } catch (e) {
+      console.warn("avatar: final direct graph failed:", e && e.message);
+    }
+
+    // 4) nothing worked -> return null to indicate fallback required
+    return null;
+  }
 
   try {
-    // background image
-    let bgBuf;
+    const cacheDir = path.join(__dirname, "cache");
+    await fs.ensureDir(cacheDir);
+    const outPath = path.join(cacheDir, `toilet_${Date.now()}.png`);
+
+    // determine target
+    const mentions = event.mentions || {};
+    const mentionIds = Object.keys(mentions);
+    const targetID = mentionIds.length ? mentionIds[0] : senderID;
+
+    // background (small retry)
+    const bgURL = "https://i.imgur.com/Kn7KpAr.jpg";
+    let bgBuffer = null;
     try {
-      const bg = await axios.get("https://i.imgur.com/Kn7KpAr.jpg", { responseType: "arraybuffer", timeout: 15000 });
-      bgBuf = Buffer.from(bg.data);
+      bgBuffer = await downloadBuffer(bgURL, { maxTry: 3, timeout: 20000 });
     } catch (e) {
-      log("bg download failed, using blank bg:", e && e.message);
-      const j = new Jimp(500,670, "#f4f4f4");
-      bgBuf = await j.getBufferAsync(Jimp.MIME_PNG);
+      console.warn("TOILET: bg download failed:", e && e.message);
+      // fallback bg with jimp
+      const bmp = new jimp(500, 670, "#f2f2f2");
+      bgBuffer = await bmp.getBufferAsync(jimp.MIME_PNG);
     }
 
-    // get avatar
-    const avatarBuf = await fetchAvatarBuffer(targetId);
+    // check if user replied with an image; if so prefer that
+    let replyImagePath = null;
+    if (event.type === "message_reply" && event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length) {
+      const att = event.messageReply.attachments[0];
+      if (att.url && (/\.(jpg|jpeg|png|gif)$/i.test(att.url) || (att.mimeType && att.mimeType.startsWith("image")))) {
+        try {
+          replyImagePath = path.join(cacheDir, `reply_${Date.now()}.jpg`);
+          // simple download
+          const rb = await downloadBuffer(att.url, { maxTry: 3, timeout: 15000 });
+          fs.writeFileSync(replyImagePath, rb);
+        } catch (e) {
+          console.warn("TOILET: reply image download failed:", e && e.message);
+          replyImagePath = null;
+        }
+      }
+    }
 
-    // process avatar with jimp to circle and size
-    const av = await Jimp.read(avatarBuf);
-    av.cover(400, 400); // ensure cover
-    av.circle();
-    const circ = await av.getBufferAsync(Jimp.MIME_PNG);
+    // avatar fetch
+    let avatarResult = null;
+    if (replyImagePath) {
+      avatarResult = { buffer: fs.readFileSync(replyImagePath), source: "replied-image" };
+    } else {
+      avatarResult = await fetchAvatarBuffer(targetID);
+    }
 
-    // compose with canvas
-    const bgImg = await Canvas.loadImage(bgBuf);
-    const avImg = await Canvas.loadImage(circ);
+    let avatarBuffer = null;
+    if (avatarResult && avatarResult.buffer) avatarBuffer = avatarResult.buffer;
+    else {
+      // fallback placeholder
+      const tmp = new jimp(512, 512, "#777777");
+      avatarBuffer = await tmp.getBufferAsync(jimp.MIME_PNG);
+      console.warn("TOILET: Using placeholder avatar for", targetID);
+    }
+
+    // circle crop
+    const avatarImg = await jimp.read(avatarBuffer);
+    avatarImg.circle();
+    const circBuf = await avatarImg.getBufferAsync(jimp.MIME_PNG);
+
+    // canvas compose
+    const bgImg = await Canvas.loadImage(bgBuffer);
+    const avaImg = await Canvas.loadImage(circBuf);
 
     const canvas = Canvas.createCanvas(500, 670);
     const ctx = canvas.getContext("2d");
 
     ctx.drawImage(bgImg, 0, 0, 500, 670);
-    // adjust avatar coordinates if needed
-    ctx.drawImage(avImg, 150, 335, 200, 200);
+    // draw avatar in seat (coordinates same as earlier)
+    ctx.drawImage(avaImg, 135, 350, 205, 205);
 
-    // optional: write name under avatar
-    let displayName = "";
+    // optional name under avatar (try get via api.getUserInfo)
+    let displayName = `User${String(targetID).slice(-4)}`;
     try {
       if (typeof api.getUserInfo === "function") {
-        const info = await api.getUserInfo(targetId);
-        displayName = info && info[targetId] && (info[targetId].name || "") || "";
+        const info = await api.getUserInfo(targetID);
+        if (info && info[targetID] && info[targetID].name) displayName = info[targetID].name;
       }
-    } catch (e) { /* ignore */ }
-
-    if (!displayName) {
-      try {
-        if (event.type === "message_reply" && event.messageReply && event.messageReply.senderID) {
-          // fallback
-          displayName = String(event.messageReply.senderID).slice(-6);
-        }
-      } catch (e) {}
+    } catch (e) {
+      // ignore
     }
+    ctx.font = "18px Sans";
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 3;
+    ctx.textAlign = "center";
+    const nameX = canvas.width / 2;
+    ctx.strokeText(displayName, nameX, 580);
+    ctx.fillText(displayName, nameX, 580);
 
-    if (displayName) {
-      ctx.fillStyle = "#000";
-      ctx.font = "18px Sans";
-      ctx.textAlign = "center";
-      ctx.fillText(displayName, 250, 640);
-    }
-
-    // save
-    await fs.writeFile(outFile, canvas.toBuffer("image/png"));
+    // write file
+    const finalBuf = canvas.toBuffer("image/png");
+    await fs.writeFile(outPath, finalBuf);
 
     // send
-    api.sendMessage({
-      body: `${displayName || "User"}, বসে গেছে 🚽`,
-      attachment: fs.createReadStream(outFile)
-    }, threadID, (err) => {
-      if (err) console.error("[toilet] send failed:", err && err.message);
-      try { fs.unlinkSync(outFile); } catch (e) {}
-    });
+    const msg = {
+      body: mentionIds.length ? `${displayName}, বসে গেছো 🚽` : `${displayName}, বসে গেছো 🚽`,
+      attachment: fs.createReadStream(outPath)
+    };
+
+    try {
+      await new Promise((resolve, reject) => {
+        api.sendMessage(msg, threadID, (err, info) => {
+          if (err) { console.error("TOILET send error:", err && (err.message || err)); return reject(err); }
+          resolve(info);
+        }, messageID);
+      });
+    } catch (e) {
+      console.warn("TOILET: primary send failed, trying simple send:", e && e.message);
+      try { api.sendMessage(msg, threadID, messageID); } catch (e2) { console.error("TOILET final send failed:", e2 && e2.message); }
+    }
+
+    // cleanup
+    try { if (fs.existsSync(outPath)) await fs.unlink(outPath); } catch (e) {}
+    try { if (replyImagePath && fs.existsSync(replyImagePath)) await fs.unlink(replyImagePath); } catch (e) {}
 
   } catch (err) {
-    console.error("[toilet] ERROR:", err && (err.stack || err.message));
-    api.sendMessage("কোনো সমস্যা হয়েছে — console log দেখুন।", threadID);
+    console.error("TOILET ERROR:", err && (err.stack || err.message));
+    try { api.sendMessage("🔧 কিছু সমস্যা হয়েছে: " + (err.message || err), threadID, messageID); } catch (e) {}
   }
 };
