@@ -76,6 +76,10 @@ jobs:
         run: npm start
 ```
 
+![CYBER](https://www.aalpha.net/wp-content/uploads/2020/12/full-stack-development.gif)                                                          
+  
+<img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=SHOUROV-BOT">
+
 [![FORK ALIHSAN SHOUROV-BOT ](https://github.com/MOHAMMAD-SHOUROV)]()
 
  
