@@ -3,7 +3,7 @@
 A powerful Facebook Messenger bot built by [FACEBOOK](https://www.facebook.com/shourov01709281334) with modular command support, cookie-based login, and OpenAI integration.
 
 ----------
-<img src='https://i.imgur.com/ePDUcck.jpeg'/>
+<img src='https://imgur.com/a/0SqPQfF'/>
 
 -------
 
