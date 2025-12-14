@@ -12,10 +12,10 @@
 𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓
 -------
  <p align="center">
-  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=cyan&center=true&vCenter=true&multiline=false&lines=𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕" alt="">
+  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=cyan&center=true&vCenter=true&multiline=false&lines=𝐀𝐥𝐈𝐇𝐒𝐀𝐍  𝐒𝐇𝐎𝐔𝐑𝐎𝐕" alt="">
 
 <br>
--------
+
 
 <div align="center"><br> <img src="https://profile-counter.glitch.me/SILENT-SOBX-MD/count.svg" /><br>SHOUROV-BOT</div>
 
