@@ -11,7 +11,7 @@
 <img src='https://i.postimg.cc/Yq2H9kTC/Whats-App-Image-2025-11-12-at-12-07-50-bc11358f.jpg'/>
 𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓
 -------
-<img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=𝐎𝐖𝐍𝐄𝐑+𝐎𝐅:𝐂𝐘𝐁𝐄𝐑+☢️_𖣘-𝐁𝐎𝐓+⚠️+𝑻𝑬𝑨𝑴_☢️">
+<img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=𝐎𝐖𝐍𝐄𝐑+𝐎𝐅:𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕">
 <!-- Github README -->
 
 -------
