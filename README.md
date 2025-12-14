@@ -79,7 +79,7 @@ jobs:
 
 <br>
 
-[![FORK ALIHSAN SHOUROV-BOT ](https://github.com/MOHAMMAD-SHOUROV)]()
+[![FORK 𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓 ](https://github.com/MOHAMMAD-SHOUROV)]()
 
  
  🌸 **[Original-fork](https://github.com/MOHAMMAD-SHOUROV/SHOUROV-BOT.git)**
