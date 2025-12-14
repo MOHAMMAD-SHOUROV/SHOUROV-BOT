@@ -37,7 +37,7 @@
         ├── help.js
         ├── about.js
         ├── ai.js
-        └── ... (25 more)
+        └── ... (400+ more)
 ```
 
 ## Features
@@ -47,7 +47,7 @@
 - **1** = Admin
 - **2** = Owner
 
-### Commands (29 total)
+### Commands (400+ total)
 1. `/ping` - Check bot latency
 2. `/help` - List all commands
 3. `/about` - Bot information
@@ -77,7 +77,7 @@
 27. `/tts` - Text to speech
 28. `/wiki` - Wikipedia search
 29. `/uptime` - Bot uptime
-
+...
 ### Event Handlers
 - **message.js**: Main command dispatcher
 - **antibotname.js**: Prevent unauthorized bot name changes
