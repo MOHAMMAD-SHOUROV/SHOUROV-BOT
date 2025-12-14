@@ -8,7 +8,7 @@
 </h3>
 <img align="center" alt="line" src="https://github.com/DalpatRathore/dalpatrathore/blob/main/assets/images/line-1.svg">
 
-<img src='https://i.postimg.cc/Yq2H9kTC/Whats-App-Image-2025-11-12-at-12-07-50-bc11358f.jpg'/>
+<img src='https://i.postimg.cc/pTKH0Ry1/IMG-20251213-WA0051-2.jpg'/>
 𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓
 -------
 <img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=𝐀𝐥𝐈𝐇𝐒𝐀𝐍-𝐒𝐇𝐎𝐔𝐑𝐎𝐕">
