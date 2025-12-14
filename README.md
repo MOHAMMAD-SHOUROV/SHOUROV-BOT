@@ -12,7 +12,7 @@
 𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓
 -------
  <p align="center">
-  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=cyan&center=true&vCenter=true&multiline=false&lines=𝐀𝐥𝐈𝐇𝐒𝐀𝐍-𝐒𝐇𝐎𝐔𝐑𝐎𝐕" alt="">
+ <img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=𝐎𝐖𝐍𝐄𝐑+𝐎𝐅:ALIHSAN SHOUROV">
 
 <br>
 
