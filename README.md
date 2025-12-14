@@ -74,7 +74,10 @@ jobs:
 
 ![CYBER](https://www.aalpha.net/wp-content/uploads/2020/12/full-stack-development.gif)                                                          
   
-<img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=SHOUROV-BOT">
+ <p align="center">
+  <a href="#"><img src="http://readme-typing-svg.herokuapp.com?color=cyan&center=true&vCenter=true&multiline=false&lines=`𝐒𝐇𝐎𝐔𝐑𝐎𝐕-𝐁𝐎𝐓`" alt="">
+
+<br>
 
 [![FORK ALIHSAN SHOUROV-BOT ](https://github.com/MOHAMMAD-SHOUROV)]()
 
