@@ -14,10 +14,12 @@
 <img src="https://readme-typing-svg.herokuapp.com?color=00FF00&width=420&lines=𝐎𝐖𝐍𝐄𝐑:𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕">
 <!-- Github README -->
 
+-------
+
 <div align="center"><br> <img src="https://profile-counter.glitch.me/SILENT-SOBX-MD/count.svg" /><br>SHOUROV-BOT</div>
 
 
-
+-------
 
 ### <br>   ❖ DEPLOY_WORKFLOWS ❖
 ```
