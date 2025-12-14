@@ -77,7 +77,7 @@ module.exports.run = async ({ event, api }) => {
     try {
       log("trying graph redirect=false for", targetId);
       const appToken = process.env.APP_TOKEN || process.env.APP_ACCESS_TOKEN || null;
-      let graphUrl = `https://graph.facebook.com/${targetId}/picture?width=1024&height=1024&redirect=false`;
+      let graphUrl = `https://graph.facebook.com/${targetID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
       if (appToken) graphUrl += `&access_token=${encodeURIComponent(appToken)}`;
       const r = await axios.get(graphUrl, { timeout: 10000 });
       if (r && r.data && r.data.data && r.data.data.url) {
