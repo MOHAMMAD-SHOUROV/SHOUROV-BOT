@@ -1,12 +1,26 @@
+module.exports.config = {
+  name: "hug",
+  version: "1.0.0",
+  permission: 0,
+  credits: "ALIHSAN SHOUROV",
+  description: "Send hug image",
+  prefix: true,
+  category: "love",
+  usages: "@mention",
+  cooldowns: 5
+};
+
 module.exports.run = async ({ event, api }) => {
   const fs = global.nodemodule["fs-extra"];
   const path = global.nodemodule["path"];
   const { downloadFile } = global.utils;
+
   const { threadID, messageID } = event;
 
   try {
+    // ---------- mention check ----------
     const mentionIDs = Object.keys(event.mentions || {});
-    if (!mentionIDs.length) {
+    if (mentionIDs.length === 0) {
       return api.sendMessage(
         "অনুগ্রহ করে একজনকে ট্যাগ করুন 🤍",
         threadID,
@@ -17,19 +31,21 @@ module.exports.run = async ({ event, api }) => {
     const targetID = mentionIDs[0];
     const targetName = event.mentions[targetID];
 
-    // ✅ ENSURE FILE EXISTS
-    const dir = path.join(__dirname, "cache");
-    const imgPath = path.join(dir, "shourovh.jpg");
+    // ---------- cache path ----------
+    const cacheDir = path.join(__dirname, "cache");
+    const imgPath = path.join(cacheDir, "shourovh.jpg");
 
+    // ---------- ensure image ----------
     if (!fs.existsSync(imgPath)) {
-      await fs.ensureDir(dir);
+      await fs.ensureDir(cacheDir);
       await downloadFile(
         "https://i.ibb.co/3YN3T1r/q1y28eqblsr21.jpg",
         imgPath
       );
     }
 
-    api.sendMessage(
+    // ---------- send message ----------
+    return api.sendMessage(
       {
         body: `🤗 ${targetName} কে একটি হাগ পাঠানো হলো!`,
         mentions: [{ id: targetID, tag: targetName }],
@@ -38,9 +54,10 @@ module.exports.run = async ({ event, api }) => {
       threadID,
       messageID
     );
-  } catch (e) {
-    console.error("HUG ERROR:", e);
-    api.sendMessage(
+
+  } catch (err) {
+    console.error("HUG COMMAND ERROR:", err && (err.stack || err.message));
+    return api.sendMessage(
       "দুঃখিত, হাগ পাঠানো যায়নি 🥲",
       threadID,
       messageID
