@@ -69,19 +69,26 @@ async function makeImage({ one, two }) {
   if (!fs.existsSync(basePath)) throw new Error("Base image not found (onLoad may have failed).");
 
   // download avatars
-  try {
-    const [r1, r2] = await Promise.all([
-      axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 }),
-      axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512`, { responseType: "arraybuffer", timeout: 15000 })
-    ]);
-    fs.writeFileSync(avatarOnePath, Buffer.from(r1.data, "binary"));
-    fs.writeFileSync(avatarTwoPath, Buffer.from(r2.data, "binary"));
-  } catch (err) {
-    // cleanup partial
-    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
-    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
-    throw new Error("Failed to download avatar(s): " + (err.message || err));
-  }
+  const getAvatarOne = (await axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
+  fs.writeFileSync(avatarOne, Buffer.from(getAvatarOne, 'utf-8'));
+
+  const getAvatarTwo = (await axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
+  fs.writeFileSync(avatarTwo, Buffer.from(getAvatarTwo, 'utf-8'));
+
+  const circleOne = await jimp.read(await circle(avatarOne));
+  const circleTwo = await jimp.read(await circle(avatarTwo));
+
+  hon_img.resize(700, 440)
+    .composite(circleOne.resize(200, 200), 390, 23)
+    .composite(circleTwo.resize(180, 180), 140, 80);
+
+  const raw = await hon_img.getBufferAsync("image/png");
+  fs.writeFileSync(pathImg, raw);
+  fs.unlinkSync(avatarOne);
+  fs.unlinkSync(avatarTwo);
+
+  return pathImg;
+}
 
   try {
     const baseImg = await jimp.read(basePath);
