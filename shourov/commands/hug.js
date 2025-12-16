@@ -19,7 +19,7 @@ module.exports.run = async ({ event, api }) => {
 
     // ✅ ENSURE FILE EXISTS
     const dir = path.join(__dirname, "cache");
-    const imgPath = path.join(dir, "hug.jpg");
+    const imgPath = path.join(dir, "shourovh.jpg");
 
     if (!fs.existsSync(imgPath)) {
       await fs.ensureDir(dir);
