@@ -1,6 +1,6 @@
 module.exports.config = {
   name: "hug",
-  version: "1.0.0",
+  version: "1.0.1",
   permission: 0,
   credits: "ALIHSAN SHOUROV",
   description: "Send hug image",
@@ -14,7 +14,6 @@ module.exports.run = async ({ event, api }) => {
   const fs = global.nodemodule["fs-extra"];
   const path = global.nodemodule["path"];
   const { downloadFile } = global.utils;
-
   const { threadID, messageID } = event;
 
   try {
@@ -31,11 +30,10 @@ module.exports.run = async ({ event, api }) => {
     const targetID = mentionIDs[0];
     const targetName = event.mentions[targetID];
 
-    // ---------- cache path ----------
+    // ---------- cache ----------
     const cacheDir = path.join(__dirname, "cache");
     const imgPath = path.join(cacheDir, "shourovh.jpg");
 
-    // ---------- ensure image ----------
     if (!fs.existsSync(imgPath)) {
       await fs.ensureDir(cacheDir);
       await downloadFile(
@@ -44,7 +42,7 @@ module.exports.run = async ({ event, api }) => {
       );
     }
 
-    // ---------- send message ----------
+    // ---------- SEND (IMPORTANT: return) ----------
     return api.sendMessage(
       {
         body: `🤗 ${targetName} কে একটি হাগ পাঠানো হলো!`,
