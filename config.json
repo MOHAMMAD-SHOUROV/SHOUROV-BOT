@@ -23,6 +23,8 @@
   "disabledcmds": [],
   "disabledevents": [],
 
+  "APP_TOKEN": "1146135557559937|4c2d87c25728578c5ec2413b48a807e2",
+
   "note": "make sure that the bot name you entered is all lowercase",
   "notice": "dont cng author name and owner uid. otherwise bot not working",
   "notice2": "if you run use email and password, use saveState false; otherwise, use saveState true"
