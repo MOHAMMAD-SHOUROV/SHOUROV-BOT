@@ -53,7 +53,7 @@ module.exports.run = async function ({ event, api }) {
     const cacheDir = path.join(__dirname, "cache");
     await fs.ensureDir(cacheDir);
 
-    const basePath = path.join(cacheDir, "hug_base.jpg");
+    const basePath = path.join(cacheDir, "shourovh.jpg");
     const av1 = path.join(cacheDir, `avt_${senderID}.png`);
     const av2 = path.join(cacheDir, `avt_${targetID}.png`);
     const outPath = path.join(cacheDir, `hug_${Date.now()}.png`);
