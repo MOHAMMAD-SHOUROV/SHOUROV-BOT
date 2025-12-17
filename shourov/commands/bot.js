@@ -90,31 +90,28 @@ async function commandHandler({ shourov, nayan, api, event, args = [], Users }) 
     // no args => greet and register handleReply
   if (!msg) {
   const greetings = [
-    "আহ শুনা আমার তোমার অলিতে গলিতে উম্মাহ😇😘",
-    "কি গো সোনা আমাকে ডাকছ কেনো",
-    "বার বার আমাকে ডাকস কেন😡",
-    "আহ শোনা আমার আমাকে এতো ডাকে কেনো আসো বুকে আশো🥱",
-    "হুম জান তোমার অইখানে উম্মমাহ😷😘",
-    "আসসালামু আলাইকুম বলেন আপনার জন্য কি করতে পারি"
+    "কি গো সোনা আমাকে ডাকছ কেনো 😌",
+    "বার বার আমাকে ডাকস কেন 😡",
+    "আহ শুনা আমার উম্মাহ 😘",
+    "আসসালামু আলাইকুম, বলেন 😊",
+    "আমাকে এত ডাকিস কেন 🙄"
   ];
 
-  const name = await getSafeUserName(bot, Users, event.senderID);
   const rand = greetings[Math.floor(Math.random() * greetings.length)];
 
   return safeReply(
     bot,
     threadID,
-    `${name}, ${rand}`,
+    rand,
     messageID,
     (err, info) => {
       global.client = global.client || {};
       global.client.handleReply = global.client.handleReply || [];
       global.client.handleReply.push({
-        type: 'reply',
+        type: "reply",
         name: "bot",
         messageID: info?.messageID || null,
-        author: event.senderID,
-        head: msg
+        author: event.senderID
       });
     }
   );
