@@ -1,100 +1,126 @@
 // commands/hug.js
-const path = require("path");
-const fs = require("fs-extra");
 const axios = require("axios");
-const Jimp = require("jimp");
+const fs = require("fs-extra");
+const path = require("path");
+const jimp = require("jimp");
 
 module.exports.config = {
   name: "hug",
-  version: "2.0.0",
+  version: "1.0.2",
   permission: 0,
-  credits: "Md Shourov Islam (fixed & cleaned)",
-  description: "Hug image with profile pictures",
+  credits: "Shourov (fixed)",
+  description: "Make a hug image with two profile pictures",
   prefix: true,
   category: "fun",
   usages: "@mention / reply",
   cooldowns: 5
 };
 
-module.exports.onLoad = async () => {
-  const dir = path.join(__dirname, "cache");
-  const basePath = path.join(dir, "shourovh.jpg");
-  const baseUrl = "https://i.imgur.com/BtSlsSS.jpg";
+// download image helper
+async function downloadImage(url, filePath) {
+  const res = await axios.get(url, {
+    responseType: "arraybuffer",
+    timeout: 20000,
+    headers: { "User-Agent": "Mozilla/5.0" }
+  });
+  fs.writeFileSync(filePath, Buffer.from(res.data));
+}
 
-  await fs.ensureDir(dir);
-  if (!fs.existsSync(basePath)) {
-    const res = await axios.get(baseUrl, { responseType: "arraybuffer" });
-    fs.writeFileSync(basePath, Buffer.from(res.data));
-    console.log("[hug] base image downloaded");
-  }
-};
-
-async function circleAvatar(buffer, size = 400) {
-  const img = await Jimp.read(buffer);
-  img.cover(size, size).circle();
+// make avatar circle
+async function circleImage(imgPath) {
+  const img = await jimp.read(imgPath);
+  img.circle();
   return img;
 }
 
-async function getAvatar(userID) {
-  try {
-    const url = `https://graph.facebook.com/${userID}/picture?width=1024&height=1024`;
-    const res = await axios.get(url, { responseType: "arraybuffer" });
-    return Buffer.from(res.data);
-  } catch {
-    const fallback = new Jimp(1024, 1024, "#777777");
-    return await fallback.getBufferAsync(Jimp.MIME_PNG);
-  }
-}
-
-async function makeImage(one, two) {
-  const dir = path.join(__dirname, "cache");
-  const basePath = path.join(dir, "shourovh.jpg");
-  const outPath = path.join(dir, `hug_${Date.now()}.png`);
-
-  const base = await Jimp.read(basePath);
-
-  const av1 = await circleAvatar(await getAvatar(one), 260);
-  const av2 = await circleAvatar(await getAvatar(two), 240);
-
-  base.resize(700, Jimp.AUTO)
-    .composite(av1, 380, 40)
-    .composite(av2, 120, 90);
-
-  await base.writeAsync(outPath);
-  return outPath;
-}
-
-module.exports.run = async ({ event, api }) => {
+module.exports.run = async function ({ api, event }) {
   const { threadID, messageID, senderID } = event;
 
-  let targetID = null;
-  if (event.type === "message_reply") {
-    targetID = event.messageReply.senderID;
-  } else if (event.mentions && Object.keys(event.mentions).length) {
-    targetID = Object.keys(event.mentions)[0];
-  }
-
-  if (!targetID) {
-    return api.sendMessage(
-      "⚠️ কাউকে ট্যাগ করুন অথবা তার মেসেজে reply দিন",
-      threadID,
-      messageID
-    );
-  }
-
   try {
-    const imgPath = await makeImage(senderID, targetID);
+    // target user
+    let targetID = null;
+    if (event.mentions && Object.keys(event.mentions).length > 0) {
+      targetID = Object.keys(event.mentions)[0];
+    } else if (event.type === "message_reply" && event.messageReply.senderID) {
+      targetID = event.messageReply.senderID;
+    } else {
+      return api.sendMessage(
+        "⚠️ একজনকে ট্যাগ করুন অথবা তার মেসেজে reply দিন!",
+        threadID,
+        messageID
+      );
+    }
+
+    // paths
+    const cacheDir = path.join(__dirname, "cache");
+    await fs.ensureDir(cacheDir);
+
+    const basePath = path.join(cacheDir, "shourovh.jpg);
+    const avt1Path = path.join(cacheDir, `avt_${senderID}.png`);
+    const avt2Path = path.join(cacheDir, `avt_${targetID}.png`);
+    const outPath = path.join(cacheDir, `hug_${Date.now()}.png`);
+
+    // base image (hug template)
+    if (!fs.existsSync(basePath)) {
+      await downloadImage(
+        "https://i.imgur.com/BtSlsSS.jpg",
+        basePath
+      );
+    }
+
+    // download avatars (HD)
+    await downloadImage(
+      `https://graph.facebook.com/${senderID}/picture?width=720&height=720`,
+      avt1Path
+    );
+    await downloadImage(
+      `https://graph.facebook.com/${targetID}/picture?width=720&height=720`,
+      avt2Path
+    );
+
+    // process images
+    const base = await jimp.read(basePath);
+    const avt1 = await circleImage(avt1Path);
+    const avt2 = await circleImage(avt2Path);
+
+    base.resize(700, jimp.AUTO);
+    avt1.resize(200, 200);
+    avt2.resize(200, 200);
+
+    // positions (tuned for template)
+    base
+      .composite(avt1, 390, 40)  // sender
+      .composite(avt2, 120, 90); // target
+
+    await base.writeAsync(outPath);
+
+    // get name
+    let name = "someone";
+    try {
+      const info = await api.getUserInfo(targetID);
+      if (info && info[targetID] && info[targetID].name) {
+        name = info[targetID].name;
+      }
+    } catch {}
+
+    // send message
     await api.sendMessage(
       {
-        body: "🫂 Hug time!",
-        attachment: fs.createReadStream(imgPath)
+        body: `🤗 Hug for ${name}`,
+        mentions: [{ tag: name, id: targetID }],
+        attachment: fs.createReadStream(outPath)
       },
       threadID,
-      () => fs.unlinkSync(imgPath),
       messageID
     );
-  } catch (e) {
-    console.error("[hug] error:", e);
-    api.sendMessage("❌ কিছু সমস্যা হয়েছে", threadID, messageID);
+
+    // cleanup
+    fs.unlinkSync(avt1Path);
+    fs.unlinkSync(avt2Path);
+    fs.unlinkSync(outPath);
+
+  } catch (err) {
+    console.error("HUG ERROR:", err);
+    api.sendMessage("❌ Hug বানাতে সমস্যা হয়েছে!", threadID, messageID);
   }
 };
