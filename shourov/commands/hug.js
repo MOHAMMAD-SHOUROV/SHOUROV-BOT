@@ -1,154 +1,119 @@
-// commands/hug.js
+const axios = require("axios");
+const fs = require("fs-extra");
 const path = require("path");
-
-// try to prefer global.nodemodule (if your loader uses that)
-function tryRequire(name) {
-  try { if (global.nodemodule && global.nodemodule[name]) return global.nodemodule[name]; } catch (e) {}
-  try { return require(name); } catch (e) { return null; }
-}
-
-const axios = tryRequire("axios") || require("axios");
-const fs = tryRequire("fs-extra") || tryRequire("fs") || require("fs");
-const jimp = tryRequire("jimp") || require("jimp");
+const jimp = require("jimp");
 
 module.exports.config = {
-  name: "kiss",
-  version: "1.0.1",
+  name: "hug",
+  version: "1.0.2",
   permission: 0,
-  credits: "Md Shourov Islam (adapted)",
-  description: "Create a kissing image with tagged user",
+  credits: "Shourov (fixed by ChatGPT)",
+  description: "Create hug image with profile pictures",
   prefix: true,
-  category: "kiss",
-  usages: "user (reply or mention)",
-  cooldowns: 5,
-  dependencies: {
-    "axios": "",
-    "fs-extra": "",
-    "path": "",
-    "jimp": ""
-  }
+  category: "fun",
+  usages: "@mention / reply",
+  cooldowns: 5
 };
 
-module.exports.onLoad = async () => {
-  try {
-    const dirMaterial = path.resolve(__dirname, "cache");
-    const imgPath = path.resolve(dirMaterial, "shourovh.jpg");
-
-    if (!fs.existsSync(dirMaterial)) await fs.mkdirp(dirMaterial);
-
-    // bse image url (you can change to your own)
-    const baseUrl = "https://i.imgur.com/BtSlsSS.jpg";
-
-    if (!fs.existsSync(imgPath)) {
-      try {
-        const res = await axios.get(baseUrl, { responseType: "arraybuffer", timeout: 20000 });
-        fs.writeFileSync(imgPath, Buffer.from(res.data, "binary"));
-        console.log("[hug] base image downloaded.");
-      } catch (err) {
-        console.warn("[hug] onLoad: failed to download base image:", err && err.message);
-      }
-    }
-  } catch (e) {
-    console.error("[hug] onLoad unexpected error:", e && e.stack);
-  }
-};
-
-async function makeCircleBuffer(imagePath) {
-  const image = await jimp.read(imagePath);
-  image.circle();
-  return await image.getBufferAsync(jimp.MIME_PNG);
+// download helper
+async function download(url, filePath) {
+  const res = await axios.get(url, {
+    responseType: "arraybuffer",
+    timeout: 20000,
+    headers: { "User-Agent": "Mozilla/5.0" }
+  });
+  fs.writeFileSync(filePath, Buffer.from(res.data));
 }
 
-async function makeImage({ one, two }) {
-  const __root = path.resolve(__dirname, "cache");
-  const basePath = path.join(__root, "shourovh.jpg");
-  const outPath = path.join(__root, `kiss_${one}_${two}_${Date.now()}.png`);
-  const avatarOnePath = path.join(__root, `avt_${one}.png`);
-  const avatarTwoPath = path.join(__root, `avt_${two}.png`);
-
-  if (!fs.existsSync(basePath)) throw new Error("Base image not found (onLoad may have failed).");
-
-  // download avatars
-  try {
-    const [r1, r2] = await Promise.all([
-      axios.get(`https://graph.facebook.com/${targetId}/picture?width=1024&height=1024`, { responseType: "arraybuffer", timeout: 15000 }),
-      axios.get(`https://graph.facebook.com/${targetId}/picture?width=1024&height=1024`, { responseType: "arraybuffer", timeout: 15000 })
-    ]);
-    fs.writeFileSync(avatarOnePath, Buffer.from(r1.data, "binary"));
-    fs.writeFileSync(avatarTwoPath, Buffer.from(r2.data, "binary"));
-  } catch (err) {
-    // cleanup partial
-    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
-    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
-    throw new Error("Failed to download avatar(s): " + (err.message || err));
-  }
-
-  try {
-    const baseImg = await jimp.read(basePath);
-    const c1buf = await makeCircleBuffer(avatarOnePath);
-    const c2buf = await makeCircleBuffer(avatarTwoPath);
-    const c1 = await jimp.read(c1buf);
-    const c2 = await jimp.read(c2buf);
-
-    // you can tweak positions/sizes here to fit your base image
-    baseImg.resize(700, jimp.AUTO)
-      .composite(c1.resize(200, 200), 390, 23)  // sender
-      .composite(c2.resize(180, 180), 140, 80); // mentioned
-
-    await baseImg.writeAsync(outPath);
-
-    // cleanup avatars
-    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
-    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
-
-    return outPath;
-  } catch (err) {
-    // cleanup on error
-    try { if (fs.existsSync(avatarOnePath)) fs.unlinkSync(avatarOnePath); } catch(e){}
-    try { if (fs.existsSync(avatarTwoPath)) fs.unlinkSync(avatarTwoPath); } catch(e){}
-    try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch(e){}
-    throw err;
-  }
+// circle avatar
+async function circleImage(filePath) {
+  const img = await jimp.read(filePath);
+  img.circle();
+  return img;
 }
 
 module.exports.run = async function ({ event, api }) {
   const { threadID, messageID, senderID } = event;
+
   try {
-    // allow reply or mention
-    let targetId = null;
-    if (event.type === "message_reply" && event.messageReply && event.messageReply.senderID) {
-      targetId = event.messageReply.senderID;
-    } else if (event.mentions && Object.keys(event.mentions).length > 0) {
-      targetId = Object.keys(event.mentions)[0];
+    // detect target
+    let targetID;
+    if (event.mentions && Object.keys(event.mentions).length > 0) {
+      targetID = Object.keys(event.mentions)[0];
+    } else if (event.type === "message_reply" && event.messageReply.senderID) {
+      targetID = event.messageReply.senderID;
     } else {
-      return api.sendMessage("⚠️ দয়া করে একটি ইউজারকে ট্যাগ করুন বা তার মেসেজে রেপ্লাই করুন!", threadID, messageID);
+      return api.sendMessage(
+        "⚠️ কাউকে ট্যাগ করুন অথবা তার মেসেজে reply দিন!",
+        threadID,
+        messageID
+      );
     }
 
-    // determine mention name (framework dependent)
-    let mentionName = null;
-    if (event.mentions && event.mentions[targetId]) {
-      const v = event.mentions[targetId];
-      // sometimes value is "Name" or object { id:..., name:... }
-      mentionName = (typeof v === "object" && v !== null) ? (v.name || String(targetId)) : String(v);
-    } else {
-      mentionName = String(targetId);
+    const cacheDir = path.join(__dirname, "cache");
+    await fs.ensureDir(cacheDir);
+
+    const basePath = path.join(cacheDir, "hug_base.jpg");
+    const av1 = path.join(cacheDir, `avt_${senderID}.png`);
+    const av2 = path.join(cacheDir, `avt_${targetID}.png`);
+    const outPath = path.join(cacheDir, `hug_${Date.now()}.png`);
+
+    // base image
+    if (!fs.existsSync(basePath)) {
+      await download("https://i.imgur.com/BtSlsSS.jpg", basePath);
     }
 
-    await fs.ensureDir(path.join(__dirname, "cache"));
-    const outImage = await makeImage({ one: senderID, two: targetId });
+    // avatars (HD)
+    await download(
+      `https://graph.facebook.com/${senderID}/picture?width=720&height=720`,
+      av1
+    );
+    await download(
+      `https://graph.facebook.com/${targetID}/picture?width=720&height=720`,
+      av2
+    );
 
-    await api.sendMessage({
-      body: `🫂 ${mentionName} — `,
-      mentions: [{ tag: mentionName, id: targetId }],
-      attachment: fs.createReadStream(outImage)
-    }, threadID, (err) => {
-      // cleanup
-      try { if (fs.existsSync(outImage)) fs.unlinkSync(outImage); } catch(e){}
-      if (err) console.error("[hug] sendMessage error:", err);
-    }, messageID);
+    // process
+    const base = await jimp.read(basePath);
+    const c1 = await circleImage(av1);
+    const c2 = await circleImage(av2);
+
+    base.resize(700, jimp.AUTO);
+    c1.resize(200, 200);
+    c2.resize(200, 200);
+
+    // positions tuned
+    base
+      .composite(c1, 390, 40) // sender
+      .composite(c2, 120, 90); // target
+
+    await base.writeAsync(outPath);
+
+    // get name
+    let name = "Someone";
+    try {
+      const info = await api.getUserInfo(targetID);
+      if (info[targetID]?.name) name = info[targetID].name;
+    } catch {}
+
+    // send
+    await api.sendMessage(
+      {
+        body: `🤗 Hug for ${name}`,
+        mentions: [{ tag: name, id: targetID }],
+        attachment: fs.createReadStream(outPath)
+      },
+      threadID,
+      messageID
+    );
+
+    // cleanup
+    [av1, av2, outPath].forEach(f => {
+      try { fs.unlinkSync(f); } catch {}
+    });
 
   } catch (err) {
-    console.error("[hug] error:", err && (err.stack || err));
-    return api.sendMessage("কিছু ত্রুটি ঘটেছে — আবার চেষ্টা করুন।", threadID, messageID);
+    console.error("HUG ERROR:", err);
+    api.sendMessage("❌ Hug বানাতে সমস্যা হয়েছে!", threadID, messageID);
   }
 };
