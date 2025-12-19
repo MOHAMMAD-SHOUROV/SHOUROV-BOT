@@ -1,41 +1,40 @@
-// shourov/events/shourovlove99.js
 const axios = require("axios");
 
 module.exports = {
-  name: "npx36",
+  config: {
+    name: "shourovlove99",
+    version: "1.0.0",
+    permission: 0,
+    prefix: false,
+    credits: "shourov",
+    description: "Auto video when keyword used",
+    category: "fun",
+    cooldowns: 5
+  },
 
   run: async function ({ api, event }) {
+    const { body, threadID, messageID } = event;
+    if (!body) return;
+
+    const text = body.toLowerCase();
+    const triggers = ["king", "shourov", "সৌরভ"];
+
+    if (!triggers.some(t => text.includes(t))) return;
+
     try {
-      if (!event.body) return;
-
-      const text = String(event.body).toLowerCase();
-
-      // 🔥 trigger words
-      const triggers = ["shourov", "সৌরভ", "king"];
-
-      if (!triggers.some(w => text.includes(w))) return;
-
-      const videos = [
-        "https://i.imgur.com/23eTYBu.mp4",
-        "https://files.catbox.moe/8sctaw.mp4",
-        "https://files.catbox.moe/omt6x5.mp4"
-      ];
-
-      const videoURL = videos[Math.floor(Math.random() * videos.length)];
-
-      const res = await axios.get(videoURL, {
+      const videoURL = "https://files.catbox.moe/8sctaw.mp4";
+      const stream = await axios.get(videoURL, {
         responseType: "stream",
-        headers: { "User-Agent": "Mozilla/5.0" },
         timeout: 30000
       });
 
       api.sendMessage({
-        body: "🖤 𝐀𝐋𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 🖤",
-        attachment: res.data
-      }, event.threadID);
+        body: "🖤 𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 🖤",
+        attachment: stream.data
+      }, threadID, messageID);
 
-    } catch (err) {
-      console.error("[npx36 EVENT ERROR]", err);
+    } catch (e) {
+      api.sendMessage("ভিডিও পাঠানো যায়নি 😢", threadID, messageID);
     }
   }
 };
