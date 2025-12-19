@@ -88,34 +88,32 @@ async function commandHandler({ shourov, nayan, api, event, args = [], Users }) 
     const api2 = apiJson?.api2 || null;
 
     // no args => greet and register handleReply
-  if (!msg) {
-  const greetings = [
-    "কি গো সোনা আমাকে ডাকছ কেনো 😌",
-    "বার বার আমাকে ডাকস কেন 😡",
-    "আহ শুনা আমার উম্মাহ 😘",
-    "আসসালামু আলাইকুম, বলেন 😊",
-    "আমাকে এত ডাকিস কেন 🙄"
-  ];
-
-  const rand = greetings[Math.floor(Math.random() * greetings.length)];
-
-  return safeReply(
-    bot,
-    threadID,
-    rand,
-    messageID,
-    (err, info) => {
-      global.client = global.client || {};
-      global.client.handleReply = global.client.handleReply || [];
-      global.client.handleReply.push({
-        type: "reply",
-        name: "bot",
-        messageID: info?.messageID || null,
-        author: event.senderID
+    if (!msg) {
+      const greetings = [
+        "আহ শুনা আমার তোমার অলিতে গলিতে উম্মাহ😇😘",
+        "কি গো সোনা আমাকে ডাকছ কেনো",
+        "বার বার আমাকে ডাকস কেন😡",
+        "আহ শোনা আমার আমাকে এতো ডাকে কেনো আসো বুকে আশো🥱",
+        "হুম জান তোমার অইখানে উম্মমাহ😷😘",
+        "আসসালামু আলাইকুম বলেন আপনার জন্য কি করতে পারি",
+        "আমাকে এতো না ডেকে বস সৌরভ'কে একটা গফ দে 🙄",
+        "jang hanga korba",
+        "jang bal falaba🙂"
+      ];
+      const name = (Users && typeof Users.getNameUser === 'function') ? await Users.getNameUser(event.senderID) : event.senderID;
+      const rand = greetings[Math.floor(Math.random() * greetings.length)];
+      return safeReply(bot, threadID, `${name}, ${rand}`, messageID, (err, info) => {
+        global.client = global.client || {};
+        global.client.handleReply = global.client.handleReply || [];
+        global.client.handleReply.push({
+          type: 'reply',
+          name: "bot",
+          messageID: info?.messageID || null,
+          author: event.senderID,
+          head: msg
+        });
       });
     }
-  );
-}
 
     // textType command
     if (msg.startsWith("textType")) {
