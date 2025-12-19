@@ -1,65 +1,61 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
-module.exports = {
-  config: {
-    name: "npx27",
-    version: "1.0.2",
-    prefix: false,
-    permission: 0,           // fixed spelling
-    credits: "nayan",
-    description: "Trigger-based fun reply",
-    category: "no prefix",
-    usages: "😒",
-    cooldowns: 5
-  },
+module.exports.config = {
+  name: "npx27",
+  version: "1.0.3",
+  prefix: false,
+  permission: 0,
+  credits: "nayan (fixed by shourov)",
+  description: "Emoji trigger video reply",
+  category: "no prefix",
+  cooldowns: 5
+};
 
-  handleEvent: async function ({ api, event }) {
-    try {
-      const { threadID, messageID, body } = event;
-      if (!body) return;
+module.exports.handleEvent = async function ({ api, event }) {
+  const { threadID, messageID, body } = event;
+  if (!body) return;
 
-      const text = String(body).toLowerCase();
-      const triggers = ["👻", "😈"];
+  // trigger emojis
+  const triggers = ["👻", "😈"];
+  if (!triggers.some(e => body.includes(e))) return;
 
-      // check if any trigger exists in the message (emojis unaffected by toLowerCase)
-      if (triggers.some(trigger => text.includes(trigger))) {
-        try {
-          const response = await axios.get("https://files.catbox.moe/1bx2l9.mp4", {
-            responseType: "stream",
-            headers: { "User-Agent": "Mozilla/5.0" },
-            timeout: 30000
-          });
+  const cacheDir = path.join(__dirname, "cache");
+  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
-          const msg = {
-            body: "𝐒𝐇𝐎𝐔𝐑𝐎𝐕_𝐁𝐎𝐓",
-            attachment: response.data
-          };
+  const videoPath = path.join(cacheDir, "npx27.mp4");
 
-          // send and then set reaction on the sent message (use info.messageID)
-          api.sendMessage(msg, threadID, (err, info) => {
-            if (err) {
-              console.error("Send message error:", err);
-              return api.sendMessage("❌ ভিডিও পাঠানো যাচ্ছে না!", threadID, messageID);
-            }
-            // set reaction on the message that was just sent
-            try {
-              api.setMessageReaction("😓", info.messageID, () => {}, true);
-            } catch (e) {
-              console.error("Reaction error:", e);
-            }
-          }, messageID);
-
-        } catch (err) {
-          console.error("ভিডিও লোড এ এরর:", err && (err.stack || err));
-          api.sendMessage("ভিডিও লোড করতে সমস্যা হয়েছে!", threadID, messageID);
-        }
-      }
-    } catch (error) {
-      console.error("npx27 handleEvent error:", error && (error.stack || error));
+  try {
+    // download video if not exists
+    if (!fs.existsSync(videoPath)) {
+      const res = await axios.get(
+        "https://files.catbox.moe/1bx2l9.mp4",
+        { responseType: "arraybuffer", timeout: 30000 }
+      );
+      fs.writeFileSync(videoPath, Buffer.from(res.data));
     }
-  },
 
-  start: function () {
-    console.log("[npx27] Module loaded.");
+    api.sendMessage(
+      {
+        body: "𝐒𝐇𝐎𝐔𝐑𝐎𝐕_𝐁𝐎𝐓 👻",
+        attachment: fs.createReadStream(videoPath)
+      },
+      threadID,
+      (err, info) => {
+        if (!err && info?.messageID) {
+          api.setMessageReaction("😓", info.messageID, () => {}, true);
+        }
+      },
+      messageID
+    );
+
+  } catch (err) {
+    console.error("npx27 error:", err);
+    api.sendMessage("❌ ভিডিও পাঠানো যায়নি!", threadID, messageID);
   }
+};
+
+module.exports.start = function () {
+  console.log("[npx27] Ready (emoji trigger)");
 };
