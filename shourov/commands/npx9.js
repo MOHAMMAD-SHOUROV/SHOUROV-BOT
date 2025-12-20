@@ -1,66 +1,50 @@
-const fs = require("fs");
+const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "🤭",
-    version: "1.0.2",
-    prefix: false,
+    name: "npx6",
+    version: "1.0.0",
     permission: 0,
-    credits: "shourov (fixed)",
-    description: "Shy / embarrassed emoji auto audio reply",
-    category: "no prefix",
-    usages: "auto",
-    cooldowns: 5,
+    prefix: false,
+    credits: "shourov",
+    description: "Auto trigger love video",
+    category: "auto"
   },
 
-  handleEvent: function ({ api, event }) {
+  // 🔥 AUTO EVENT (NO PREFIX)
+  handleEvent: async function ({ api, event }) {
     try {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      // Keep the original text (emoji checks do not require toLowerCase)
-      const text = String(body).trim();
+      const text = body.toLowerCase();
 
-      // Triggers (emoji + common shy-related words)
+      // 🔑 trigger words
       const triggers = ["🤭", "🙈", "🙊", "🤫", "shy", "sorom", "শরম"];
 
-      // Match if message starts with or contains any trigger
-      const isTriggered = triggers.some(tr => {
-        // compare both raw text (for emojis) and lowercase (for words)
-        return text.startsWith(tr) || text.toLowerCase().includes(String(tr).toLowerCase());
+      if (isTriggered) {
+      const filePath = __dirname + "/shourov/sorom.mp3";
+      if (!fs.existsSync(filePath)) return;
+
+      const res = await axios.get(videoURL, {
+        responseType: "stream",
+        timeout: 30000
       });
 
-      if (!isTriggered) return;
+      api.sendMessage(
+        {
+          body: "আঁমিঁ বলুঁম্ না — আমার শরম লাগে 😳",
+          attachment: res.data
+        },
+        threadID,
+        messageID
+      );
 
-      const filePath = __dirname + "/shourov/sorom.mp3";
-      if (!fs.existsSync(filePath)) {
-        console.error(`[${this.config.name}] missing audio file: ${filePath}`);
-        return;
-      }
-
-      const msg = {
-        body: "আঁমিঁ বলুঁম্ না — আমার শরম লাগে 😳",
-        attachment: fs.createReadStream(filePath),
-      };
-
-      // Send message and react to the sent message (use info.messageID)
-      api.sendMessage(msg, threadID, (err, info) => {
-        if (err) {
-          console.error(`[${this.config.name}] sendMessage error:`, err);
-          return;
-        }
-        try {
-          // react to the bot's sent message (info.messageID). If not supported, ignore.
-          api.setMessageReaction("😊", info.messageID, () => {}, true);
-        } catch (e) {
-          // ignore reaction errors
-        }
-      }, messageID);
     } catch (err) {
-      console.error(`[${this.config.name}] handleEvent error:`, err);
+      console.error("[npx6] error:", err.message);
     }
   },
 
-  start: function () {}
+  // ❌ run খালি রাখো (loader error এড়াতে)
+  run: async function () {}
 };
-```0
