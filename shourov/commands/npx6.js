@@ -1,58 +1,50 @@
-const fs = require("fs");
+const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "🤬",
-    version: "1.0.2",
-    prefix: false,
+    name: "npx6",
+    version: "1.0.0",
     permission: 0,
-    credits: "nayan (fixed by Shourov)",
-    description: "Angry emoji auto audio reply",
-    category: "no prefix",
-    usages: "auto",
-    cooldowns: 5,
+    prefix: false,
+    credits: "shourov",
+    description: "Auto trigger love video",
+    category: "auto"
   },
 
-  handleEvent: function ({ api, event }) {
+  // 🔥 AUTO EVENT (NO PREFIX)
+  handleEvent: async function ({ api, event }) {
     try {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      // no lowerCase needed for emoji but safe
-      const text = body.trim();
+      const text = body.toLowerCase();
 
-      // Triggers list
-      const triggers = ["😡", "😠", "😤", "😾"];
+      // 🔑 trigger words
+      const triggers = ["😡", "😤", "🤬"];
 
-      // Check match (startsWith OR includes)
-      const isTriggered = triggers.some(tr => text.startsWith(tr) || text.includes(tr));
-      if (!isTriggered) return;
-
-      // Audio file path
+      if (isTriggered) {
       const filePath = __dirname + "/shourov/ragkoro.mp3";
-      if (!fs.existsSync(filePath)) {
-        console.error("Missing file:", filePath);
-        return;
-      }
+      if (!fs.existsSync(filePath)) return;
 
-      const msg = {
-        body: "রাঁগঁ কঁরোঁ কেঁনোঁ গোঁ😡🥺",
-        attachment: fs.createReadStream(filePath),
-      };
-
-      // Send message, then react to the *bot-sent* message
-      api.sendMessage(msg, threadID, (err, info) => {
-        if (err) return;
-
-        try {
-          api.setMessageReaction("😁", info.messageID, () => {}, true);
-        } catch (e) {}
+      const res = await axios.get(videoURL, {
+        responseType: "stream",
+        timeout: 30000
       });
 
+      api.sendMessage(
+        {
+          body: "রাঁগঁ কঁরোঁ কেঁনোঁ গোঁ😡🥺",
+          attachment: res.data
+        },
+        threadID,
+        messageID
+      );
+
     } catch (err) {
-      console.error("[🤬] Error:", err);
+      console.error("[npx6] error:", err.message);
     }
   },
 
-  start: function () {}
+  // ❌ run খালি রাখো (loader error এড়াতে)
+  run: async function () {}
 };
