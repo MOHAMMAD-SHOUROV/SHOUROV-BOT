@@ -59,4 +59,3 @@ module.exports = {
 
   start: function () {}
 };
-```0
