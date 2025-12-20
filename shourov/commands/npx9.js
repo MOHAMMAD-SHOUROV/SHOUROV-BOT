@@ -2,7 +2,7 @@ const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "npx6",
+    name: "npx9",
     version: "1.0.0",
     permission: 0,
     prefix: false,
@@ -41,7 +41,7 @@ module.exports = {
       );
 
     } catch (err) {
-      console.error("[npx6] error:", err.message);
+      console.error("[npx9] error:", err.message);
     }
   },
 
