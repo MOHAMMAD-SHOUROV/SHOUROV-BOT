@@ -1,61 +1,49 @@
 const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
-    name: "😡",
-    version: "1.0.2",
+    name: "angry",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
-    credits: "nayan (fixed)",
+    credits: "nayan",
     description: "Angry emoji auto audio reply",
-    category: "no prefix",
-    usages: "auto",
-    cooldowns: 5,
+    category: "auto"
   },
 
-  handleEvent: function ({ api, event }) {
+  handleEvent: async function ({ api, event }) {
     try {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      // Keep original text (emoji check doesn't need toLowerCase but it's safe)
-      const text = String(body).trim().toLowerCase();
+      const text = body.toLowerCase();
 
-      // Trigger list
       const triggers = ["😡", "🤬", "😠", "😤", "😾"];
 
-      // Match if message starts with or includes any trigger
-      const isTriggered = triggers.some(tr => text.startsWith(tr) || text.includes(tr));
-      if (!isTriggered) return;
+      if (!triggers.some(t => text.includes(t))) return;
 
-      // Audio path
-      const filePath = __dirname + "/shourov/ragkoro.mp3";
-      if (!fs.existsSync(filePath)) {
-        console.error(`[${this.config.name}] missing audio file:`, filePath);
+      const audioPath = path.join(__dirname, "shourov", "ragkoro.mp3");
+
+      if (!fs.existsSync(audioPath)) {
+        console.log("[angry] Audio not found:", audioPath);
         return;
       }
 
-      const msg = {
-        body: "রাগ কোরো না ভাইয়া 😡",
-        attachment: fs.createReadStream(filePath),
-      };
+      api.sendMessage(
+        {
+          body: "😡 রাগ কোরো না ভাইয়া",
+          attachment: fs.createReadStream(audioPath)
+        },
+        threadID,
+        messageID
+      );
 
-      // Send and react to the message the bot sends (use info.messageID)
-      api.sendMessage(msg, threadID, (err, info) => {
-        if (err) {
-          console.error(`[${this.config.name}] sendMessage error:`, err);
-          return;
-        }
-        try {
-          api.setMessageReaction("😁", info.messageID, () => {}, true);
-        } catch (e) {
-          // ignore reaction errors
-        }
-      }, messageID);
-    } catch (err) {
-      console.error(`[${this.config.name}] handleEvent error:`, err);
+    } catch (e) {
+      console.error("[angry] error:", e.message);
     }
   },
 
-  start: function () {}
+  // loader এর জন্য দরকার
+  run: async function () {}
 };
