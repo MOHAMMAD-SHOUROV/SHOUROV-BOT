@@ -32,7 +32,7 @@ module.exports = {
 
       api.sendMessage(
         {
-          body: "😡 রাগ কোরো না ভাইয়া",
+          body: "রাঁগঁ কঁরোঁ কেঁনোঁ গোঁ😡🥺",
           attachment: fs.createReadStream(audioPath)
         },
         threadID,
