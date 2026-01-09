@@ -1,62 +1,49 @@
 const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
-    name: "😍",
-    version: "1.0.2",
+    name: "angry",
+    version: "1.0.3",
     prefix: false,
     permission: 0,
     credits: "shourov",
-    description: "Fun",
-    category: "no prefix",
-    usages: "emoji trigger",
-    cooldowns: 5,
+    description: "Angry emoji auto audio reply",
+    category: "auto"
   },
 
-  handleEvent: function ({ api, event }) {
+  handleEvent: async function ({ api, event }) {
     try {
-      const { threadID, messageID } = event;
-      const body = (event.body || "").toString();
+      const { threadID, messageID, body } = event;
       if (!body) return;
 
-      // For emoji triggers we don't need to lower-case, but keep text form safe
-      const text = body.trim();
+      const text = body.toLowerCase();
 
-      // Trigger list — add/remove emojis or words as you like
-      const triggers = ["😍", "🥰", "🤩", "❤️"];
+      const triggers = [😍", "🥰", "🤩", "❤️"];
 
-      // If any trigger is at the start or included in the message
-      const isTriggered = triggers.some(trigger => text.startsWith(trigger) || text.includes(trigger));
-      if (!isTriggered) return;
+      if (!triggers.some(t => text.includes(t))) return;
 
-      // Path to your media file
-      const filePath = __dirname + "/Nayan/এত ভালোবাসা কই পাও আ (1).m4a";
+      const audioPath = path.join(__dirname, "shourov", "এত ভালোবাসা কই পাও আ (1).m4a");
 
-      if (!fs.existsSync(filePath)) return; // silently exit if file missing
+      if (!fs.existsSync(audioPath)) {
+        console.log("[angry] Audio not found:", audioPath);
+        return;
+      }
 
-      const msg = {
-        body: "এঁতঁ ভাঁলোঁবাঁসাঁ পাঁওঁ আঁমাঁরঁ বঁসঁ সৌঁরঁভঁ কেঁ এঁকঁটুঁ দেঁওঁ",
-        attachment: fs.createReadStream(filePath),
-      };
+      api.sendMessage(
+        {
+          body: "এঁতঁ ভাঁলোঁবাঁসাঁ পাঁওঁ আঁমাঁরঁ বঁসঁ সৌঁরঁভঁ কেঁ এঁকঁটুঁ দেঁওঁ",
+          attachment: fs.createReadStream(audioPath)
+        },
+        threadID,
+        messageID
+      );
 
-      // send message and react to the message the bot sends (info.messageID)
-      api.sendMessage(msg, threadID, (err, info) => {
-        if (err) {
-          console.error("[😍] sendMessage error:", err);
-          return;
-        }
-        try {
-          api.setMessageReaction("😁", info.messageID, () => {}, true);
-        } catch (e) {
-          console.error("[😍] setMessageReaction error:", e);
-        }
-      }, messageID);
-
-    } catch (error) {
-      console.error("[😍] handleEvent error:", error && (error.stack || error));
-      try { api.sendMessage("⚠️ একটি ত্রুটি ঘটেছে!", event.threadID); } catch (e) {}
+    } catch (e) {
+      console.error("[angry] error:", e.message);
     }
   },
 
-  start: function () {}
+  // loader এর জন্য দরকার
+  run: async function () {}
 };
