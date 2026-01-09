@@ -3,12 +3,12 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "angry",
-    version: "1.0.3",
+    name: "loveauto",
+    version: "1.0.4",
     prefix: false,
     permission: 0,
     credits: "shourov",
-    description: "Angry emoji auto audio reply",
+    description: "Love emoji auto audio reply",
     category: "auto"
   },
 
@@ -17,22 +17,25 @@ module.exports = {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      const text = body.toLowerCase();
+      const text = String(body);
 
-      const triggers = [😍", "🥰", "🤩", "❤️"];
-
+      const triggers = ["😍", "🥰", "🤩", "❤️"];
       if (!triggers.some(t => text.includes(t))) return;
 
-      const audioPath = path.join(__dirname, "shourov", "এত ভালোবাসা কই পাও আ (1).m4a");
+      const audioPath = path.join(
+        __dirname,
+        "shourov",
+        "এত ভালোবাসা কই পাও আ (1).m4a"
+      );
 
       if (!fs.existsSync(audioPath)) {
-        console.log("[angry] Audio not found:", audioPath);
+        console.log("[loveauto] Audio not found:", audioPath);
         return;
       }
 
       api.sendMessage(
         {
-          body: "এঁতঁ ভাঁলোঁবাঁসাঁ পাঁওঁ আঁমাঁরঁ বঁসঁ সৌঁরঁভঁ কেঁ এঁকঁটুঁ দেঁওঁ",
+          body: "এঁতঁ ভাঁলোঁবাঁসাঁ পাঁওঁ আঁমাঁরঁ বঁসঁ সৌঁরঁভঁ কেঁ এঁকঁটুঁ দেঁওঁ 😘",
           attachment: fs.createReadStream(audioPath)
         },
         threadID,
@@ -40,10 +43,9 @@ module.exports = {
       );
 
     } catch (e) {
-      console.error("[angry] error:", e.message);
+      console.error("[loveauto] error:", e);
     }
   },
 
-  // loader এর জন্য দরকার
   run: async function () {}
 };
