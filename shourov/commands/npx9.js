@@ -1,17 +1,17 @@
-const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
-    name: "npx9",
-    version: "1.0.0",
-    permission: 0,
+    name: "angry",
+    version: "1.0.3",
     prefix: false,
+    permission: 0,
     credits: "shourov",
-    description: "Auto trigger love video",
+    description: "Angry emoji auto audio reply",
     category: "auto"
   },
 
-  // 🔥 AUTO EVENT (NO PREFIX)
   handleEvent: async function ({ api, event }) {
     try {
       const { threadID, messageID, body } = event;
@@ -19,32 +19,31 @@ module.exports = {
 
       const text = body.toLowerCase();
 
-      // 🔑 trigger words
-      const triggers = ["🤭", "🙈", "🙊", "🤫", "shy", "sorom", "শরম"];
+      const triggers = ["🤭", "🙈", "🙊", "🤫"];
 
-      if (isTriggered) {
-      const filePath = __dirname + "/shourov/sorom.mp3";
-      if (!fs.existsSync(filePath)) return;
+      if (!triggers.some(t => text.includes(t))) return;
 
-      const res = await axios.get(videoURL, {
-        responseType: "stream",
-        timeout: 30000
-      });
+      const audioPath = path.join(__dirname, "shourov", "sorom.mp3");
+
+      if (!fs.existsSync(audioPath)) {
+        console.log("[angry] Audio not found:", audioPath);
+        return;
+      }
 
       api.sendMessage(
         {
           body: "আঁমিঁ বলুঁম্ না — আমার শরম লাগে 😳",
-          attachment: res.data
+          attachment: fs.createReadStream(audioPath)
         },
         threadID,
         messageID
       );
 
-    } catch (err) {
-      console.error("[npx9] error:", err.message);
+    } catch (e) {
+      console.error("[angry] error:", e.message);
     }
   },
 
-  // ❌ run খালি রাখো (loader error এড়াতে)
+  // loader এর জন্য দরকার
   run: async function () {}
 };
