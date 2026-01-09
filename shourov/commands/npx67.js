@@ -4,11 +4,11 @@ const path = require("path");
 module.exports = {
   config: {
     name: "angry",
-    version: "1.0.3",
+    version: "1.1.0",
     prefix: false,
     permission: 0,
     credits: "shourov",
-    description: "Angry emoji auto audio reply",
+    description: "Multi emoji auto audio reply",
     category: "auto"
   },
 
@@ -17,33 +17,50 @@ module.exports = {
       const { threadID, messageID, body } = event;
       if (!body) return;
 
-      const text = body.toLowerCase();
+      const text = String(body);
 
-      const triggers = ["😖", "😣", "😫", "🙉"];
+      const rules = [
+        {
+          triggers: ["😖", "😣", "😫", "🙉"],
+          audio: "banortor.mp3",
+          msg: "কিঁরেঁ বাঁনঁরঁ তোঁরঁ আঁবাঁরঁ কিঁ হঁলোঁ"
+        },
+        {
+          triggers: ["😎", "😈", "👿", "🤙"],
+          audio: "attitude.mp3",
+          msg: "তুঁমিঁ attitude দেঁখাঁচ্ছঁ তাঁতেঁ আঁমাঁরঁ বাঁলঁ ছেঁড়াঁ গেঁলোঁ 😎"
+        },
+        {
+          triggers: ["💔", "🥺", "😢"],
+          audio: "brkup.mp3",
+          msg: "জাঁনেঁমাঁনঁ তোঁমাঁরঁ কিঁ breakup হঁয়ঁছেঁ 💔"
+        }
+      ];
 
-      if (!triggers.some(t => text.includes(t))) return;
+      for (const rule of rules) {
+        if (rule.triggers.some(t => text.includes(t))) {
+          const audioPath = path.join(__dirname, "shourov", rule.audio);
 
-      const audioPath = path.join(__dirname, "shourov", "banortor.mp3");
+          if (!fs.existsSync(audioPath)) {
+            console.log("[angry] Audio missing:", audioPath);
+            return;
+          }
 
-      if (!fs.existsSync(audioPath)) {
-        console.log("[angry] Audio not found:", audioPath);
-        return;
+          return api.sendMessage(
+            {
+              body: rule.msg,
+              attachment: fs.createReadStream(audioPath)
+            },
+            threadID,
+            messageID
+          );
+        }
       }
 
-      api.sendMessage(
-        {
-          body: "কিঁরেঁ বাঁনঁরঁ তোঁরঁ আঁবাঁরঁ কিঁ হঁলোঁ",
-          attachment: fs.createReadStream(audioPath)
-        },
-        threadID,
-        messageID
-      );
-
     } catch (e) {
-      console.error("[angry] error:", e.message);
+      console.error("[angry] error:", e);
     }
   },
 
-  // loader এর জন্য দরকার
   run: async function () {}
 };
