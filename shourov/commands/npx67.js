@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "angry",
+    name: "shourovnpx",
     version: "1.1.0",
     prefix: false,
     permission: 0,
@@ -26,7 +26,7 @@ module.exports = {
           msg: "কিঁরেঁ বাঁনঁরঁ তোঁরঁ আঁবাঁরঁ কিঁ হঁলোঁ"
         },
         {
-          triggers: ["😎", "😈", "👿", "🤙"],
+          triggers: ["😎", "😈", "🇧🇩", "🤙"],
           audio: "attitude.mp3",
           msg: "তুঁমিঁ attitude দেঁখাঁচ্ছঁ তাঁতেঁ আঁমাঁরঁ বাঁলঁ ছেঁড়াঁ গেঁলোঁ 😎"
         },
@@ -42,7 +42,7 @@ module.exports = {
           const audioPath = path.join(__dirname, "shourov", rule.audio);
 
           if (!fs.existsSync(audioPath)) {
-            console.log("[angry] Audio missing:", audioPath);
+            console.log("[shourovnpx] Audio missing:", audioPath);
             return;
           }
 
@@ -58,7 +58,7 @@ module.exports = {
       }
 
     } catch (e) {
-      console.error("[angry] error:", e);
+      console.error("[shourovnpx] error:", e);
     }
   },
 
