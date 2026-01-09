@@ -3,47 +3,28 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "angry",
-    version: "1.0.3",
-    prefix: false,
-    permission: 0,
-    credits: "shourov",
-    description: "Angry emoji auto audio reply",
-    category: "auto"
+    name: "breakup",
+    prefix: false
   },
 
-  handleEvent: async function ({ api, event }) {
-    try {
-      const { threadID, messageID, body } = event;
-      if (!body) return;
+  handleEvent: async ({ api, event }) => {
+    if (!event.body) return;
 
-      const text = body.toLowerCase();
+    const triggers = ["💔", "🖤", "🥺", "😢"];
+    if (!triggers.some(t => event.body.includes(t))) return;
 
-      const triggers = ["💔", "🖤", "🥺", "😢"];
+    const audioPath = path.join(__dirname, "shourov", "brkup.mp3");
+    if (!fs.existsSync(audioPath)) return;
 
-      if (!triggers.some(t => text.includes(t))) return;
-
-      const audioPath = path.join(__dirname, "shourov", "brkup.mp3");
-
-      if (!fs.existsSync(audioPath)) {
-        console.log("[angry] Audio not found:", audioPath);
-        return;
-      }
-
-      api.sendMessage(
-        {
-          body: ""জাঁনেঁমাঁনঁ তোঁমাঁরঁ কিঁ brackup হঁয়ঁছেঁ",
-          attachment: fs.createReadStream(audioPath)
-        },
-        threadID,
-        messageID
-      );
-
-    } catch (e) {
-      console.error("[angry] error:", e.message);
-    }
+    api.sendMessage(
+      {
+        body: "জাঁনেঁমাঁনঁ তোঁমাঁরঁ কিঁ breakup হঁয়ঁছেঁ 😢",
+        attachment: fs.createReadStream(audioPath)
+      },
+      event.threadID,
+      event.messageID
+    );
   },
 
-  // loader এর জন্য দরকার
-  run: async function () {}
+  run: async () => {}
 };
