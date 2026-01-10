@@ -1,4 +1,3 @@
-// commands/bot.js
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
@@ -6,67 +5,46 @@ const path = require("path");
 module.exports = {
   config: {
     name: "bot",
-    version: "1.0.3",
-    aliases: ["mim"],
+    version: "2.0.0",
     permission: 0,
     credits: "shourov",
-    description: "talk with bot",
-    prefix: true,
+    prefix: true,          // /bot কাজ করবে
+    description: "Talk with bot (no prefix + prefix + sim api)",
     category: "talk",
-    usages: "hi",
-    cooldowns: 5
+    usages: "bot",
+    cooldowns: 3
   },
 
-  // ================= HANDLE REPLY =================
-  handleReply: async function ({ api, event }) {
+  // =================================================
+  // 🔥 NO PREFIX → শুধু "bot" লিখলেই trigger
+  // =================================================
+  handleEvent: async function ({ api, event, Users }) {
     try {
-      const userName =
-        global.data?.userName?.get(event.senderID) ||
-        (await api.getUserInfo(event.senderID))[event.senderID]?.name ||
-        "User";
+      if (!event.body) return;
 
-      const apiJson = await safeLoadApiJson();
-      const apiUrl = apiJson?.sim;
-      const apiUrl2 = apiJson?.api2;
+      const body = event.body.trim().toLowerCase();
+      if (body !== "bot") return;
 
-      if (!apiUrl)
-        return api.sendMessage(
-          "Sim API unavailable ❌",
-          event.threadID,
-          event.messageID
-        );
+      const name = await Users.getNameUser(event.senderID);
 
-      const r = await axios.get(
-        ${apiUrl}/sim?type=ask&ask=${encodeURIComponent(event.body)},
-        { timeout: 10000 }
-      );
+      const greetings = [
+        "হুম জান বলো 😌",
+        "কি গো ডাকছো কেন 🥱",
+        "আমি এখানে বলো 🖤",
+        "হ্যাঁ শুনছি 😇"
+      ];
 
-      const result =
-        r.data?.data?.msg ||
-        r.data?.msg ||
-        "No response";
+      const msg = greetings[Math.floor(Math.random() * greetings.length)];
 
-      const styles = loadTextStyles();
-      const style = styles[event.threadID]?.style || "normal";
-
-      let finalText = result;
-      if (apiUrl2) {
-        try {
-          const f = await axios.get(
-            ${apiUrl2}/bold?text=${encodeURIComponent(result)}&type=${style},
-            { timeout: 8000 }
-          );
-          finalText = f.data?.data?.bolded || result;
-        } catch (_) {}
-      }
-
-      api.sendMessage(
-        ${userName}, ${finalText},
+      return api.sendMessage(
+        `🤖 ${name}, ${msg}`,
         event.threadID,
         (err, info) => {
+          if (!global.client) global.client = {};
+          if (!global.client.handleReply) global.client.handleReply = [];
+
           global.client.handleReply.push({
-            type: "reply",
-            name: "bot",
+            name: this.config.name,
             messageID: info.messageID,
             author: event.senderID
           });
@@ -75,157 +53,108 @@ module.exports = {
       );
 
     } catch (e) {
-      console.error("handleReply error:", e);
-      api.sendMessage(
-        "Reply error ❌",
+      console.error("[bot handleEvent]", e);
+    }
+  },
+
+  // =================================================
+  // 🔹 PREFIX → /bot hi
+  // =================================================
+  run: async function ({ api, event, args, Users }) {
+    try {
+      const msg = args.join(" ").trim();
+
+      // শুধু /bot
+      if (!msg) {
+        const name = await Users.getNameUser(event.senderID);
+        return api.sendMessage(
+          `🤖 ${name}, বলো জান 😌`,
+          event.threadID,
+          event.messageID
+        );
+      }
+
+      // ===== SIM API =====
+      const apiJson = await axios.get(
+        "https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json"
+      );
+
+      const simApi = apiJson.data.sim;
+      const fontApi = apiJson.data.api2;
+
+      const res = await axios.get(
+        `${simApi}/sim?type=ask&ask=${encodeURIComponent(msg)}`
+      );
+
+      let reply = res.data?.data?.msg || "কিছু বুঝতে পারিনি 😅";
+
+      // ===== FONT STYLE =====
+      try {
+        const styled = await axios.get(
+          `${fontApi}/bold?text=${encodeURIComponent(reply)}&type=normal`
+        );
+        reply = styled.data?.data?.bolded || reply;
+      } catch {}
+
+      return api.sendMessage(
+        reply,
+        event.threadID,
+        (err, info) => {
+          if (!global.client) global.client = {};
+          if (!global.client.handleReply) global.client.handleReply = [];
+
+          global.client.handleReply.push({
+            name: this.config.name,
+            messageID: info.messageID,
+            author: event.senderID
+          });
+        },
+        event.messageID
+      );
+
+    } catch (e) {
+      console.error("[bot run]", e);
+      return api.sendMessage(
+        "❌ এখন কথা বলতে পারছি না",
         event.threadID,
         event.messageID
       );
     }
   },
 
-  // ================= MAIN RUN =================
-  run: async function ({ api, event, args, Users }) {
-    const msg = args.join(" ").trim();
-    const threadID = event.threadID;
-    const messageID = event.messageID;
-
-    const userName =
-      global.data?.userName?.get(event.senderID) ||
-      (Users ? await Users.getNameUser(event.senderID) : null) ||
-      "User";
-
-    const apiJson = await safeLoadApiJson();
-    const apiUrl = apiJson?.sim;
-    const api2 = apiJson?.api2;
-
-    // -------- NO ARG (Greeting) --------
-    if (!msg) {
-      const greetings = [
-        "আহ শুনা আমার তোমার অলিতে গলিতে উম্মাহ 😘",
-        "কি গো সোনা আমাকে ডাকছ কেনো",
-        "বার বার আমাকে ডাকস কেন 😡",
-        "আসসালামু আলাইকুম বলেন কি করতে পারি",
-        "হুম জান উম্মাহ 😷😘"
-      ];
-      const rand = greetings[Math.floor(Math.random() * greetings.length)];
-
-      return api.sendMessage(
-        ${userName}, ${rand},
-        threadID,
-        (err, info) => {
-          global.client.handleReply.push({
-            type: "reply",
-            name: "bot",
-            messageID: info.messageID,
-            author: event.senderID
-          });
-        },
-        messageID
-      );
-    }
-
-    // -------- TEXT TYPE --------
-    if (msg.startsWith("textType")) {
-      const type = msg.split(" ")[1];
-      const allow = ["serif", "sans", "italic", "italic-sans", "medieval", "normal"];
-      if (!allow.includes(type))
-        return api.sendMessage(
-          Invalid type ❌\nUse: ${allow.join(", ")},
-          threadID,
-          messageID
-        );
-
-      saveTextStyle(threadID, type);
-      return api.sendMessage(
-        Text type set to "${type}" ✅,
-        threadID,
-        messageID
-      );
-    }
-
-    // -------- HELP --------
-    if (msg === "help") {
-      const p = global.config.PREFIX || "/";
-      return api.sendMessage(
-       🌟 Bot Commands\n\n${p}bot\n${p}bot textType [type]\n${p}bot teach ask=[q]&ans=[a]\n${p}bot delete ask=[q]&ans=[a]\n${p}bot info`,
-        threadID,
-        messageID
-      );
-    }
-
-    // -------- SIM ASK --------
-    if (!apiUrl)
-      return api.sendMessage(
-        "Sim API unavailable ❌",
-        threadID,
-        messageID
+  // =================================================
+  // 🔁 REPLY HANDLE (bot এর message এ reply দিলে)
+  // =================================================
+  handleReply: async function ({ api, event }) {
+    try {
+      const apiJson = await axios.get(
+        "https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json"
       );
 
-    const r = await axios.get(
-      ${apiUrl}/sim?type=ask&ask=${encodeURIComponent(msg)},
-      { timeout: 10000 }
-    );
+      const simApi = apiJson.data.sim;
+      const fontApi = apiJson.data.api2;
 
-    let reply =
-      r.data?.data?.msg ||
-      r.data?.msg ||
-      "No response";
+      const res = await axios.get(
+        `${simApi}/sim?type=ask&ask=${encodeURIComponent(event.body)}`
+      );
 
-    const styles = loadTextStyles();
-    const style = styles[threadID]?.style || "normal";
+      let reply = res.data?.data?.msg || "🙂";
 
-    if (api2) {
       try {
-        const f = await axios.get(
-          ${api2}/bold?text=${encodeURIComponent(reply)}&type=${style}
+        const styled = await axios.get(
+          `${fontApi}/bold?text=${encodeURIComponent(reply)}&type=normal`
         );
-        reply = f.data?.data?.bolded || reply;
-      } catch (_) {}
-    }
+        reply = styled.data?.data?.bolded || reply;
+      } catch {}
 
-    api.sendMessage(
-      ${userName}, ${reply},
-      threadID,
-      (err, info) => {
-        global.client.handleReply.push({
-          type: "reply",
-          name: "bot",
-          messageID: info.messageID,
-          author: event.senderID
-        });
-      },
-      messageID
-    );
+      return api.sendMessage(
+        reply,
+        event.threadID,
+        event.messageID
+      );
+
+    } catch (e) {
+      console.error("[bot handleReply]", e);
+    }
   }
 };
-
-// ================= HELPERS =================
-
-async function safeLoadApiJson() {
-  try {
-    const r = await axios.get(
-      "https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json",
-      { timeout: 8000 }
-    );
-    return r.data || {};
-  } catch {
-    return {};
-  }
-}
-
-function loadTextStyles() {
-  const p = path.join(__dirname, "system", "textStyles.json");
-  if (!fs.existsSync(p)) {
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, "{}");
-  }
-  return JSON.parse(fs.readFileSync(p));
-}
-
-function saveTextStyle(threadID, style) {
-  const p = path.join(__dirname, "system", "textStyles.json");
-  const d = loadTextStyles();
-  d[threadID] = { style };
-  fs.writeFileSync(p, JSON.stringify(d, null, 2));
-}
