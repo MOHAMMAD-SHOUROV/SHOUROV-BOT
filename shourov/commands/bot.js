@@ -3,22 +3,33 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "bot",
-    version: "2.2.0",
+    version: "2.3.0",
     permission: 0,
-    credits: "shourov (reply fixed)",
+    credits: "shourov (auto video safe)",
     prefix: true,
-    description: "Bot talk with reply support",
+    description: "Bot talk with reply support (auto video safe)",
     category: "talk",
     usages: "bot",
     cooldowns: 3
   },
 
   // =================================================
-  // 🔥 NO PREFIX → শুধু "Bot" লিখলে
+  // 🔥 NO PREFIX → শুধু "bot" লিখলে
   // =================================================
   handleEvent: async function ({ api, event, Users }) {
     if (!event.body) return;
     if (event.senderID === api.getCurrentUserID()) return;
+
+    // 🔕 Auto video trigger হলে bot কথা বলবে না
+    try {
+      const autoVideoData = require("./data/autoVideos.json");
+      const text = event.body.toLowerCase();
+      for (const key in autoVideoData) {
+        if (autoVideoData[key].triggers.some(t => text.includes(t))) {
+          return;
+        }
+      }
+    } catch {}
 
     const body = event.body.trim().toLowerCase();
     if (body !== "bot") return;
@@ -81,12 +92,10 @@ module.exports = {
   },
 
   // =================================================
-  // 🔁 REPLY দিলে কাজ করবে (FIXED)
+  // 🔁 REPLY দিলে কাজ করবে
   // =================================================
   handleReply: async function ({ api, event, handleReply }) {
     if (event.senderID === api.getCurrentUserID()) return;
-
-    // ✅ নিশ্চিত করি reply bot এর message এ
     if (event.senderID !== handleReply.author) return;
 
     const apiJson = await axios.get(
