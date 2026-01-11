@@ -25,7 +25,7 @@ function saveStatus(data) {
 
 module.exports = {
   config: {
-    name: "ss",
+    name: "shourovvideoadd",
     version: "3.0.0",
     permission: 0,
     prefix: true,
