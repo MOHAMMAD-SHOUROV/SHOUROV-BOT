@@ -1,113 +1,59 @@
-const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
 
 const DATA_DIR = path.join(__dirname, "data");
 const VIDEO_DB = path.join(DATA_DIR, "autoVideos.json");
 const STATUS_DB = path.join(DATA_DIR, "autoVideoStatus.json");
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-if (!fs.existsSync(VIDEO_DB)) fs.writeFileSync(VIDEO_DB, JSON.stringify({}));
-if (!fs.existsSync(STATUS_DB)) fs.writeFileSync(STATUS_DB, JSON.stringify({ status: true }));
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(VIDEO_DB)) fs.writeFileSync(VIDEO_DB, JSON.stringify({}, null, 2));
+if (!fs.existsSync(STATUS_DB)) fs.writeFileSync(STATUS_DB, JSON.stringify({ enabled: true }, null, 2));
 
-const ALLOWED_HOSTS = ["files.catbox.moe", "i.imgur.com"];
-const ALLOWED_EXT = [".mp4", ".mov", ".webm"];
-
-function isAdmin(uid) {
-  return global.config.ADMINBOT?.includes(uid);
+function loadVideos() {
+  return JSON.parse(fs.readFileSync(VIDEO_DB));
+}
+function saveVideos(data) {
+  fs.writeFileSync(VIDEO_DB, JSON.stringify(data, null, 2));
+}
+function loadStatus() {
+  return JSON.parse(fs.readFileSync(STATUS_DB));
+}
+function saveStatus(data) {
+  fs.writeFileSync(STATUS_DB, JSON.stringify(data, null, 2));
 }
 
 module.exports = {
   config: {
-    name: "npx36",
+    name: "ss",
     version: "3.0.0",
     permission: 0,
-    prefix: false,
+    prefix: true,
     credits: "shourov",
-    description: "Admin add auto video | on/off | text+emoji trigger",
-    category: "auto"
+    description: "Auto emoji/text video system (admin only add)",
+    category: "auto",
+    usages: "/ss add | on | off",
+    cooldowns: 2
   },
 
-  handleEvent: async function ({ api, event }) {
+  // ================= AUTO VIDEO =================
+  handleEvent: async ({ api, event }) => {
     try {
       if (!event.body) return;
-      const body = event.body.trim();
-      const lower = body.toLowerCase();
-      const senderID = event.senderID;
 
-      const videos = JSON.parse(fs.readFileSync(VIDEO_DB, "utf8"));
-      const statusData = JSON.parse(fs.readFileSync(STATUS_DB, "utf8"));
+      const status = loadStatus();
+      if (!status.enabled) return;
 
-      // =========================
-      // 🔘 ON / OFF SYSTEM (ADMIN)
-      // =========================
-      if (lower === "video off" && isAdmin(senderID)) {
-        fs.writeFileSync(STATUS_DB, JSON.stringify({ status: false }));
-        return api.sendMessage("🔴 Auto video OFF করা হয়েছে", event.threadID);
-      }
+      const text = event.body.toLowerCase();
+      const videos = loadVideos();
 
-      if (lower === "video on" && isAdmin(senderID)) {
-        fs.writeFileSync(STATUS_DB, JSON.stringify({ status: true }));
-        return api.sendMessage("🟢 Auto video ON করা হয়েছে", event.threadID);
-      }
-
-      // =========================
-      // ➕ ADD SYSTEM (ADMIN ONLY)
-      // add hello😍 https://catbox...
-      // =========================
-      if (lower.startsWith("add ") && isAdmin(senderID)) {
-        const parts = body.split(" ");
-        if (parts.length < 3) {
-          return api.sendMessage(
-            "❌ Format:\nadd hello😍 https://files.catbox.moe/xxx.mp4",
-            event.threadID
-          );
-        }
-
-        const trigger = parts[1]; // text + emoji
-        const videoURL = parts[2];
-
-        try {
-          const url = new URL(videoURL);
-
-          if (!ALLOWED_HOSTS.includes(url.hostname))
-            return api.sendMessage("❌ Only Catbox / Imgur allowed", event.threadID);
-
-          if (!ALLOWED_EXT.some(ext => url.pathname.endsWith(ext)))
-            return api.sendMessage("❌ Only mp4 / mov / webm allowed", event.threadID);
-
-          if (!videos[trigger]) videos[trigger] = [];
-          videos[trigger].push(videoURL);
-
-          fs.writeFileSync(VIDEO_DB, JSON.stringify(videos, null, 2));
-
-          return api.sendMessage(
-            `✅ Added Successfully\nTrigger: ${trigger}\nTotal: ${videos[trigger].length}`,
-            event.threadID
-          );
-
-        } catch {
-          return api.sendMessage("❌ Invalid video link", event.threadID);
-        }
-      }
-
-      // =========================
-      // 🎯 AUTO VIDEO REPLY
-      // =========================
-      if (!statusData.status) return;
-
-      for (const trigger in videos) {
-        if (body.includes(trigger)) {
-          const list = videos[trigger];
+      for (const key in videos) {
+        if (text.includes(key)) {
+          const list = videos[key];
           if (!list.length) return;
 
-          const video =
-            list[Math.floor(Math.random() * list.length)];
-
-          const res = await axios.get(video, {
-            responseType: "stream",
-            timeout: 30000
-          });
+          const videoURL = list[Math.floor(Math.random() * list.length)];
+          const res = await axios.get(videoURL, { responseType: "stream" });
 
           return api.sendMessage(
             {
@@ -119,11 +65,75 @@ module.exports = {
           );
         }
       }
-
     } catch (e) {
-      console.error("[npx36]", e);
+      console.error("[ss auto]", e.message);
     }
   },
 
-  run: async function () {}
+  // ================= COMMAND =================
+  run: async ({ api, event, args }) => {
+    try {
+      const senderID = event.senderID;
+      const threadID = event.threadID;
+
+      // 🔐 admin check
+      if (!global.config.ADMINBOT.includes(senderID)) {
+        return api.sendMessage("❌ Only admin can use this command", threadID);
+      }
+
+      const sub = args[0];
+
+      // ===== ON / OFF =====
+      if (sub === "on") {
+        saveStatus({ enabled: true });
+        return api.sendMessage("✅ Auto video ON", threadID);
+      }
+
+      if (sub === "off") {
+        saveStatus({ enabled: false });
+        return api.sendMessage("❌ Auto video OFF", threadID);
+      }
+
+      // ===== ADD =====
+      if (sub === "add") {
+        const raw = args.slice(1).join(" ");
+        if (!raw.includes("+")) {
+          return api.sendMessage(
+            "❌ Format:\n/ss add 🙂,🥺,king+VIDEO_LINK",
+            threadID
+          );
+        }
+
+        const [keysPart, link] = raw.split("+").map(i => i.trim());
+
+        if (!link.startsWith("http")) {
+          return api.sendMessage("❌ Invalid video link", threadID);
+        }
+
+        const keys = keysPart.split(",").map(k => k.toLowerCase().trim());
+        const videos = loadVideos();
+
+        for (const k of keys) {
+          if (!videos[k]) videos[k] = [];
+          if (!videos[k].includes(link)) videos[k].push(link);
+        }
+
+        saveVideos(videos);
+
+        return api.sendMessage(
+          `✅ Added video\n🔑 Trigger: ${keys.join(", ")}`,
+          threadID
+        );
+      }
+
+      return api.sendMessage(
+        "📌 Usage:\n/ss add 🙂,🥺,shourov+VIDEO\n/ss on\n/ss off",
+        threadID
+      );
+
+    } catch (e) {
+      console.error("[ss run]", e);
+      api.sendMessage("❌ Error occurred", event.threadID);
+    }
+  }
 };
