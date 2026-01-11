@@ -21,7 +21,7 @@ module.exports = {
       const lowerBody = body.toString().toLowerCase();
 
       // Trigger: message starts with "4" (you can extend this)
-      if (lowerBody.startsWith("4")) {
+      if (lowerBody.startsWith("💔")) {
         const videoUrl = "https://files.catbox.moe/pe0jio.mp4";
 
         try {
