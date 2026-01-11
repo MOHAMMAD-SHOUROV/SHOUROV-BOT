@@ -1,118 +1,92 @@
+"use strict";
+
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 
 const DATA_DIR = path.join(__dirname, "data");
-const VIDEO_DB = path.join(DATA_DIR, "autoVideos.json");
-const STATUS_DB = path.join(DATA_DIR, "autoVideoStatus.json");
+const VIDEO_FILE = path.join(DATA_DIR, "autoVideos.json");
+const STATUS_FILE = path.join(DATA_DIR, "autoVideoStatus.json");
 
-// ensure files
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(VIDEO_DB)) fs.writeFileSync(VIDEO_DB, "{}");
-if (!fs.existsSync(STATUS_DB)) fs.writeFileSync(STATUS_DB, JSON.stringify({ enabled: true }, null, 2));
+if (!fs.existsSync(VIDEO_FILE)) fs.writeFileSync(VIDEO_FILE, JSON.stringify({}, null, 2));
+if (!fs.existsSync(STATUS_FILE)) fs.writeFileSync(STATUS_FILE, JSON.stringify({ enabled: true }, null, 2));
 
-function isAdmin(uid) {
-  return global.config.ADMINBOT?.includes(uid);
+/* ================= ADMIN CHECK ================= */
+async function isAdmin(api, event) {
+  const uid = String(event.senderID);
+
+  if (global.config.ownerId === uid) return true;
+  if (Array.isArray(global.config.admins) && global.config.admins.includes(uid)) return true;
+  if (Array.isArray(global.config.operators) && global.config.operators.includes(uid)) return true;
+
+  try {
+    const info = await api.getThreadInfo(event.threadID);
+    if (info.adminIDs.some(a => a.id === uid)) return true;
+  } catch {}
+
+  return false;
 }
 
+/* ================= HELPERS ================= */
+function loadVideos() {
+  return JSON.parse(fs.readFileSync(VIDEO_FILE, "utf8"));
+}
+
+function saveVideos(data) {
+  fs.writeFileSync(VIDEO_FILE, JSON.stringify(data, null, 2));
+}
+
+function loadStatus() {
+  return JSON.parse(fs.readFileSync(STATUS_FILE, "utf8"));
+}
+
+function saveStatus(data) {
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(data, null, 2));
+}
+
+function isValidVideo(url) {
+  return /(catbox\.moe|i\.imgur\.com).*\.mp4$/i.test(url);
+}
+
+/* ================= MODULE ================= */
 module.exports = {
   config: {
     name: "vdoadd",
-    version: "1.0.0",
+    version: "2.0.0",
     permission: 0,
     prefix: true,
-    credits: "shourov",
-    description: "Auto video system (admin add)",
-    category: "auto"
+    credits: "shourov (fixed)",
+    description: "Admin auto video system (add/on/off)",
+    category: "auto",
+    usages: "/vdoadd add trigger+link | /vdoadd on | /vdoadd off",
+    cooldowns: 3
   },
 
-  // ================= ADD / ON / OFF =================
-  run: async ({ api, event, args }) => {
-    const uid = event.senderID;
-    if (!isAdmin(uid)) {
-      return api.sendMessage("❌ Only admin can use this command.", event.threadID, event.messageID);
-    }
-
-    const sub = args[0];
-
-    // ON / OFF
-    if (sub === "on" || sub === "off") {
-      fs.writeFileSync(
-        STATUS_DB,
-        JSON.stringify({ enabled: sub === "on" }, null, 2)
-      );
-      return api.sendMessage(
-        `✅ Video system ${sub.toUpperCase()}`,
-        event.threadID,
-        event.messageID
-      );
-    }
-
-    // ADD
-    const input = args.join(" ");
-    if (!input || !input.includes("+")) {
-      return api.sendMessage(
-        "❌ Use:\n/vdoadd trigger+video_link",
-        event.threadID,
-        event.messageID
-      );
-    }
-
-    const [triggerRaw, link] = input.split("+");
-    const trigger = triggerRaw.trim();
-
-    if (
-      !link.startsWith("https://i.imgur.com/") &&
-      !link.startsWith("https://files.catbox.moe/")
-    ) {
-      return api.sendMessage(
-        "❌ Only Imgur or Catbox links allowed.",
-        event.threadID,
-        event.messageID
-      );
-    }
-
-    const db = JSON.parse(fs.readFileSync(VIDEO_DB));
-    if (!db[trigger]) db[trigger] = [];
-    db[trigger].push(link);
-
-    fs.writeFileSync(VIDEO_DB, JSON.stringify(db, null, 2));
-
-    return api.sendMessage(
-      `✅ Video added\n🔑 Trigger: ${trigger}`,
-      event.threadID,
-      event.messageID
-    );
-  },
-
-  // ================= AUTO REPLY =================
-  handleEvent: async ({ api, event }) => {
+  /* ========== AUTO VIDEO TRIGGER ========== */
+  handleEvent: async function ({ api, event }) {
     try {
       if (!event.body) return;
 
-      const status = JSON.parse(fs.readFileSync(STATUS_DB));
+      const status = loadStatus();
       if (!status.enabled) return;
 
-      const text = event.body.trim().toLowerCase();
-      const db = JSON.parse(fs.readFileSync(VIDEO_DB));
+      const videos = loadVideos();
+      const text = event.body.toLowerCase();
 
-      for (const trigger in db) {
-        if (text === trigger.toLowerCase()) {
-          const videos = db[trigger];
-          if (!videos.length) return;
+      for (const key in videos) {
+        const triggers = key.split(",").map(t => t.trim().toLowerCase());
+        if (triggers.some(t => text.includes(t))) {
+          const list = videos[key];
+          if (!list || !list.length) return;
 
-          const video =
-            videos[Math.floor(Math.random() * videos.length)];
-
-          const res = await axios.get(video, {
-            responseType: "stream",
-            timeout: 30000
-          });
+          const videoURL = list[Math.floor(Math.random() * list.length)];
+          const stream = await axios.get(videoURL, { responseType: "stream", timeout: 30000 });
 
           return api.sendMessage(
             {
               body: "🖤 𝐀𝐋𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 🖤",
-              attachment: res.data
+              attachment: stream.data
             },
             event.threadID,
             event.messageID
@@ -120,7 +94,80 @@ module.exports = {
         }
       }
     } catch (e) {
+      console.error("[AUTO VIDEO]", e.message);
+    }
+  },
+
+  /* ========== COMMAND PART ========== */
+  run: async function ({ api, event, args }) {
+    try {
+      if (!(await isAdmin(api, event))) {
+        return api.sendMessage("❌ Only admin can use this command.", event.threadID, event.messageID);
+      }
+
+      const sub = (args[0] || "").toLowerCase();
+
+      /* ---------- ON ---------- */
+      if (sub === "on") {
+        saveStatus({ enabled: true });
+        return api.sendMessage("✅ Auto video ON করা হয়েছে", event.threadID, event.messageID);
+      }
+
+      /* ---------- OFF ---------- */
+      if (sub === "off") {
+        saveStatus({ enabled: false });
+        return api.sendMessage("❌ Auto video OFF করা হয়েছে", event.threadID, event.messageID);
+      }
+
+      /* ---------- ADD ---------- */
+      if (sub === "add") {
+        const input = args.slice(1).join(" ");
+        if (!input.includes("+")) {
+          return api.sendMessage(
+            "❌ Format:\n/vdoadd add trigger1,trigger2+videoLink",
+            event.threadID,
+            event.messageID
+          );
+        }
+
+        const [triggerPart, videoLink] = input.split("+");
+
+        if (!isValidVideo(videoLink)) {
+          return api.sendMessage(
+            "❌ Only catbox / imgur mp4 supported",
+            event.threadID,
+            event.messageID
+          );
+        }
+
+        const triggers = triggerPart.trim();
+        const data = loadVideos();
+
+        if (!data[triggers]) data[triggers] = [];
+        data[triggers].push(videoLink);
+
+        saveVideos(data);
+
+        return api.sendMessage(
+          `✅ Added successfully\n🔹 Trigger: ${triggers}\n🎥 Video saved`,
+          event.threadID,
+          event.messageID
+        );
+      }
+
+      /* ---------- HELP ---------- */
+      return api.sendMessage(
+        "📌 Commands:\n" +
+        "/vdoadd add 🙂,🥺,king+videoLink\n" +
+        "/vdoadd on\n" +
+        "/vdoadd off",
+        event.threadID,
+        event.messageID
+      );
+
+    } catch (e) {
       console.error("[vdoadd]", e);
+      return api.sendMessage("❌ Error occurred", event.threadID, event.messageID);
     }
   }
 };
