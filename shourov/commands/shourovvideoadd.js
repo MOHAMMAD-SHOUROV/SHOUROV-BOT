@@ -2,13 +2,14 @@ const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "autovideo_api",
+    name: "autovideo",
     version: "1.0.0",
     permission: 0,
+    credits: "Shourov",
     prefix: false,
-    credits: "shourov",
-    description: "Auto video from external API",
-    category: "auto"
+    description: "Auto video from API trigger",
+    category: "media",
+    cooldowns: 1
   },
 
   handleEvent: async function ({ api, event }) {
@@ -16,36 +17,35 @@ module.exports = {
       if (!event.body) return;
       if (event.senderID === api.getCurrentUserID()) return;
 
-      const text = event.body.toLowerCase();
+      const text = event.body.trim().toLowerCase();
 
-      // 🔗 আপনার API URL (local হলে 127.0.0.1)
-      const API_URL = `http://127.0.0.1:3000/video?q=${encodeURIComponent(text)}`;
+      // 🌐 YOUR API
+      const API_URL = "https://shourov-video-api.onrender.com/video";
 
-      const res = await axios.get(API_URL, { timeout: 5000 });
-      const data = res.data;
+      const res = await axios.get(
+        `${API_URL}?q=${encodeURIComponent(text)}`,
+        { timeout: 7000 }
+      );
 
-      if (!data || !data.status || !data.video) return;
+      if (!res.data || res.data.status !== true) return;
+      if (!res.data.video) return;
 
-      // 🎥 video stream
-      const videoStream = await axios.get(data.video, {
-        responseType: "stream",
-        timeout: 30000
-      });
-
+      // 🎬 Send video
       return api.sendMessage(
         {
-          body: data.body || "",
-          attachment: videoStream.data
+          body: res.data.body || "𝐀𝐥𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕",
+          attachment: await global.utils.getStreamFromURL(res.data.video)
         },
         event.threadID,
         event.messageID
       );
 
     } catch (err) {
-      // silent fail (auto command)
-      console.error("[autoVideoAPI]", err.message);
+      return;
     }
   },
 
-  run: async function () {}
+  run: async function () {
+    // no prefix command needed
+  }
 };
