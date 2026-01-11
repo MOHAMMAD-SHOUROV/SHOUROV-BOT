@@ -2,41 +2,55 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 
+// ================= PATH =================
 const DATA_DIR = path.join(__dirname, "data");
-const VIDEO_DB = path.join(DATA_DIR, "autoVideos.json");
-const STATUS_DB = path.join(DATA_DIR, "autoVideoStatus.json");
+const VIDEO_FILE = path.join(DATA_DIR, "autoVideos.json");
+const STATUS_FILE = path.join(DATA_DIR, "autoVideoStatus.json");
 
+// ================= INIT =================
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(VIDEO_DB)) fs.writeFileSync(VIDEO_DB, JSON.stringify({}, null, 2));
-if (!fs.existsSync(STATUS_DB)) fs.writeFileSync(STATUS_DB, JSON.stringify({ enabled: true }, null, 2));
+if (!fs.existsSync(VIDEO_FILE)) fs.writeFileSync(VIDEO_FILE, JSON.stringify({}, null, 2));
+if (!fs.existsSync(STATUS_FILE)) fs.writeFileSync(STATUS_FILE, JSON.stringify({ enabled: true }, null, 2));
 
+// ================= HELPERS =================
 function loadVideos() {
-  return JSON.parse(fs.readFileSync(VIDEO_DB));
-}
-function saveVideos(data) {
-  fs.writeFileSync(VIDEO_DB, JSON.stringify(data, null, 2));
-}
-function loadStatus() {
-  return JSON.parse(fs.readFileSync(STATUS_DB));
-}
-function saveStatus(data) {
-  fs.writeFileSync(STATUS_DB, JSON.stringify(data, null, 2));
+  return JSON.parse(fs.readFileSync(VIDEO_FILE, "utf8"));
 }
 
+function saveVideos(data) {
+  fs.writeFileSync(VIDEO_FILE, JSON.stringify(data, null, 2));
+}
+
+function loadStatus() {
+  return JSON.parse(fs.readFileSync(STATUS_FILE, "utf8"));
+}
+
+function saveStatus(data) {
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(data, null, 2));
+}
+
+function isVideoLink(link) {
+  return (
+    link.startsWith("https://files.catbox.moe/") ||
+    link.startsWith("https://i.imgur.com/")
+  );
+}
+
+// ================= MODULE =================
 module.exports = {
   config: {
-    name: "shourovvideoadd",
-    version: "3.0.0",
+    name: "ss",
+    version: "1.0.0",
     permission: 0,
-    prefix: true,
     credits: "shourov",
-    description: "Auto emoji/text video system (admin only add)",
+    prefix: true,
+    description: "Auto video system (admin add / on-off)",
     category: "auto",
     usages: "/ss add | on | off",
     cooldowns: 2
   },
 
-  // ================= AUTO VIDEO =================
+  // ================= AUTO EVENT =================
   handleEvent: async ({ api, event }) => {
     try {
       if (!event.body) return;
@@ -50,10 +64,15 @@ module.exports = {
       for (const key in videos) {
         if (text.includes(key)) {
           const list = videos[key];
-          if (!list.length) return;
+          if (!list || list.length === 0) return;
 
-          const videoURL = list[Math.floor(Math.random() * list.length)];
-          const res = await axios.get(videoURL, { responseType: "stream" });
+          const video =
+            list[Math.floor(Math.random() * list.length)];
+
+          const res = await axios.get(video, {
+            responseType: "stream",
+            timeout: 30000
+          });
 
           return api.sendMessage(
             {
@@ -66,51 +85,70 @@ module.exports = {
         }
       }
     } catch (e) {
-      console.error("[ss auto]", e.message);
+      console.error("[ss handleEvent]", e);
     }
   },
 
   // ================= COMMAND =================
-  run: async ({ api, event, args }) => {
+  run: async ({ api, event }) => {
     try {
       const senderID = event.senderID;
       const threadID = event.threadID;
 
-      // 🔐 admin check
+      // ===== ADMIN CHECK =====
       if (!global.config.ADMINBOT.includes(senderID)) {
         return api.sendMessage("❌ Only admin can use this command", threadID);
       }
 
-      const sub = args[0];
-
-      // ===== ON / OFF =====
-      if (sub === "on") {
-        saveStatus({ enabled: true });
-        return api.sendMessage("✅ Auto video ON", threadID);
+      // full text (newline support)
+      const rawText = event.body.replace(/^\/ss/i, "").trim();
+      if (!rawText) {
+        return api.sendMessage(
+          "📌 Usage:\n/ss add 🙂,🥺,sm+VIDEO\n/ss on\n/ss off",
+          threadID
+        );
       }
 
-      if (sub === "off") {
+      // ===== ON =====
+      if (rawText === "on") {
+        saveStatus({ enabled: true });
+        return api.sendMessage("✅ Auto video system ON", threadID);
+      }
+
+      // ===== OFF =====
+      if (rawText === "off") {
         saveStatus({ enabled: false });
-        return api.sendMessage("❌ Auto video OFF", threadID);
+        return api.sendMessage("❌ Auto video system OFF", threadID);
       }
 
       // ===== ADD =====
-      if (sub === "add") {
-        const raw = args.slice(1).join(" ");
-        if (!raw.includes("+")) {
+      if (rawText.startsWith("add")) {
+        const clean = rawText
+          .replace(/^add/i, "")
+          .replace(/\n/g, "")
+          .trim();
+
+        if (!clean.includes("+")) {
           return api.sendMessage(
-            "❌ Format:\n/ss add 🙂,🥺,king+VIDEO_LINK",
+            "❌ Format:\n/ss add 🙂,🥺,shourov+VIDEO_LINK",
             threadID
           );
         }
 
-        const [keysPart, link] = raw.split("+").map(i => i.trim());
+        const [keyPart, link] = clean.split("+").map(i => i.trim());
 
-        if (!link.startsWith("http")) {
-          return api.sendMessage("❌ Invalid video link", threadID);
+        if (!isVideoLink(link)) {
+          return api.sendMessage(
+            "❌ Only Imgur or Catbox video link allowed",
+            threadID
+          );
         }
 
-        const keys = keysPart.split(",").map(k => k.toLowerCase().trim());
+        const keys = keyPart
+          .split(",")
+          .map(k => k.toLowerCase().trim())
+          .filter(Boolean);
+
         const videos = loadVideos();
 
         for (const k of keys) {
@@ -121,15 +159,10 @@ module.exports = {
         saveVideos(videos);
 
         return api.sendMessage(
-          `✅ Added video\n🔑 Trigger: ${keys.join(", ")}`,
+          `✅ Video added successfully\n🔑 Trigger: ${keys.join(", ")}`,
           threadID
         );
       }
-
-      return api.sendMessage(
-        "📌 Usage:\n/ss add 🙂,🥺,shourov+VIDEO\n/ss on\n/ss off",
-        threadID
-      );
 
     } catch (e) {
       console.error("[ss run]", e);
