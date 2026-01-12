@@ -1,32 +1,27 @@
-// commands/00fun1.js  
+// commands/00fun1.js
 // Fully compatible with Shourov/Nayan Loader System
-
-const fs = require("fs");
 
 module.exports.config = {
   name: "00fun1",
-  version: "2.0.1",
+  version: "2.1.0",
   permission: 0,
   credits: "Shourov (fixed & optimized)",
-  description: "Auto reply when message starts with Shourov / সৌরভ etc.",
+  description: "Auto reply when message mentions Shourov / সৌরভ",
   prefix: false,
   category: "user",
-  usages: "",
   cooldowns: 3
 };
 
 module.exports.handleEvent = async function ({ api, event }) {
   try {
-    const { threadID, messageID, body } = event;
-    if (!body || typeof body !== "string") return;
+    if (!event.body) return;
+    if (event.senderID === api.getCurrentUserID()) return;
 
-    // Clean & normalize the message
-    const cleaned = body
-      .replace(/[^\p{L}\p{N}\s]/gu, "")   // removes emojis, symbols, punctuation
-      .trimStart()
-      .toLowerCase();
+    const cleaned = event.body
+      .replace(/[^a-zA-Z0-9\u0980-\u09FF\s]/g, "") // safe regex
+      .toLowerCase()
+      .trim();
 
-    // Trigger list
     const triggers = [
       "shourov",
       "king shourov",
@@ -34,26 +29,29 @@ module.exports.handleEvent = async function ({ api, event }) {
       "সৌরভ",
       "শৌরভ",
       "alihsan shourov",
-      "boss shourov"
+      "boss shourov",
+      "alihsan"
     ];
 
-    // Check if message starts with any trigger
-    const matched = triggers.some(t => cleaned.startsWith(t));
+    const matched = triggers.some(t =>
+      cleaned === t ||
+      cleaned.startsWith(t) ||
+      cleaned.includes(t)
+    );
 
-    if (matched) {
-      const reply = 
-`🖤 আসসালামু আলাইকুম 
-আমি **সৌরভের অফিশিয়াল বট 🤖**
+    if (!matched) return;
+
+    const reply =
+`🖤 আসসালামু আলাইকুম
+আমি **সৌরভের অফিসিয়াল বট 🤖**
 
 আপনাকে কিভাবে সাহায্য করতে পারি? 😊`;
 
-      api.sendMessage(reply, threadID, messageID);
-    }
+    api.sendMessage(reply, event.threadID, event.messageID);
 
   } catch (err) {
     console.error("❌ ERROR in 00fun1.js:", err);
   }
 };
 
-// Not needed but kept for system compatibility
 module.exports.run = function () {};
