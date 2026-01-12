@@ -3,50 +3,129 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "npx36",
-    version: "1.2.1",
+    version: "2.0.0",
     permission: 0,
     prefix: false,
     credits: "shourov",
-    description: "Auto trigger multi video (single body)",
+    description: "Auto trigger emoji/text video system",
     category: "auto"
   },
 
   handleEvent: async function ({ api, event }) {
     try {
-      const { threadID, messageID, body } = event;
-      if (!body) return;
+      if (!event.body) return;
 
-      const text = body.toLowerCase();
+      const text = event.body.toLowerCase();
 
-      // 🔒 সব ভিডিওর জন্য একটাই body
-      const BODY_TEXT = "🖤 𝐀𝐋𝐈𝐇𝐒𝐀𝐍 𝐒𝐇𝐎𝐔𝐑𝐎𝐕 🖤";
+      // 🔒 একটাই body সব ভিডিওর জন্য
+      const BODY_TEXT = "🖤 ALIHSAN SHOUROV 🖤";
 
-      // 🔑 trigger + video rules
+      // 🎯 trigger rules
       const rules = [
         {
-          triggers: ["king", "shourov", "সৌরভ"],
-          videos: [
-            "https://files.catbox.moe/8sctaw.mp4",
-            "https://files.catbox.moe/omt6x5.mp4",
-            "https://files.catbox.moe/1bx2l9.mp4"
-          ]
-        },
-        {
-          triggers: ["bura beti", "😵‍💫", "bura beti!", "😵"],
+          triggers: ["bura beti", "😵‍💫", "😵"],
           videos: [
             "https://i.imgur.com/6EaYYaU.mp4"
           ]
         },
         {
-          triggers: ["4"],
+          triggers: ["🤴"],
           videos: [
-            "https://files.catbox.moe/pe0jio.mp4"
+            "https://files.catbox.moe/1bx2l9.mp4"
+          ]
+        },
+        {
+          triggers: ["6"],
+          videos: [
+            "https://files.catbox.moe/h1c7pz.mp4"
+          ]
+        },
+        {
+          triggers: ["7"],
+          videos: [
+            "https://files.catbox.moe/kp8t84.mp4"
+          ]
+        },
+        {
+          triggers: ["8"],
+          videos: [
+            "https://files.catbox.moe/env58m.mp4",
+            "https://files.catbox.moe/mrtvhb.mp4"
+          ]
+        },
+        {
+          triggers: ["👿"],
+          videos: [
+            "https://files.catbox.moe/1bx2l9.mp4"
+          ]
+        },
+        {
+          triggers: ["9"],
+          videos: [
+            "https://files.catbox.moe/7cf5c9.mp4"
+          ]
+        },
+        {
+          triggers: ["5"],
+          videos: [
+            "https://files.catbox.moe/8sctaw.mp4"
+          ]
+        },
+{
+          triggers: ["😍","🥰",],
+          videos: [
+            "https://files.catbox.moe/8sctaw.mp4"
           ]
         },
         {
           triggers: [
-            "love", "❤️‍🔥", "💌", "💘", "💟",
-            "i love u", "i love you", "valobashi", "🖤"
+            "king",
+            "shourov",
+            "alihsan",
+            "alihsan shourov",
+            "সৌরভ",
+            "bos",
+            "boss"
+          ],
+          videos: [
+            "https://files.catbox.moe/4zg8rq.mp4"
+          ]
+        },
+{
+          triggers: ["call a aso","😡"],
+          videos: [
+            "https://i.imgur.com/hj4iPpe.mp4"
+          ]
+        },
+{
+          triggers: ["😡","call a aso"],
+          videos: [
+            "https://files.catbox.moe/6c0keb.mp4"
+          ]
+        },
+{
+          triggers: ["@everyone", "jikir", "জিকির"],
+          videos: [
+            "https://files.catbox.moe/omt6x5.mp4"
+          ]
+        },
+{
+          triggers: ["5"],
+          videos: [
+            "https://i.imgur.com/fPwwRS3.mp4"
+          ]
+        },
+        {
+          triggers: [
+            "love",
+            "i love you",
+            "i love u",
+            "valobashi",
+            "🖤",
+            "❤️‍🔥",
+            "💌",
+            "💘",
+            "💟"
           ],
           videos: [
             "https://files.catbox.moe/6yzt2m.mp4"
@@ -55,9 +134,8 @@ module.exports = {
       ];
 
       for (const rule of rules) {
-        if (rule.triggers.some(t => text.includes(String(t).toLowerCase()))) {
+        if (rule.triggers.some(t => text.includes(t))) {
 
-          // 🎲 random video
           const videoURL =
             rule.videos[Math.floor(Math.random() * rule.videos.length)];
 
@@ -71,17 +149,16 @@ module.exports = {
               body: BODY_TEXT,
               attachment: res.data
             },
-            threadID,
-            messageID
+            event.threadID,
+            event.messageID
           );
         }
       }
 
     } catch (err) {
-      console.error("[npx36] error:", err.message);
+      console.error("[npx36 error]", err.message);
     }
   },
 
-  // loader error avoid
   run: async function () {}
 };
