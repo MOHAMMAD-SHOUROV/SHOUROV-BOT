@@ -1,140 +1,120 @@
+const fs = require("fs-extra");
+const path = require("path");
+const axios = require("axios");
+const { createCanvas, loadImage } = require("canvas");
+
+/* ================= CONFIG ================= */
 module.exports.config = {
   name: "hack",
-  version: "1.0.1",
+  version: "2.0.0",
   permission: 0,
-  credits: "shourov (fixed by assistant)",
-  description: "Fake hack profile image",
+  credits: "shourov (fully fixed)",
+  description: "Fake hack image with real name & profile picture",
   prefix: true,
   category: "Fun",
-  usages: "@user",
-  cooldowns: 5,
-  dependencies: {
-    "axios": "",
-    "fs-extra": "",
-    "canvas": ""
-  }
+  usages: "hack @user",
+  cooldowns: 5
 };
 
-module.exports.wrapText = async (ctx, text, maxWidth) => {
-  if (ctx.measureText(text).width < maxWidth) return [text];
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
+/* ================= HELPER ================= */
+async function getSafeUserInfo({ api, Users, event }) {
+  let uid = event.senderID;
+  const mentionIDs = Object.keys(event.mentions || {});
+  if (mentionIDs.length > 0) uid = mentionIDs[0];
 
-  for (const word of words) {
-    const testLine = line + word + " ";
-    if (ctx.measureText(testLine).width > maxWidth) {
-      lines.push(line.trim());
-      line = word + " ";
-    } else {
-      line = testLine;
-    }
+  // get name
+  let name = "Facebook User";
+  try {
+    name = await Users.getNameUser(uid);
+    if (!name || name.startsWith("User")) throw new Error();
+  } catch {
+    try {
+      const info = await api.getUserInfo(uid);
+      if (info?.[uid]?.name) name = info[uid].name;
+    } catch {}
   }
-  lines.push(line.trim());
-  return lines;
-};
 
+  const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+
+  return { uid, name, avatarURL };
+}
+
+/* ================= RUN ================= */
 module.exports.run = async function ({ api, event, Users }) {
-  const fs = global.nodemodule["fs-extra"] || require("fs-extra");
-  const axios = global.nodemodule["axios"] || require("axios");
-  const { createCanvas, loadImage } = global.nodemodule["canvas"] || require("canvas");
-  const path = require("path");
-
   const { threadID, messageID } = event;
 
   const cacheDir = path.join(__dirname, "cache");
   await fs.ensureDir(cacheDir);
 
-  const bgPath = path.join(cacheDir, "bg.png");
-  const avtPath = path.join(cacheDir, "avt.png");
-  const outPath = path.join(cacheDir, "out.png");
+  const bgPath = path.join(cacheDir, "hack_bg.png");
+  const avtPath = path.join(cacheDir, "hack_avt.png");
+  const outPath = path.join(cacheDir, "hack_result.png");
 
   try {
-    // target user
-    const mentionIDs = Object.keys(event.mentions || {});
-    const uid = mentionIDs.length ? mentionIDs[0] : event.senderID;
-    const name = await Users.getNameUser(uid);
+    /* ==== USER INFO ==== */
+    const { name, avatarURL } = await getSafeUserInfo({ api, Users, event });
 
-    // background image
+    /* ==== BACKGROUND ==== */
     const bgURL =
-      "https://drive.google.com/uc?id=1RwJnJTzUmwOmP3N_mZzxtp63wbvt9bLZ";
-
-    // download background
+      "https://i.imgur.com/4M34hi2.png"; // তুমি চাইলে নিজের background দিতে পারো
     const bgRes = await axios.get(bgURL, { responseType: "arraybuffer" });
     await fs.writeFile(bgPath, bgRes.data);
 
-    // download avatar
-    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
-    const avtRes = await axios.get(avatarURL, { responseType: "arraybuffer" });
+    /* ==== AVATAR ==== */
+    const avtRes = await axios.get(avatarURL, {
+      responseType: "arraybuffer",
+      timeout: 15000
+    });
     await fs.writeFile(avtPath, avtRes.data);
 
-    // load images
+    /* ==== CANVAS ==== */
     const bgImg = await loadImage(bgPath);
     const avtImg = await loadImage(avtPath);
 
-    // canvas
     const canvas = createCanvas(bgImg.width, bgImg.height);
     const ctx = canvas.getContext("2d");
 
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImg, 0, 0);
 
-    // ===== TEXT =====
-    ctx.font = "bold 28px Arial";
-    ctx.fillStyle = "#1878F3";
-    ctx.textAlign = "left";
-
-    const textX = 220;
-    const textY = 500;
-    const maxWidth = 900;
-
-    const lines = await this.wrapText(ctx, name, maxWidth);
-    lines.forEach((l, i) => {
-      ctx.fillText(l, textX, textY + i * 32);
-    });
-
-    // ===== CIRCULAR AVATAR (FIXED) =====
-    const avtX = 83;
-    const avtY = 437;
-    const size = 100;
-    const r = size / 2;
+    /* ==== DRAW AVATAR (CIRCLE) ==== */
+    const avX = 80;
+    const avY = 420;
+    const avSize = 110;
 
     ctx.save();
     ctx.beginPath();
-    ctx.arc(avtX + r, avtY + r, r, 0, Math.PI * 2);
+    ctx.arc(avX + avSize / 2, avY + avSize / 2, avSize / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-
-    ctx.drawImage(avtImg, avtX, avtY, size, size);
+    ctx.drawImage(avtImg, avX, avY, avSize, avSize);
     ctx.restore();
 
-    // optional border
-    ctx.beginPath();
-    ctx.arc(avtX + r, avtY + r, r + 2, 0, Math.PI * 2);
-    ctx.strokeStyle = "#1878F3";
-    ctx.lineWidth = 4;
-    ctx.stroke();
+    /* ==== DRAW NAME ==== */
+    ctx.font = "bold 26px Arial";
+    ctx.fillStyle = "#1877F2";
+    ctx.textAlign = "left";
+    ctx.fillText(name, 220, 480);
 
-    // export image
+    /* ==== SAVE ==== */
     await fs.writeFile(outPath, canvas.toBuffer());
 
-    // send
+    /* ==== SEND ==== */
     await api.sendMessage(
       {
-        body: "",
+        body: "💻 HACK IN PROGRESS...",
         attachment: fs.createReadStream(outPath)
       },
       threadID,
-      () => {
-        // cleanup
-        try { fs.unlinkSync(bgPath); } catch {}
-        try { fs.unlinkSync(avtPath); } catch {}
-        try { fs.unlinkSync(outPath); } catch {}
-      },
       messageID
     );
 
   } catch (err) {
-    console.error("hack command error:", err);
-    return api.sendMessage("❌ কিছু সমস্যা হয়েছে, পরে আবার চেষ্টা করুন।", threadID, messageID);
+    console.error("hack.js error:", err);
+    api.sendMessage("❌ Hack failed, try again later.", threadID, messageID);
+  } finally {
+    // cleanup
+    [bgPath, avtPath, outPath].forEach(p => {
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    });
   }
 };
