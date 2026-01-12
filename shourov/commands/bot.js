@@ -1,130 +1,126 @@
-const axios = require('axios');
-const fs = require('fs'); 
-const path = require('path');
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
     name: "bot",
-    version: "1.0.0",
-    aliases: ["mim"],
+    version: "3.0.0",
     permission: 0,
-    credits: "nayan",
-    description: "talk with bot",
+    credits: "nayan | fixed by shourov",
+    description: "Auto reply when message starts with Bot",
     prefix: false,
     category: "talk",
-    usages: "Bot [message]",
-    cooldowns: 5,
+    usages: "Bot <message>",
+    cooldowns: 3
   },
 
-  // 🔁 reply handler (API #1 stays same)
-  handleReply: async function ({ api, event }) {
+  // ===============================
+  // ✅ AUTO REPLY (NO PREFIX)
+  // ===============================
+  handleEvent: async function ({ api, event, Users }) {
     try {
       if (!event.body) return;
+      if (event.senderID === api.getCurrentUserID()) return;
 
-      // ✅ only reply if message starts with "bot"
-      if (!event.body.toLowerCase().startsWith("bot")) return;
+      const body = event.body.trim();
 
-      const apiData = await axios.get(
-        'https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json'
-      );
-      const apiUrl = apiData.data.sim;
+      // ❌ must START with "bot"
+      if (!body.toLowerCase().startsWith("bot")) return;
 
-      const kl = await axios.get(
-        'https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json'
-      );
-      const apiUrl2 = kl.data.api2;
+      // remove "bot" from beginning
+      const question = body.replace(/^bot/i, "").trim() || "হাই";
 
-      const question = event.body.replace(/^bot/i, "").trim();
-      if (!question) return;
-
-      const response = await axios.get(
-        `${apiUrl}/sim?type=ask&ask=${encodeURIComponent(question)}`
+      // ===============================
+      // 🔹 API (1)
+      // ===============================
+      const apiJson = await axios.get(
+        "https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json"
       );
 
-      const result = response.data.data.msg;
+      const simApi = apiJson.data.sim;
+      const fontApi = apiJson.data.api2;
 
-      const textStyles = loadTextStyles();
-      const userStyle = textStyles[event.threadID]?.style || 'normal';
-
-      const fontResponse = await axios.get(
-        `${apiUrl2}/bold?text=${encodeURIComponent(result)}&type=${userStyle}`
+      // ===============================
+      // 🔹 API (2)
+      // ===============================
+      const res = await axios.get(
+        `${simApi}/sim?type=ask&ask=${encodeURIComponent(question)}`
       );
 
-      const text = fontResponse.data.data.bolded;
+      let reply = res.data?.data?.msg || "🙂 বুঝতে পারিনি";
 
-      api.sendMessage(text, event.threadID, (err, info) => {
-        if (!err) {
-          global.client.handleReply.push({
-            type: 'reply',
-            name: this.config.name,
-            messageID: info.messageID,
-            author: event.senderID,
-            head: question
-          });
-        }
-      }, event.messageID);
+      // ===============================
+      // 🔹 API (3)
+      // ===============================
+      try {
+        const styled = await axios.get(
+          `${fontApi}/bold?text=${encodeURIComponent(reply)}&type=normal`
+        );
+        reply = styled.data.data.bolded;
+      } catch {}
 
-    } catch (e) {
-      console.error("handleReply error:", e);
+      // ===============================
+      // SEND MESSAGE
+      // ===============================
+      return api.sendMessage(
+        reply,
+        event.threadID,
+        (err, info) => {
+          if (!err) {
+            global.client.handleReply.push({
+              name: this.config.name,
+              messageID: info.messageID,
+              author: event.senderID
+            });
+          }
+        },
+        event.messageID
+      );
+
+    } catch (err) {
+      console.error("❌ bot handleEvent error:", err);
     }
   },
 
-  // ▶️ main entry (API #2 stays same)
-  start: async function ({ nayan, events, args, Users }) {
+  // ===============================
+  // 🔁 REPLY SUPPORT
+  // ===============================
+  handleReply: async function ({ api, event, handleReply }) {
     try {
-      if (!events.body) return;
+      if (event.senderID !== handleReply.author) return;
 
-      // ✅ only trigger if message starts with "bot"
-      if (!events.body.toLowerCase().startsWith("bot")) return;
-
-      const msg = events.body.replace(/^bot/i, "").trim();
-
-      const apiData = await axios.get(
-        'https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json'
-      );
-      const apiUrl = apiData.data.sim;
-
-      // greeting
-      if (!msg) {
-        const name = await Users.getNameUser(events.senderID);
-        return nayan.reply({
-          body: `${name}, বলো 😊 আমি শুনছি`,
-          mentions: [{ tag: name, id: events.senderID }]
-        }, events.threadID, events.messageID);
-      }
-
-      // normal ask (API #3 stays same)
-      const response = await axios.get(
-        `${apiUrl}/sim?type=ask&ask=${encodeURIComponent(msg)}`
+      // ===============================
+      // 🔹 API (4)
+      // ===============================
+      const apiJson = await axios.get(
+        "https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json"
       );
 
-      const replyMessage = response.data.data.msg;
+      const simApi = apiJson.data.sim;
+      const fontApi = apiJson.data.api2;
 
-      const kl = await axios.get(
-        'https://raw.githubusercontent.com/MOHAMMAD-NAYAN-07/Nayan/main/api.json'
-      );
-      const apiUrl2 = kl.data.api2;
-
-      const font = await axios.get(
-        `${apiUrl2}/bold?text=${encodeURIComponent(replyMessage)}&type=normal`
+      const res = await axios.get(
+        `${simApi}/sim?type=ask&ask=${encodeURIComponent(event.body)}`
       );
 
-      const styledText = font.data.data.bolded;
+      let reply = res.data?.data?.msg || "🙂";
 
-      nayan.reply({ body: styledText }, events.threadID);
+      try {
+        const styled = await axios.get(
+          `${fontApi}/bold?text=${encodeURIComponent(reply)}&type=normal`
+        );
+        reply = styled.data.data.bolded;
+      } catch {}
+
+      return api.sendMessage(reply, event.threadID, event.messageID);
 
     } catch (err) {
-      console.error("start error:", err);
+      console.error("❌ bot handleReply error:", err);
     }
+  },
+
+  run: async function () {
+    // not used (auto system)
   }
 };
-
-// ---------- helpers (unchanged) ----------
-
-function loadTextStyles() {
-  const filePath = path.join(__dirname, 'system', 'textStyles.json');
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify({}, null, 2));
-  }
-  return JSON.parse(fs.readFileSync(filePath));
-}
