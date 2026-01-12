@@ -1,65 +1,65 @@
 // commands/00love.js
-const fs = require("fs");
+'use strict';
 
 module.exports.config = {
   name: "sanjida",
-  version: "2.0.1",
+  version: "2.1.0",
   permission: 0,
-  credits: "(fixed by shourov)",
-  description: "Responds when someone calls Anika / আনিকা etc.",
+  credits: "Shourov (fixed)",
+  description: "Auto reply when someone mentions Anika / আনিকা",
   prefix: false,
-  category: "user",
+  category: "no-prefix",
   usages: "",
-  cooldowns: 5,
+  cooldowns: 5
 };
 
-module.exports.handleEvent = async function({ api, event, client, __GLOBAL }) {
+module.exports.handleEvent = async function ({ api, event }) {
   try {
+    if (!event.body || typeof event.body !== "string") return;
+
     const { threadID, messageID } = event;
-    const rawBody = (event.body || "");
-    if (!rawBody || typeof rawBody !== "string") return;
 
-    // Normalize: remove punctuation/symbols (keeps Unicode letters/numbers/spaces), trim leading spaces, lowercase
-    const normalized = rawBody
-      .replace(/[^\p{L}\p{N}\s@]/gu, "") // keep letters, numbers, spaces and @ (for mentions)
-      .trimStart()
-      .toLowerCase();
+    // 🔹 normalize text
+    const text = event.body
+      .replace(/[^\p{L}\p{N}\s@]/gu, "")
+      .toLowerCase()
+      .trim();
 
-    // triggers to check at start of message
+    // 🔹 triggers
     const triggers = [
-      "@angl anika",
-      "angl anika",
       "anika",
+      "angl anika",
       "আনিকা"
     ];
 
-    const startsWithTrigger = triggers.some(t => normalized.startsWith(t));
+    // 🔹 text match
+    const textMatch = triggers.some(t =>
+      text.startsWith(t) || text.includes(` ${t}`)
+    );
 
-    // also check if message contains a mention of "Anika" via event.mentions values
+    // 🔹 mention match
     let mentionMatch = false;
-    try {
-      const mentions = event.mentions || {};
-      for (const id of Object.keys(mentions)) {
-        const name = (mentions[id] || "").toString().toLowerCase();
-        if (!name) continue;
+    if (event.mentions) {
+      for (const id in event.mentions) {
+        const name = String(event.mentions[id]).toLowerCase();
         if (name.includes("anika") || name.includes("আনিকা")) {
           mentionMatch = true;
           break;
         }
       }
-    } catch (e) {
-      mentionMatch = false;
     }
 
-    if (startsWithTrigger || mentionMatch) {
-      const reply = "কিরে ওরে ডাকিস কেন? দেখস না আমার বস সৌরভ এর সাথে ব্যস্ত, পরে কল করো 🤬";
-      await api.sendMessage(reply, threadID, messageID);
-    }
+    if (!textMatch && !mentionMatch) return;
+
+    const reply =
+      "কিরে ওরে ডাকিস কেন? দেখস না আমার বস সৌরভ এর সাথে ব্যস্ত, পরে কল করো 🤬";
+
+    return api.sendMessage(reply, threadID, messageID);
+
   } catch (err) {
-    console.error("00love handleEvent error:", err && (err.stack || err));
+    console.error("❌ 00love error:", err?.message || err);
   }
 };
 
-module.exports.run = function({ api, event, client, __GLOBAL }) {
-  // kept for compatibility; module is event-driven
-};
+// kept for loader compatibility
+module.exports.run = function () {};
