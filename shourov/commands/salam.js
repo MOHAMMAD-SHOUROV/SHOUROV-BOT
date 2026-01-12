@@ -1,29 +1,31 @@
-// commands/
-const fs = require("fs");
+// commands/salam.js
+"use strict";
 
 module.exports.config = {
   name: "salam",
-  version: "2.0.1",
+  version: "2.1.0",
   permission: 0,
-  credits: "shourov (fixed by assistant)",
-  description: "Auto reply to greetings",
+  credits: "Shourov (fixed)",
+  description: "Auto reply to Salam / Assalamualaikum",
   prefix: false,
-  category: "user",
+  category: "no-prefix",
   usages: "",
-  cooldowns: 5,
+  cooldowns: 5
 };
 
-module.exports.handleEvent = function({ api, event, client, __GLOBAL }) {
+module.exports.handleEvent = async function ({ api, event }) {
   try {
+    if (!event.body || typeof event.body !== "string") return;
+
     const { threadID, messageID } = event;
-    const body = (event.body || "").toString().trim();
 
-    if (!body) return; // no text -> ignore
+    // 🔹 normalize text (emoji + punctuation safe)
+    const text = event.body
+      .replace(/[^\p{L}\p{N}\s]/gu, "")
+      .toLowerCase()
+      .trim();
 
-    // normalize to lowercase for easier comparison
-    const text = body.toLowerCase();
-
-    // possible greeting variants to match (you can add more)
+    // 🔹 greeting triggers
     const greetings = [
       "asalamualaikum",
       "assalamualaikum",
@@ -31,26 +33,24 @@ module.exports.handleEvent = function({ api, event, client, __GLOBAL }) {
       "asalam u alaikum",
       "আসালামু আলাইকুম",
       "আসসালামু আলাইকুম",
-      "সালাম",
-      "ওয়ালাইকুম"
+      "সালাম"
     ];
 
-    // check if any greeting is present at start (or whole message)
-    const isGreeting = greetings.some(g => text.startsWith(g) || text === g);
+    const matched = greetings.some(g =>
+      text === g || text.startsWith(g)
+    );
 
-    if (isGreeting) {
-      // polite reply
-      const replyText = "ওয়ালাইকুমুস সালাম! 😊\nআপনি কেমন আছেন? আমি সাহায্য করতে পারি কীভাবে?";
-      return api.sendMessage(replyText, threadID, messageID);
-    }
+    if (!matched) return;
 
-  } catch (e) {
-    // fail silently but log for debugging
-    console.error("salam handleEvent error:", e && (e.stack || e));
+    const reply =
+      "ওয়ালাইকুমুস সালাম 🤍\nআপনি কেমন আছেন? আমি কীভাবে সাহায্য করতে পারি? 😊";
+
+    return api.sendMessage(reply, threadID, messageID);
+
+  } catch (err) {
+    console.error("❌ salam error:", err?.message || err);
   }
 };
 
-module.exports.run = function({ api, event, client, __GLOBAL }) {
-  // optional manual trigger (if you want)
-  return api.sendMessage("জি! 'asalamualaikum' বললে আমি স্বাগত জানাই।", event.threadID);
-};
+// kept for loader compatibility
+module.exports.run = function () {};
