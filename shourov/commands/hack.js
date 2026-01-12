@@ -1,12 +1,12 @@
 module.exports.config = {
   name: "hack",
-  version: "1.0.0",
+  version: "1.0.1",
   permission: 0,
-  credits: "shourov",
-  description: "example",
+  credits: "shourov (fixed by assistant)",
+  description: "Fake hack profile image",
   prefix: true,
   category: "Fun",
-  usages: "user",
+  usages: "@user",
   cooldowns: 5,
   dependencies: {
     "axios": "",
@@ -15,128 +15,126 @@ module.exports.config = {
   }
 };
 
-module.exports.wrapText = (ctx, name, maxWidth) => {
-  return new Promise(resolve => {
-    if (ctx.measureText(name).width < maxWidth) return resolve([name]);
-    if (ctx.measureText('W').width > maxWidth) return resolve(null);
-    const words = name.split(' ');
-    const lines = [];
-    let line = '';
-    while (words.length > 0) {
-      let split = false;
-      while (ctx.measureText(words[0]).width >= maxWidth) {
-        const temp = words[0];
-        words[0] = temp.slice(0, -1);
-        if (split) words[1] = `${temp.slice(-1)}${words[1]}`;
-        else {
-          split = true;
-          words.splice(1, 0, temp.slice(-1));
-        }
-      }
-      if (ctx.measureText(`${line}${words[0]}`).width < maxWidth) line += `${words.shift()} `;
-      else {
-        lines.push(line.trim());
-        line = '';
-      }
-      if (words.length === 0) lines.push(line.trim());
-    }
-    return resolve(lines);
-  });
-}
+module.exports.wrapText = async (ctx, text, maxWidth) => {
+  if (ctx.measureText(text).width < maxWidth) return [text];
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
 
-module.exports.run = async function ({ args, Users, Threads, api, event, Currencies }) {
-  const fs = global.nodemodule["fs-extra"];
-  const axios = global.nodemodule["axios"];
-  const { loadImage, createCanvas } = global.nodemodule["canvas"];
+  for (const word of words) {
+    const testLine = line + word + " ";
+    if (ctx.measureText(testLine).width > maxWidth) {
+      lines.push(line.trim());
+      line = word + " ";
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+  return lines;
+};
+
+module.exports.run = async function ({ api, event, Users }) {
+  const fs = global.nodemodule["fs-extra"] || require("fs-extra");
+  const axios = global.nodemodule["axios"] || require("axios");
+  const { createCanvas, loadImage } = global.nodemodule["canvas"] || require("canvas");
   const path = require("path");
 
   const { threadID, messageID } = event;
 
-  // ensure cache dir
   const cacheDir = path.join(__dirname, "cache");
-  try {
-    await fs.ensureDir(cacheDir);
-  } catch (e) { /* ignore */ }
+  await fs.ensureDir(cacheDir);
 
-  const pathImg = path.join(cacheDir, "background.png");
-  const pathAvt1 = path.join(cacheDir, "Avtmot.png");
+  const bgPath = path.join(cacheDir, "bg.png");
+  const avtPath = path.join(cacheDir, "avt.png");
+  const outPath = path.join(cacheDir, "out.png");
 
   try {
-    // get target id (mention or sender)
+    // target user
     const mentionIDs = Object.keys(event.mentions || {});
-    const id = mentionIDs.length > 0 ? mentionIDs[0] : event.senderID;
-    const name = await Users.getNameUser(id);
+    const uid = mentionIDs.length ? mentionIDs[0] : event.senderID;
+    const name = await Users.getNameUser(uid);
 
-    // random background list (আপনি চাইলে আরও url যোগ করতে পারেন)
-    const background = [
-      "https://drive.google.com/uc?id=1RwJnJTzUmwOmP3N_mZzxtp63wbvt9bLZ"
-    ];
-    const rd = background[Math.floor(Math.random() * background.length)];
-
-    // download avatar
-    const graphUrl = `https://graph.facebook.com/${id}/picture?width=720&height=720`;
-    const avResp = await axios.get(graphUrl, { responseType: "arraybuffer", timeout: 15000 });
-    await fs.writeFile(pathAvt1, Buffer.from(avResp.data));
+    // background image
+    const bgURL =
+      "https://drive.google.com/uc?id=1RwJnJTzUmwOmP3N_mZzxtp63wbvt9bLZ";
 
     // download background
-    const bgResp = await axios.get(rd, { responseType: "arraybuffer", timeout: 15000 });
-    await fs.writeFile(pathImg, Buffer.from(bgResp.data));
+    const bgRes = await axios.get(bgURL, { responseType: "arraybuffer" });
+    await fs.writeFile(bgPath, bgRes.data);
+
+    // download avatar
+    const avatarURL = `https://graph.facebook.com/${uid}/picture?width=512&height=512`;
+    const avtRes = await axios.get(avatarURL, { responseType: "arraybuffer" });
+    await fs.writeFile(avtPath, avtRes.data);
 
     // load images
-    const baseImage = await loadImage(pathImg);
-    const baseAvt1 = await loadImage(pathAvt1);
+    const bgImg = await loadImage(bgPath);
+    const avtImg = await loadImage(avtPath);
 
-    // create canvas
-    const canvas = createCanvas(baseImage.width, baseImage.height);
+    // canvas
+    const canvas = createCanvas(bgImg.width, bgImg.height);
     const ctx = canvas.getContext("2d");
 
-    ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    // text settings (আপনি চাইলে ফন্ট/সাইজ অ্যাডজাস্ট করতে পারেন)
-    ctx.font = "400 23px Arial";
+    // ===== TEXT =====
+    ctx.font = "bold 28px Arial";
     ctx.fillStyle = "#1878F3";
-    ctx.textAlign = "start";
+    ctx.textAlign = "left";
 
-    // wrap text to fit a box width (আপনি maxWidth বদলে দিতে পারেন)
-    const maxWidth = 1160;
+    const textX = 220;
+    const textY = 500;
+    const maxWidth = 900;
+
     const lines = await this.wrapText(ctx, name, maxWidth);
-    const textX = 200;
-    const textY = 497;
+    lines.forEach((l, i) => {
+      ctx.fillText(l, textX, textY + i * 32);
+    });
 
-    if (Array.isArray(lines)) {
-      // draw multiple lines — adjust line height if দরকার
-      const lineHeight = 30;
-      for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], textX, textY + (i * lineHeight));
-      }
-    } else {
-      ctx.fillText(name, textX, textY);
-    }
+    // ===== CIRCULAR AVATAR (FIXED) =====
+    const avtX = 83;
+    const avtY = 437;
+    const size = 100;
+    const r = size / 2;
 
-    // draw avatar
+    ctx.save();
     ctx.beginPath();
-    ctx.drawImage(baseAvt1, 83, 437, 100, 101);
+    ctx.arc(avtX + r, avtY + r, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.drawImage(avtImg, avtX, avtY, size, size);
+    ctx.restore();
+
+    // optional border
+    ctx.beginPath();
+    ctx.arc(avtX + r, avtY + r, r + 2, 0, Math.PI * 2);
+    ctx.strokeStyle = "#1878F3";
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
     // export image
-    const imageBuffer = canvas.toBuffer();
-    await fs.writeFile(pathImg, imageBuffer);
+    await fs.writeFile(outPath, canvas.toBuffer());
 
-    // send message with attachment
-    await api.sendMessage({
-      body: ` `,
-      attachment: fs.createReadStream(pathImg)
-    }, threadID, (err, info) => {
-      // cleanup files
-      try { if (fs.existsSync(pathImg)) fs.unlinkSync(pathImg); } catch (e) {}
-      try { if (fs.existsSync(pathAvt1)) fs.unlinkSync(pathAvt1); } catch (e) {}
-      if (err) console.error("sendMessage error (hack):", err);
-    }, messageID);
+    // send
+    await api.sendMessage(
+      {
+        body: "",
+        attachment: fs.createReadStream(outPath)
+      },
+      threadID,
+      () => {
+        // cleanup
+        try { fs.unlinkSync(bgPath); } catch {}
+        try { fs.unlinkSync(avtPath); } catch {}
+        try { fs.unlinkSync(outPath); } catch {}
+      },
+      messageID
+    );
 
-  } catch (error) {
-    console.error("hack command error:", error && (error.stack || error));
-    // try to cleanup partial files
-    try { if (fs.existsSync(pathImg)) fs.unlinkSync(pathImg); } catch (e) {}
-    try { if (fs.existsSync(pathAvt1)) fs.unlinkSync(pathAvt1); } catch (e) {}
-    return api.sendMessage("কোনো সমস্যা হয়েছে — আবার চেষ্টা করুন।", threadID, messageID);
+  } catch (err) {
+    console.error("hack command error:", err);
+    return api.sendMessage("❌ কিছু সমস্যা হয়েছে, পরে আবার চেষ্টা করুন।", threadID, messageID);
   }
 };
