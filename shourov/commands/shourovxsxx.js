@@ -1,57 +1,43 @@
-const fs = require("fs");
-const path = require("path");
-
 module.exports.config = {
   name: "shourov_notify",
-  version: "2.0.0",
+  version: "2.1.0",
   permission: 0,
-  credits: "nayan (fixed)",
-  description: "Reply when someone mentions Shourov (no-prefix handler)",
+  credits: "nayan (fixed by shourov)",
+  description: "Reply when someone mentions Shourov (no prefix)",
   prefix: false,
   category: "no prefix",
-  usages: "",
   cooldowns: 5
 };
 
-module.exports.handleEvent = async function({ api, event }) {
+module.exports.handleEvent = async function ({ api, event }) {
   try {
-    const { threadID, messageID } = event;
-    const body = (event.body || "").toString().trim();
-    if (!body) return;
+    if (!event.body) return;
+    if (event.senderID === api.getCurrentUserID()) return;
 
-    const lower = body.toLowerCase();
+    const text = event.body.toLowerCase();
 
-    // Triggers — তোমার দরকার অনুযায়ী বাড়াও / কমাও
     const triggers = [
       "সৌরভ",
       "shourov",
-      "Shourav",
-      "Alihsan Shourov",
-      "ALIHSAN SHOUROV",
+      "shourav",
+      "alihsan shourov",
+      "alihsan"
     ];
 
-    // যদি মেসেজ ট্রিগার দিয়ে শুরু হয় বা পুরোটা ট্রিগারের সমান হয়
-    const matches = triggers.some(t => lower.startsWith(t) || lower === t);
-    if (!matches) return;
+    const matched = triggers.some(t => text.includes(t));
+    if (!matched) return;
 
-    // উত্তর — ইচ্ছে করলে পরিবর্তন করো
     const replyText = "কিরে এত ডাকিস কেন? আমার বস বিজি আছে, পরে ডাকো 😒";
 
-    // send message and try to react
-    await api.sendMessage({ body: replyText }, threadID, messageID);
+    api.sendMessage(
+      { body: replyText },
+      event.threadID,
+      event.messageID
+    );
 
-    // best-effort: set reaction (ignore errors)
-    try {
-      await api.setMessageReaction("😘", messageID, () => {}, true);
-    } catch (e) {
-      // ignore reaction errors
-    }
   } catch (err) {
-    console.error("shourov_notify error:", err && (err.stack || err));
-    try { api.sendMessage("🚫 বট-এ একটি ত্রুটি হয়েছে।", event.threadID); } catch (_) {}
+    console.error("[shourov_notify]", err);
   }
 };
 
-module.exports.run = function() {
-  // no-op for compatibility
-};
+module.exports.run = function () {};
