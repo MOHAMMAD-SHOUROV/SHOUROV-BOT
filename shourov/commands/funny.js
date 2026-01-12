@@ -8,9 +8,9 @@ const streamPipeline = promisify(pipeline);
 
 module.exports.config = {
   name: "funny",
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
-  credits: "farhan (fixed)",
+  credits: "farhan (fixed by shourov)",
   description: "Random funny video",
   prefix: true,
   category: "Media",
@@ -43,11 +43,11 @@ module.exports.run = async ({ api, event }) => {
     "https://drive.google.com/uc?id=1-KLse2-7YKacnPGL7zHH5_KOHQUbVUt0",
   ];
 
-  const quote = "--FUNNY-VIDEO-𝐒𝐇𝐎𝐔𝐑𝐎𝐕_𝐁𝐎𝐓--";
+  const quote = "-- FUNNY VIDEO | SHOUROV BOT 😂 --";
   const chosenLink = links[Math.floor(Math.random() * links.length)];
 
   const cacheDir = path.join(__dirname, "cache");
-  const tmpName = `funny_${Date.now()}_${Math.floor(Math.random() * 10000)}.mp4`;
+  const tmpName = `funny_${Date.now()}.mp4`;
   const filePath = path.join(cacheDir, tmpName);
 
   try {
@@ -55,32 +55,34 @@ module.exports.run = async ({ api, event }) => {
 
     const res = await axios.get(chosenLink, {
       responseType: "stream",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible)" },
-      timeout: 30000
+      timeout: 30000,
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
     });
 
-    // save to temp file (safe pipeline)
     await streamPipeline(res.data, fs.createWriteStream(filePath));
 
-    // send and remove file after sending (best-effort cleanup)
-    await new Promise((resolve, reject) => {
-      api.sendMessage({
-        body: `「 ${quote} 」`,
+    await api.sendMessage(
+      {
+        body: quote,
         attachment: fs.createReadStream(filePath)
-      }, event.threadID, (err) => {
+      },
+      event.threadID,
+      () => {
         // cleanup
-        fs.pathExists(filePath).then(exists => {
-          if (exists) fs.unlink(filePath).catch(() => {});
-        });
-        if (err) return reject(err);
-        resolve();
-      });
-    });
+        fs.unlink(filePath).catch(() => {});
+      },
+      event.messageID
+    );
 
   } catch (err) {
-    console.error("funny command error:", err && (err.stack || err.message || err));
-    // cleanup on error
-    try { if (await fs.pathExists(filePath)) await fs.unlink(filePath); } catch(e) {}
-    return api.sendMessage("❌ ভিডিও লোড বা পাঠাতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।", event.threadID);
+    console.error("funny command error:", err && (err.stack || err.message));
+    try { if (await fs.pathExists(filePath)) await fs.unlink(filePath); } catch {}
+    return api.sendMessage(
+      "❌ ভিডিও লোড করা যায়নি। লিংক ডেড বা প্রাইভেট হতে পারে 😔",
+      event.threadID,
+      event.messageID
+    );
   }
 };
