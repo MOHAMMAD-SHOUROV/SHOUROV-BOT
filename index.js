@@ -1,1 +1,1 @@
-require("./shourovbot/alihsan/shourova.js")
+require("./Shourov/catalogs/shourova.js")
