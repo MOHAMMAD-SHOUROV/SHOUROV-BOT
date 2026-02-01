@@ -4,7 +4,7 @@
     "description": "simple messenger bot",
     "main": "index.js",
     "scripts": {
-        "start": "node shourov.js",
+        "start": "node Shourov.js",
         "login": "node login",
         "test": "node --trace-warnings --use_strict --async-stack-traces main"
     },
