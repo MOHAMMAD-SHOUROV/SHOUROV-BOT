@@ -3,7 +3,7 @@
     "description": "simple messenger bot",
     "main": "",
     "scripts": {
-        "start": "index.js",
+        "start": "index",
         "login": "node login",
         "test": "node --trace-warnings --use_strict --async-stack-traces main"
     },
