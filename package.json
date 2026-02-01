@@ -3,7 +3,7 @@
     "description": "simple messenger bot",
     "main": "",
     "scripts": {
-        "start": "node --trace-warnings --use_strict --async-stack-traces shourovbot/alihsan/shourova.js",
+        "start": "node --trace-warnings --use_strict --async-stack-traces Shourov/catalogs/shourova.js",
         "login": "node login",
         "test": "node --trace-warnings --use_strict --async-stack-traces main"
     },
