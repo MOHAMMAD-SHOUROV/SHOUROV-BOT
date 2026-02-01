@@ -11,6 +11,7 @@
     "author": "Shourov",
     "license": "GPL-3.0",
     "dependencies": {
+        "@dongdev/fca-unofficial": "^3.0.23",
         "aes-js": "latest",
         "axios": "^1.4.0",
         "bluebird": "^2.11.0",

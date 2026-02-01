@@ -2,12 +2,21 @@
 
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 
-// requires 
-const login = require('../system/login');                
+const app = express();
+const PORT = 5000;
+
 app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, '../../shourov.html'));
 });
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✓ Web server running on http://0.0.0.0:${PORT}`);
+});
+
+// requires 
+const login = require('@dongdev/fca-unofficial');
 
 // ---------- Paths ----------
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'shourov.json'); 
